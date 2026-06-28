@@ -1,0 +1,9 @@
+{
+  "traccar": {
+    "url":            "http://votre-traccar:8082/api",
+    "user":           "votre@email.com",
+    "password":       "",
+    "days_back":      7,
+    "cache_duration": 60
+  }
+}
