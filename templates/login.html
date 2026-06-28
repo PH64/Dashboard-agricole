@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion — Dashboard Agricole</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+.login-box {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.logo {
+    text-align: center;
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+h1 {
+    text-align: center;
+    color: #e2e8f0;
+    font-size: 18px;
+    margin-bottom: 32px;
+}
+label {
+    display: block;
+    color: #94a3b8;
+    font-size: 12px;
+    margin-bottom: 6px;
+    margin-top: 16px;
+}
+input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 15px;
+}
+input:focus { outline: none; border-color: #2563eb; }
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 24px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+button:hover { background: #1d4ed8; }
+.error {
+    background: #450a0a;
+    color: #fca5a5;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 13px;
+    margin-top: 16px;
+    text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="login-box">
+    <div class="logo">🚜</div>
+    <h1>Dashboard Agricole</h1>
+    <form method="POST">
+        <label>Identifiant</label>
+        <input type="text" name="username" autofocus autocomplete="username">
+        <label>Mot de passe</label>
+        <input type="password" name="password" autocomplete="current-password">
+        <button type="submit">Se connecter</button>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+    </form>
+</div>
+</body>
+</html>

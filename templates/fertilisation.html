@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fertilisation — Dashboard Agricole v12.0</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0f172a; --card:#1e293b; --card2:#162032; --border:#334155;
+  --text:#e2e8f0; --muted:#94a3b8;
+  --blue:#2563eb; --green:#22c55e; --amber:#f59e0b;
+  --red:#ef4444; --purple:#a855f7; --teal:#14b8a6; --orange:#f97316;
+  --n-color:#22c55e; --p-color:#f59e0b; --k-color:#a855f7;
+}
+body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* TOPBAR */
+.topbar { background:var(--card); border-bottom:1px solid var(--border); padding:10px 20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.topbar-title { font-weight:bold; font-size:15px; margin-right:auto; }
+.topbar-title span { color:var(--green); }
+.btn-back { background:#334155; color:var(--text); border:none; border-radius:6px; padding:7px 13px; cursor:pointer; font-size:13px; text-decoration:none; }
+.btn-back:hover { background:#475569; }
+
+/* SECTION TABS */
+.section-tabs { background:var(--card2); border-bottom:1px solid var(--border); padding:0 20px; display:flex; gap:0; }
+.stab { padding:11px 18px; font-size:13px; font-weight:bold; cursor:pointer; border-bottom:3px solid transparent; color:var(--muted); background:none; border-top:none; border-left:none; border-right:none; }
+.stab.active { color:var(--text); border-bottom-color:var(--green); }
+
+/* FILTERS */
+.filters { background:var(--card2); border-bottom:1px solid var(--border); padding:10px 20px; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; }
+.fgroup { display:flex; flex-direction:column; gap:3px; }
+.fgroup label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.fgroup select, .fgroup input { background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px 9px; font-size:13px; min-width:140px; }
+.fgroup select:focus, .fgroup input:focus { outline:none; border-color:var(--blue); }
+.btn-filter { background:var(--blue); color:white; border:none; border-radius:6px; padding:7px 16px; cursor:pointer; font-size:13px; font-weight:bold; align-self:flex-end; }
+.btn-reset { background:#334155; color:var(--muted); border:none; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; align-self:flex-end; }
+
+/* KPI */
+.kpi-strip { display:flex; gap:10px; padding:14px 20px; flex-wrap:wrap; }
+.kpi { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:13px 18px; flex:1; min-width:140px; display:flex; flex-direction:column; gap:3px; }
+.kpi-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.kpi-value { font-size:22px; font-weight:bold; }
+.kpi-sub   { font-size:11px; color:var(--muted); }
+.kpi.n .kpi-value { color:var(--n-color); }
+.kpi.p .kpi-value { color:var(--p-color); }
+.kpi.k .kpi-value { color:var(--k-color); }
+.kpi.blue  .kpi-value { color:var(--blue); }
+.kpi.teal  .kpi-value { color:var(--teal); }
+
+/* LAYOUT */
+.section { display:none; padding:16px 20px; }
+.section.active { display:block; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(380px,1fr)); gap:14px; margin-bottom:16px; }
+.grid-full { display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:16px; }
+.panel { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.panel-header { padding:11px 15px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+.panel-title { font-size:13px; font-weight:bold; }
+.panel-body { padding:13px 15px; }
+.chart-wrap { position:relative; height:240px; }
+
+/* TABLE */
+.tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.tbl th { text-align:left; padding:7px 9px; font-size:10px; color:var(--muted); text-transform:uppercase; border-bottom:1px solid var(--border); background:#162032; white-space:nowrap; }
+.tbl td { padding:7px 9px; border-bottom:1px solid #1e293b; vertical-align:middle; }
+.tbl tr:hover td { background:#1a2740; }
+.tbl .num { text-align:right; font-variant-numeric:tabular-nums; }
+.detail-row { cursor:pointer; }
+.detail-row td:first-child::before { content:"▶ "; font-size:10px; color:var(--muted); }
+.detail-row.open td:first-child::before { content:"▼ "; }
+.sub-row { display:none; }
+.sub-row.open { display:table-row; }
+.sub-row td { padding:0 !important; }
+.sub-inner { background:#0f172a; padding:8px 16px; }
+.sub-inner table { width:100%; font-size:11px; border-collapse:collapse; }
+.sub-inner td, .sub-inner th { padding:4px 8px; border-bottom:1px solid #1e293b; }
+.sub-inner th { color:var(--muted); font-size:10px; text-transform:uppercase; }
+
+/* BADGES NPK */
+.badge { display:inline-block; border-radius:4px; padding:2px 8px; font-size:11px; font-weight:bold; }
+.badge-n     { background:#14532d; color:#86efac; }
+.badge-p     { background:#451a03; color:#fcd34d; }
+.badge-k     { background:#3b0764; color:#d8b4fe; }
+.badge-green { background:#14532d; color:#86efac; }
+.badge-amber { background:#451a03; color:#fcd34d; }
+.badge-red   { background:#450a0a; color:#fca5a5; }
+
+/* PROGRESS BAR */
+.prog-wrap { display:flex; align-items:center; gap:6px; }
+.prog-bar  { height:7px; border-radius:4px; min-width:2px; max-width:100px; transition:width .3s; }
+.prog-ok   { background:var(--green); }
+.prog-low  { background:var(--amber); }
+.prog-over { background:var(--red); }
+
+/* OBJECTIFS FORM */
+.obj-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:12px; }
+.obj-card { background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:14px; }
+.obj-card h4 { font-size:13px; margin-bottom:10px; color:var(--text); }
+.obj-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.obj-row label { font-size:11px; color:var(--muted); width:80px; }
+.obj-row input { background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:5px; padding:5px 8px; font-size:13px; flex:1; }
+.obj-row input:focus { outline:none; border-color:var(--green); }
+.btn-save-obj { background:var(--green); color:#0f172a; border:none; border-radius:5px; padding:6px 14px; font-size:12px; font-weight:bold; cursor:pointer; margin-top:4px; }
+.btn-save-obj:hover { background:#16a34a; }
+
+/* CATALOGUE ENGRAIS */
+.cat-tbl th { background:#0d3d3a; }
+
+/* MISC */
+.loading { display:flex; align-items:center; justify-content:center; height:160px; color:var(--muted); font-size:13px; gap:10px; }
+.spinner { width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.err-box { background:#450a0a; border:1px solid #7f1d1d; border-radius:8px; padding:14px 18px; margin:14px 0; color:#fca5a5; font-size:13px; }
+.err-box pre { margin-top:8px; font-size:11px; white-space:pre-wrap; color:#fecaca; }
+.empty-msg { color:var(--muted); text-align:center; padding:20px; font-style:italic; font-size:13px; }
+.search-input { background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 9px; font-size:12px; width:170px; }
+.legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="btn-back">← Dashboard</a>
+  <div class="topbar-title">🌿 <span>Cahier de Fertilisation</span></div>
+  <span id="last-update" style="font-size:11px;color:var(--muted)"></span>
+</div>
+
+<div class="section-tabs">
+  <button class="stab active" onclick="showSection('s-bilan',this)">📊 Bilan apports</button>
+  <button class="stab" onclick="showSection('s-objectifs',this)">🎯 Objectifs</button>
+  <button class="stab" onclick="showSection('s-catalogue',this)">📋 Catalogue engrais</button>
+</div>
+
+<div class="filters">
+  <div class="fgroup"><label>Campagne</label>
+    <select id="f-campagne"><option value="">Toutes</option></select>
+  </div>
+  <div class="fgroup"><label>Culture</label>
+    <select id="f-culture"><option value="">Toutes</option></select>
+  </div>
+  <div class="fgroup"><label>Parcelle</label>
+    <select id="f-geo"><option value="">Toutes</option></select>
+  </div>
+  <button class="btn-filter" onclick="loadData()">🔍 Analyser</button>
+  <button class="btn-reset"  onclick="resetFilters()">✕ Reset</button>
+</div>
+
+<div id="kpis" class="kpi-strip">
+  <div class="loading"><div class="spinner"></div> Chargement…</div>
+</div>
+<div id="err-area" style="padding:0 20px"></div>
+
+<!-- ══════ SECTION BILAN ══════ -->
+<div id="s-bilan" class="section active">
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">🌿 Apports N par parcelle (U/ha)</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-n"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">📊 Répartition N/P/K moyens (U/ha)</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-npk-doughnut"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">🎯 Taux de couverture objectif N par parcelle</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-obj-n"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">📅 Apports N cumulés dans le temps</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-timeline"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="grid-full">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🗺️ Détail par parcelle</div>
+        <input class="search-input" placeholder="Filtrer…" oninput="filterTable('tbl-parc',this.value)">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="tbl-parc">
+          <thead><tr>
+            <th>Parcelle</th>
+            <th>Culture</th>
+            <th>Campagne</th>
+            <th class="num">Surface</th>
+            <th class="num">Apports</th>
+            <th class="num">N (U/ha)</th>
+            <th class="num">N/ha</th>
+            <th class="num">Obj. N</th>
+            <th style="min-width:130px">% Obj. N</th>
+            <th class="num">P/ha</th>
+            <th class="num">K/ha</th>
+          </tr></thead>
+          <tbody id="tbody-parc"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════ SECTION OBJECTIFS ══════ -->
+<div id="s-objectifs" class="section">
+  <div class="panel" style="margin-bottom:16px">
+    <div class="panel-header">
+      <div class="panel-title">🎯 Objectifs de fertilisation par culture</div>
+      <span style="font-size:11px;color:var(--muted)">Unités/ha — N = Azote, P = P₂O₅, K = K₂O</span>
+    </div>
+    <div class="panel-body">
+      <div class="obj-grid" id="obj-grid">
+        <div class="loading"><div class="spinner"></div> Chargement…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SECTION CATALOGUE ENGRAIS ══════ -->
+<div id="s-catalogue" class="section">
+
+  <div class="panel" style="margin-bottom:16px">
+    <div class="panel-header">
+      <div class="panel-title">🧪 Catalogue engrais — Teneurs NPK</div>
+      <input class="search-input" placeholder="Filtrer…" oninput="filterTable('tbl-cat',this.value)">
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl cat-tbl" id="tbl-cat">
+        <thead><tr>
+          <th>Produit</th>
+          <th class="num">Dose conseil. (/ha)</th>
+          <th class="num">Unité</th>
+          <th class="num">N (%)</th>
+          <th class="num">P₂O₅ (%)</th>
+          <th class="num">K₂O (%)</th>
+          <th class="num">N/ha à dose conseil.</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="tbody-cat"></tbody>
+      </table>
+    </div>
+    <div class="panel-body" style="border-top:1px solid var(--border); padding-top:14px;">
+      <strong style="font-size:13px;">➕ Ajouter / Modifier un engrais</strong>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:12px;" id="cat-form">
+        <input type="hidden" id="cat-edit-id">
+        <div class="fgroup"><label>Nom produit *</label><input type="text" id="cat-name" placeholder="Ex: Urée 46%"></div>
+        <div class="fgroup"><label>Dose conseil. (/ha)</label><input type="number" id="cat-dose" min="0" step="0.1" placeholder="0"></div>
+        <div class="fgroup"><label>Unité</label><input type="text" id="cat-unit" placeholder="kg, L…"></div>
+        <div class="fgroup"><label>N (%)</label><input type="number" id="cat-n" min="0" max="100" step="0.1" placeholder="0" style="border-color:var(--n-color)"></div>
+        <div class="fgroup"><label>P₂O₅ (%)</label><input type="number" id="cat-p" min="0" max="100" step="0.1" placeholder="0" style="border-color:var(--p-color)"></div>
+        <div class="fgroup"><label>K₂O (%)</label><input type="number" id="cat-k" min="0" max="100" step="0.1" placeholder="0" style="border-color:var(--k-color)"></div>
+        <div style="display:flex; align-items:flex-end; gap:8px;">
+          <button class="btn-save-obj" onclick="saveCatEntry()" style="height:38px; padding:0 16px;">💾 Enregistrer</button>
+          <button onclick="resetCatForm()" style="background:#334155; color:var(--muted); border:none; border-radius:5px; padding:0 12px; height:38px; cursor:pointer; font-size:12px;">✕</button>
+        </div>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:var(--muted)">
+        Exemples : Urée 46 → N=46% | DAP → N=18%, P=46% | KCl → K=60% | Ammonitrate 33.5 → N=33.5%
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const charts = {};
+const PAL = ['#22c55e','#f59e0b','#a855f7','#2563eb','#14b8a6','#f97316','#ec4899','#84cc16'];
+const col = i => PAL[i % PAL.length];
+let _data = null;
+let _cultures = [];
+
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 's-catalogue') loadCatalogue();
+  if (id === 's-objectifs') loadObjectifs();
+}
+
+async function loadData() {
+  const params = new URLSearchParams({
+    campagne: document.getElementById('f-campagne').value,
+    culture:  document.getElementById('f-culture').value,
+    geofence_id: document.getElementById('f-geo').value,
+  });
+  document.getElementById('kpis').innerHTML = '<div class="loading"><div class="spinner"></div> Analyse en cours…</div>';
+  document.getElementById('err-area').innerHTML = '';
+
+  let resp, data;
+  try { resp = await fetch('/api/fertilisation?' + params, { credentials: 'same-origin' }); }
+  catch(e) { showErr('Impossible de joindre le serveur.', e.message); return; }
+  if (resp.status === 401 || resp.redirected) { window.location.href = '/login'; return; }
+  if (!resp.ok) { let b=''; try{b=await resp.text();}catch(_){} showErr(`Erreur HTTP ${resp.status}`, b.slice(0,800)); return; }
+  try { data = await resp.json(); } catch(e) { showErr('JSON invalide.', e.message); return; }
+  if (data.error) { showErr('Erreur serveur :', data.error + (data.trace ? '\n\n'+data.trace : '')); return; }
+
+  _data = data;
+  fillFilters(data);
+  renderKPIs(data);
+  renderCharts(data);
+  renderTable(data);
+  document.getElementById('last-update').textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
+}
+
+function showErr(msg, detail) {
+  document.getElementById('kpis').innerHTML = '';
+  document.getElementById('err-area').innerHTML = `<div class="err-box">⚠️ ${msg}${detail?`<pre>${detail}</pre>`:''}</div>`;
+}
+
+function fillFilters(data) {
+  const fCamp = document.getElementById('f-campagne');
+  const fCult = document.getElementById('f-culture');
+  const fGeo  = document.getElementById('f-geo');
+  const curC  = fCamp.value, curCu = fCult.value, curG = fGeo.value;
+
+  fCamp.innerHTML = '<option value="">Toutes</option>';
+  (data.all_campagnes||[]).forEach(c => {
+    const o = document.createElement('option'); o.value=c; o.textContent=c;
+    if(c===curC) o.selected=true; fCamp.appendChild(o);
+  });
+  fCult.innerHTML = '<option value="">Toutes</option>';
+  (data.all_cultures||[]).forEach(c => {
+    const o = document.createElement('option'); o.value=c; o.textContent=c;
+    if(c===curCu) o.selected=true; fCult.appendChild(o);
+  });
+  fGeo.innerHTML = '<option value="">Toutes</option>';
+  const seenGeo = new Set();
+  (data.parcelles||[]).forEach(p => {
+    if(seenGeo.has(p.geofence_id)) return; seenGeo.add(p.geofence_id);
+    const o = document.createElement('option');
+    o.value=p.geofence_id; o.textContent=p.parcelle;
+    if(String(p.geofence_id)===curG) o.selected=true;
+    fGeo.appendChild(o);
+  });
+}
+
+function resetFilters() {
+  ['f-campagne','f-culture','f-geo'].forEach(id => document.getElementById(id).value='');
+  loadData();
+}
+
+function renderKPIs(data) {
+  const t = data.totaux;
+  const parc = data.parcelles||[];
+  const avgN = parc.length ? Math.round(parc.reduce((a,p)=>a+p.n_ha,0)/parc.length) : 0;
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi n"><div class="kpi-label">Azote moyen (N)</div><div class="kpi-value">${avgN} U/ha</div><div class="kpi-sub">Total : ${Math.round(t.n)} U sur ${t.surface} ha</div></div>
+    <div class="kpi p"><div class="kpi-label">Phosphore moyen (P₂O₅)</div><div class="kpi-value">${t.surface>0?Math.round(t.p/t.surface):0} U/ha</div><div class="kpi-sub">Total : ${Math.round(t.p)} U</div></div>
+    <div class="kpi k"><div class="kpi-label">Potasse moyenne (K₂O)</div><div class="kpi-value">${t.surface>0?Math.round(t.k/t.surface):0} U/ha</div><div class="kpi-sub">Total : ${Math.round(t.k)} U</div></div>
+    <div class="kpi blue"><div class="kpi-label">Apports</div><div class="kpi-value">${t.nb}</div><div class="kpi-sub">${parc.length} parcelle(s)</div></div>
+    <div class="kpi teal"><div class="kpi-label">Surface fertilisée</div><div class="kpi-value">${t.surface} ha</div><div class="kpi-sub">${data.all_campagnes?.length||0} campagne(s)</div></div>`;
+}
+
+function dc(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+function renderCharts(data) {
+  const parc = data.parcelles||[];
+
+  // N par parcelle
+  dc('chart-n');
+  if(parc.length) {
+    charts['chart-n'] = new Chart(document.getElementById('chart-n'), {
+      type:'bar',
+      data:{ labels:parc.map(p=>p.parcelle), datasets:[
+        { label:'N apporté (U/ha)', data:parc.map(p=>p.n_ha), backgroundColor:'#22c55e99', borderRadius:4 },
+        { label:'Objectif N', data:parc.map(p=>p.objectif_n||0), backgroundColor:'transparent', borderColor:'#f59e0b', borderWidth:2, type:'line', pointRadius:4 }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{color:'#94a3b8',font:{size:11}} } },
+        scales:{ x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'},beginAtZero:true} }}
+    });
+  }
+
+  // Donut NPK
+  dc('chart-npk-doughnut');
+  const t = data.totaux;
+  if(t.n||t.p||t.k) {
+    charts['chart-npk-doughnut'] = new Chart(document.getElementById('chart-npk-doughnut'), {
+      type:'doughnut',
+      data:{ labels:['N (Azote)','P (P₂O₅)','K (K₂O)'], datasets:[{ data:[t.surface>0?Math.round(t.n/t.surface):0, t.surface>0?Math.round(t.p/t.surface):0, t.surface>0?Math.round(t.k/t.surface):0], backgroundColor:['#22c55e','#f59e0b','#a855f7'], borderColor:'#1e293b', borderWidth:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{color:'#94a3b8',font:{size:12}} } } }
+    });
+  }
+
+  // Taux couverture N
+  dc('chart-obj-n');
+  const withObj = parc.filter(p=>p.objectif_n>0);
+  if(withObj.length) {
+    charts['chart-obj-n'] = new Chart(document.getElementById('chart-obj-n'), {
+      type:'bar',
+      data:{ labels:withObj.map(p=>p.parcelle), datasets:[{ label:'% objectif N', data:withObj.map(p=>p.pct_n||0),
+        backgroundColor: withObj.map(p => (p.pct_n||0)>110?'#ef4444aa':(p.pct_n||0)>=90?'#22c55eaa':'#f59e0baa'),
+        borderRadius:4 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+        scales:{ x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}},
+          y:{ticks:{color:'#94a3b8',callback:v=>v+'%'},grid:{color:'#1e293b'},beginAtZero:true,
+             suggestedMax:120,
+             afterDraw: chart => {
+               const ctx = chart.ctx, yAxis = chart.scales.y, xAxis = chart.scales.x;
+               const y100 = yAxis.getPixelForValue(100);
+               ctx.save(); ctx.strokeStyle='#f59e0b'; ctx.lineWidth=1.5;
+               ctx.setLineDash([6,3]);
+               ctx.beginPath(); ctx.moveTo(xAxis.left,y100); ctx.lineTo(xAxis.right,y100); ctx.stroke();
+               ctx.restore();
+             }
+          }
+        }
+      }
+    });
+  }
+
+  // Timeline apports N cumulés
+  dc('chart-timeline');
+  const timelineData = {};
+  (parc).forEach(p => {
+    (p.detail||[]).forEach(d => {
+      if(!timelineData[d.date]) timelineData[d.date] = 0;
+      timelineData[d.date] += d.n_ha * (d.surface||0);
+    });
+  });
+  const tlDates = Object.keys(timelineData).sort();
+  let cumul = 0;
+  const tlCumul = tlDates.map(d => { cumul += timelineData[d]; return Math.round(cumul); });
+  if(tlDates.length) {
+    charts['chart-timeline'] = new Chart(document.getElementById('chart-timeline'), {
+      type:'line',
+      data:{ labels:tlDates.map(d=>{const[y,m,j]=d.split('-');return `${j}/${m}/${y}`;}),
+        datasets:[{ label:'N cumulé (U)', data:tlCumul, borderColor:'#22c55e', backgroundColor:'#22c55e22', fill:true, tension:0.3, pointRadius:3 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'},beginAtZero:true} } }
+    });
+  }
+}
+
+function renderTable(data) {
+  const parc = data.parcelles||[];
+  const tbody = document.getElementById('tbody-parc');
+  if(!parc.length){ tbody.innerHTML='<tr><td colspan="11" class="empty-msg">Aucun apport enregistré sur la période.<br>Vérifiez que vos engrais ont les teneurs NPK renseignées dans le catalogue.</td></tr>'; return; }
+
+  tbody.innerHTML = parc.map((p,i) => {
+    const pct = p.pct_n;
+    const pctBar = pct!=null ? `<div class="prog-wrap">
+      <div class="prog-bar ${pct>110?'prog-over':pct>=90?'prog-ok':'prog-low'}" style="width:${Math.min(pct,150)*0.6}px"></div>
+      <span class="badge ${pct>110?'badge-red':pct>=90?'badge-green':'badge-amber'}">${pct}%</span>
+    </div>` : '<span style="color:var(--muted)">—</span>';
+    const subId = `sub-${i}`;
+    const detailRows = (p.detail||[]).map(d => `<tr>
+      <td>${d.date}</td><td>${d.produit}</td>
+      <td style="text-align:right">${d.dosage} ${d.unit}</td>
+      <td style="text-align:right">${d.surface} ha</td>
+      <td style="text-align:right"><span class="badge badge-n">${d.n_ha} U/ha</span></td>
+      <td style="text-align:right">${d.p_ha||0} U/ha</td>
+      <td style="text-align:right">${d.k_ha||0} U/ha</td>
+    </tr>`).join('');
+    return `
+      <tr class="detail-row" onclick="toggleSub('${subId}',this)">
+        <td>${p.parcelle}</td>
+        <td>${p.culture}</td>
+        <td>${p.campagne}</td>
+        <td class="num">${p.surface_ha} ha</td>
+        <td class="num">${p.nb_apports}</td>
+        <td class="num"><span class="badge badge-n">${p.n_ha} U/ha</span></td>
+        <td class="num">${p.n_ha}</td>
+        <td class="num">${p.objectif_n||'—'}</td>
+        <td>${pctBar}</td>
+        <td class="num"><span class="badge badge-p">${p.p_ha}</span></td>
+        <td class="num"><span class="badge badge-k">${p.k_ha}</span></td>
+      </tr>
+      <tr class="sub-row" id="${subId}">
+        <td colspan="11">
+          <div class="sub-inner">
+            <table><thead><tr><th>Date</th><th>Produit</th><th style="text-align:right">Dose</th><th style="text-align:right">Surface</th><th style="text-align:right">N/ha</th><th style="text-align:right">P/ha</th><th style="text-align:right">K/ha</th></tr></thead>
+            <tbody>${detailRows}</tbody></table>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function toggleSub(id, row) {
+  const sub = document.getElementById(id);
+  const open = sub.classList.toggle('open');
+  row.classList.toggle('open', open);
+}
+
+/* ── OBJECTIFS ── */
+async function loadObjectifs() {
+  const grid = document.getElementById('obj-grid');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const [rObj, rCult] = await Promise.all([
+      fetch('/api/objectifs_fertilisation'),
+      fetch('/api/cultures')
+    ]);
+    const objectifs  = await rObj.json();
+    const cultures   = await rCult.json();
+    _cultures = cultures;
+    const objMap = {};
+    objectifs.forEach(o => objMap[o.culture] = o);
+
+    grid.innerHTML = cultures.map(c => {
+      const o = objMap[c.nom] || {};
+      return `<div class="obj-card">
+        <h4>🌾 ${c.nom}</h4>
+        <div class="obj-row"><label>🌿 Azote N</label><input type="number" id="obj-n-${c.id}" placeholder="U N/ha" min="0" step="1" value="${o.objectif_n||''}"></div>
+        <div class="obj-row"><label>🟡 P₂O₅</label><input type="number" id="obj-p-${c.id}" placeholder="U P/ha" min="0" step="1" value="${o.objectif_p||''}"></div>
+        <div class="obj-row"><label>🟣 K₂O</label><input type="number" id="obj-k-${c.id}" placeholder="U K/ha" min="0" step="1" value="${o.objectif_k||''}"></div>
+        <div class="obj-row"><label>📝 Notes</label><input type="text" id="obj-notes-${c.id}" placeholder="Ex: Blé 8t/ha" value="${o.notes||''}"></div>
+        <button class="btn-save-obj" onclick="saveObjectif('${c.nom}',${c.id})">💾 Enregistrer</button>
+      </div>`;
+    }).join('') || '<div class="empty-msg">Aucune culture configurée.</div>';
+  } catch(e) { grid.innerHTML = `<div class="err-box">Erreur : ${e.message}</div>`; }
+}
+
+async function saveObjectif(culture, cid) {
+  const payload = {
+    culture,
+    objectif_n: parseFloat(document.getElementById(`obj-n-${cid}`).value)||0,
+    objectif_p: parseFloat(document.getElementById(`obj-p-${cid}`).value)||0,
+    objectif_k: parseFloat(document.getElementById(`obj-k-${cid}`).value)||0,
+    notes:      document.getElementById(`obj-notes-${cid}`).value,
+  };
+  const r = await fetch('/api/objectifs_fertilisation', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+  });
+  if(r.ok) {
+    const btn = event.target;
+    btn.textContent = '✓ Enregistré'; btn.style.background='#16a34a';
+    setTimeout(()=>{ btn.textContent='💾 Enregistrer'; btn.style.background=''; }, 2000);
+  }
+}
+
+/* ── CATALOGUE ENGRAIS ── */
+async function loadCatalogue() {
+  try {
+    const r = await fetch('/api/catalog_products');
+    const all = await r.json();
+    const engrais = all.filter(p => p.type === 'engrais');
+    const tbody = document.getElementById('tbody-cat');
+    tbody.innerHTML = engrais.map(p => {
+      const nDose = (p.dose && p.teneur_n) ? Math.round(p.dose * p.teneur_n / 100) : '—';
+      return `<tr>
+        <td><strong>${p.name}</strong></td>
+        <td class="num">${p.dose||'—'}</td>
+        <td class="num">${p.unit||'—'}</td>
+        <td class="num"><span class="badge badge-n">${p.teneur_n||0}%</span></td>
+        <td class="num"><span class="badge badge-p">${p.teneur_p||0}%</span></td>
+        <td class="num"><span class="badge badge-k">${p.teneur_k||0}%</span></td>
+        <td class="num">${nDose !== '—' ? nDose + ' U' : '—'}</td>
+        <td><button onclick="editCat(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="background:#334155;color:var(--text);border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;">✏️</button></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="8" class="empty-msg">Aucun engrais dans le catalogue. Ajoutez-en via le Catalogue Produits du dashboard.</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+function editCat(p) {
+  document.getElementById('cat-edit-id').value = p.id;
+  document.getElementById('cat-name').value  = p.name;
+  document.getElementById('cat-dose').value  = p.dose||'';
+  document.getElementById('cat-unit').value  = p.unit||'';
+  document.getElementById('cat-n').value     = p.teneur_n||'';
+  document.getElementById('cat-p').value     = p.teneur_p||'';
+  document.getElementById('cat-k').value     = p.teneur_k||'';
+  document.getElementById('cat-name').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function saveCatEntry() {
+  const id   = document.getElementById('cat-edit-id').value;
+  const name = document.getElementById('cat-name').value.trim();
+  if(!name) { alert('Nom obligatoire'); return; }
+  const payload = {
+    id:        id ? parseInt(id) : null,
+    type:      'engrais',
+    name,
+    dose:      parseFloat(document.getElementById('cat-dose').value)||0,
+    unit:      document.getElementById('cat-unit').value.trim(),
+    teneur_n:  parseFloat(document.getElementById('cat-n').value)||0,
+    teneur_p:  parseFloat(document.getElementById('cat-p').value)||0,
+    teneur_k:  parseFloat(document.getElementById('cat-k').value)||0,
+    amm:'N/A', bbch:'', culture:'', dre:0, target:'', bio:0, dar:0, dose_homologuee:0,
+  };
+  const r = await fetch('/api/catalog_products', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+  });
+  if(r.ok) { resetCatForm(); loadCatalogue(); }
+  else alert('Erreur sauvegarde');
+}
+
+function resetCatForm() {
+  ['cat-edit-id','cat-name','cat-dose','cat-unit','cat-n','cat-p','cat-k'].forEach(id => document.getElementById(id).value='');
+}
+
+function filterTable(tableId, q) {
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
+    if(tr.classList.contains('sub-row')) return;
+    tr.style.display = !q || tr.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>

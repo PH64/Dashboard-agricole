@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notice d'utilisation complète — Dashboard Agricole v12.0</title>
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --primary-light: #e8f5e9;
+            --secondary-color: #37474f;
+            --bg-color: #f4f6f7;
+            --text-color: #2c3e50;
+            --border-color: #cfd8dc;
+            --warning-bg: #fffde7;
+            --warning-border: #fbc02d;
+            --sidebar-width: 280px;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: #ffffff;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar li {
+            margin-bottom: 12px;
+        }
+
+        .sidebar a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 0.95rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            padding-left: 15px;
+        }
+
+        .content {
+            margin-left: var(--sidebar-width);
+            padding: 40px 50px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.6rem;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #546e7a;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: var(--secondary-color);
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 50px;
+            scroll-margin-top: 20px;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin-top: 30px;
+        }
+
+        p, li {
+            font-size: 1.05rem;
+            text-align: justify;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 14px 18px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+
+        code {
+            background-color: #eceff1;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 0.95rem;
+        }
+
+        pre {
+            background-color: #263238;
+            color: #eceff1;
+            padding: 18px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        .info-box {
+            background-color: var(--warning-bg);
+            border-left: 5px solid var(--warning-border);
+            padding: 18px;
+            margin: 25px 0;
+            border-radius: 0 6px 6px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .info-box p {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .content { margin-left: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <h3>Sommaire</h3>
+        <ul>
+            <li><a href="#prerequis">🛠 Prérequis</a></li>
+            <li><a href="#structure">📂 Fichiers</a></li>
+            <li><a href="#configuration">⚙️ Configuration</a></li>
+            <li><a href="#lancement">🚀 Lancement</a></li>
+            <li><a href="#utilisation">📝 Utilisation</a></li>
+            <li><a href="#carnet">📌 Carnet Phyto</a></li>
+            <li><a href="#gestion">🗂️ Gestion Parcelles</a></li>
+            <li><a href="#analytique">📈 Module Analytique</a></li>
+            <li><a href="#fertilisation">🌿 Fertilisation</a></li>
+            <li><a href="#IFT">📊 Bilans IFT & Météo</a></li>
+            <li><a href="#maintenance">🔧 Notes Techniques</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>🚜 Dashboard Agricole — v12.0</h1>
+        <div class="subtitle">Application web de suivi des interventions agricoles, couplée à Traccar (GPS) et enrichie d'un carnet de terrain, d'un cahier de fertilisation et d'un module analytique.</div>
+
+        <section id="prerequis">
+            <h2>Prérequis d'installation</h2>
+            
+            <h3>Matériel recommandé</h3>
+            <ul>
+                <li>Pour une utilisation en réseau : NAS Synology ou tout serveur Linux</li>
+                <li>Pour une utilisation monoposte : un PC linux ou windows</li>
+                <li>Accès réseau local et/ou internet pour Traccar et météo</li>
+            </ul>
+
+            <h3>Python</h3>
+            <ul>
+                <li><strong>Python 3.9 ou supérieur</strong></li>
+                <li>Vérifier l'installation : <code>python3 --version</code></li>
+            </ul>
+
+            <h3>Dépendances Python</h3>
+            <p>Installez les packages requis via votre terminal :</p>
+            <pre><code>pip3 install flask requests openpyxl fpdf2</code></pre>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>flask</code></td>
+                        <td>Serveur web de l'application</td>
+                    </tr>
+                    <tr>
+                        <td><code>requests</code></td>
+                        <td>Communication avec l'API Traccar</td>
+                    </tr>
+                    <tr>
+                        <td><code>openpyxl</code></td>
+                        <td>Export Excel (.xlsx)</td>
+                    </tr>
+                    <tr>
+                        <td><code>fpdf2</code></td>
+                        <td>Génération des rapports PDF (analytique, fertilisation)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <p>Les modules suivants sont inclus par défaut dans la bibliothèque standard Python : <code>sqlite3</code>, <code>json</code>, <code>re</code>, <code>threading</code>, <code>csv</code>, <code>io</code>, <code>os</code>, <code>time</code>, <code>secrets</code>.</p>
+            </div>
+
+            <h3>Traccar</h3>
+            <ul>
+                <li>Instance Traccar accessible en réseau (locale ou distante)</li>
+                <li>Version Traccar ≥ 5.0 vivement recommandée</li>
+                <li>Les appareils GPS doivent être préalablement déclarés dans Traccar</li>
+                <li>Les <strong>périmètres virtuels</strong> créées dans Traccar correspondent directement aux parcelles de l'exploitation.</li>
+            </ul>
+        </section>
+
+        <section id="structure">
+            <h2>Structure des fichiers</h2>
+            <pre><code>/
+├── dashboard.py           # Application principale Flask
+├── interventions.py       # Blueprint Flask : API interventions, parcelles, catalogue
+├── database.db            # Base de données SQLite (créée automatiquement)
+├── config.json            # Configuration Traccar (créé via l'interface, optionnel)
+├── templates/             # Dossier contenant les vues HTML
+│   ├── index.html         # Dashboard principal
+│   ├── analytique.html    # Module analytique
+│   ├── fertilisation.html # Cahier de fertilisation
+│   ├── login.html         # Page de connexion sécurisée
+│   └── change_password.html
+├── exports/               # Fichiers PDF et Excel générés (créé automatiquement)
+├── backups/               # Sauvegardes automatiques de la DB (créé automatiquement)
+└── restart.sh             # Script système de redémarrage</code></pre>
+        </section>
+
+        <section id="configuration">
+            <h2>Configuration</h2>
+
+            <h3>Option 1 — Via l'interface (Recommandé, nouveauté v12.0)</h3>
+            <p>Ouvrir le dashboard → <strong>⚙️ État système</strong> → section <strong>Paramétrage Traccar</strong> :</p>
+            <ul>
+                <li>Renseignez l'URL du serveur, l'identifiant et le mot de passe utilisateur.</li>
+                <li>Cliquez sur <strong>💾 Enregistrer</strong> — la configuration est appliquée <strong>immédiatement sans aucun redémarrage</strong>.</li>
+                <li>Cliquez sur <strong>🔌 Tester</strong> pour vérifier instantanément la bonne liaison avec l'API.</li>
+            </ul>
+            <p>Cette configuration est définitivement sauvegardée dans le fichier <code>config.json</code> et rechargée automatiquement à chaque démarrage du serveur.</p>
+
+            <h3>Option 2 — Dans le code (Fallback / Secours)</h3>
+            <p>Si le fichier <code>config.json</code> est absent, l'application utilise par défaut les valeurs codées en dur situées dans <code>dashboard.py</code> :</p>
+            <pre><code>TRACCAR_URL      = "http://votre-traccar:8082/api"
+TRACCAR_USER     = "votre@email.com"
+TRACCAR_PASSWORD = "votre_mot_de_passe"
+DAYS_BACK        = 7    # Période par défaut en jours affichée à l'écran
+CACHE_DURATION   = 60   # Durée du cache Traccar en secondes</code></pre>
+        </section>
+
+        <section id="lancement">
+            <h2>Lancement</h2>
+            <p>Pour démarrer l'application directement :</p>
+            <pre><code>python3 dashboard.py</code></pre>
+            <p>Ou utilisez le script automatisé de redémarrage :</p>
+            <pre><code>bash restart.sh</code></pre>
+            <p>L'application est ensuite accessible via votre navigateur à l'adresse : <strong><code>http://[IP-du-serveur]:8080</code></strong>.</p>
+
+            <h3>Connexion par défaut</h3>
+            <ul>
+                <li><strong>Identifiant :</strong> <code>admin</code></li>
+                <li><strong>Mot de passe :</strong> défini automatiquement lors du premier lancement (consultez le fichier généré <code>password.txt</code>).</li>
+            </ul>
+            <div class="info-box">
+                <p>⚠️ Pour des raisons de sécurité, il est fortement recommandé de changer le mot de passe via l'onglet <strong>Système → Changer le mot de passe</strong> dès votre premier accès.</p>
+            </div>
+        </section>
+
+        <section id="utilisation">
+            <h2>Notice d'utilisation</h2>
+
+            <h3>Dashboard Principal</h3>
+            <p>L'écran principal de contrôle est séparé verticalement en deux parties :</p>
+            <ul>
+                <li><strong>Carte interactive (à droite) :</strong> Suivi des positions GPS en temps réel et affichage des périmètres virtuels (parcelles).</li>
+                <li><strong>Tableau des événements (à gauche) :</strong> Journal des entrées et sorties de parcelles automatiquement détectées par Traccar.</li>
+            </ul>
+
+            <h4>Filtres disponibles</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filtre</th>
+                        <th>Options disponibles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Période</strong></td>
+                        <td>7 jours (valeur par défaut), 30 jours, 3 mois, 6 mois, ou période personnalisée</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tracteur</strong></td>
+                        <td>Permet de filtrer l'affichage par véhicule spécifique</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Parcelle</strong></td>
+                        <td>Permet de filtrer par périmètre virtuel Traccar</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>Utilisez le bouton 🔍 pour appliquer les filtres choisis, et le bouton ↺ pour réinitialiser la recherche.</p>
+
+            <h4>Barre d'actions</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Icône</th>
+                        <th>Action déclenchée</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>📌</td><td><strong>Carnet du jour :</strong> Ouvrir le carnet pour aujourd'hui</td></tr>
+                    <tr><td>📋</td><td><strong>Historique phyto :</strong> Consulter l'historique global du carnet phytosanitaire</td></tr>
+                    <tr><td>📅</td><td><strong>Calendrier :</strong> Afficher le calendrier des interventions</td></tr>
+                    <tr><td>✏️</td><td><strong>Saisie manuelle :</strong> Enregistrer manuellement une intervention non détectée par le GPS</td></tr>
+                    <tr><td>📍</td><td><strong>Centrer véhicules :</strong> Recadrer immédiatement la carte sur les véhicules GPS actifs</td></tr>
+                    <tr><td>🗺</td><td><strong>Centrer parcelles :</strong> Recadrer immédiatement la carte pour voir toutes les parcelles</td></tr>
+                    <tr><td>⚙️</td><td><strong>État système :</strong> Vérifier l'état de l'application et accéder au paramétrage Traccar</td></tr>
+                    <tr><td>🗂️</td><td><strong>Gestion parcelles :</strong> Gérer l'administration des parcelles et de l'exploitation</td></tr>
+                    <tr><td>🌱</td><td><strong>Export XML :</strong> Générer l'export réglementaire du registre phytosanitaire</td></tr>
+                    <tr><td>📊</td><td><strong>Bilans IFT :</strong> Visualiser les indicateurs de fréquence de traitement par culture et campagne</td></tr>
+                    <tr><td>🌿</td><td><strong>Fertilisation :</strong> Ouvrir le module complet du cahier de fertilisation N/P/K</td></tr>
+                    <tr><td>📈</td><td><strong>Analytique :</strong> Ouvrir le module analytique complet de performances</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="carnet">
+            <h2>Carnet Phyto et Interventions</h2>
+            
+            <h3>Saisie depuis une détection automatique Traccar</h3>
+            <ol>
+                <li>Sur une ligne d'événement du tableau principal, cliquez sur le bouton <strong>✍️</strong> (Saisir).</li>
+                <li>Sélectionnez le <strong>type d'intervention</strong> (celui-ci est automatiquement déduit en fonction de l'outil attelé).</li>
+                <li>Renseignez la <strong>surface</strong> — le champ se pré-remplit automatiquement avec la surface cultivée cadastrale si elle est paramétrée, sinon il reste vide.</li>
+                <li>Ajoutez les <strong>produits</strong> utilisés à partir du catalogue (la dose conseillée se pré-remplit seule).</li>
+                <li>Importez la <strong>météo automatiquement</strong> 🔄 — le système récupère les données météo <strong>historiques exactes au jour et à l'heure de l'intervention</strong> (et non du jour actuel).</li>
+                <li>Validez en cliquant sur <strong>Sauvegarder</strong>.</li>
+            </ol>
+            <div class="info-box">
+                <p>💡 Le bouton <strong>Modifier</strong> (✏️) présent dans l'historique du carnet vous permet de corriger ou modifier a posteriori <strong>absolument toutes les interventions</strong> (qu'elles soient issues d'une détection GPS ou saisies à la main).</p>
+            </div>
+
+            <h3>Saisie manuelle</h3>
+            <p>Pour enregistrer les travaux agricoles réalisés sans l'aide du tracker GPS Traccar :</p>
+            <ol>
+                <li><strong>Sélectionnez une ou plusieurs parcelles</strong> via les cases à cocher (un champ de recherche textuelle ainsi que des boutons de sélection globale "Tout/Aucun" sont à disposition).</li>
+                <li>Renseignez la date/heure, le tracteur et l'outil employé. Le type de travaux est déduit seul par rapport à l'outil choisi.</li>
+                <li>La <strong>surface</strong> se pré-remplit avec la surface cadastrale uniquement si une seule parcelle est cochée.</li>
+                <li>Ajoutez les produits et lancez l'importation de la météo historique.</li>
+                <li>Si vous cochez plusieurs parcelles d'un coup : le système génère intelligemment une intervention distincte pour chaque parcelle.</li>
+                <li>Saisissez la <strong>durée</strong> du chantier (en minutes) : elle sera sauvegardée et exploitée pour calculer les rendements en ha/h du module analytique.</li>
+            </ol>
+        </section>
+
+        <section id="gestion">
+            <h2>Gestion Parcelles et Exploitation</h2>
+
+            <h3>Onglet Parcelles</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Champ</th>
+                        <th>Description et rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Identifiant export</strong></td>
+                        <td>Code court (ex: PAR001) servant de passerelle avec la périmètre virtuel Traccar.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Surface cultivée (ha)</strong></td>
+                        <td>Valeur pivot servant de référence pour les pré-remplissages automatiques, le registre phytosanitaire (XML) et l'IFT.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Statut</strong></td>
+                        <td>Permet de spécifier l'état de l'assolement (En culture, Jachère, etc.).</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="info-box">
+                <p>Note : La surface saisie manuellement au sein d'une intervention reste prioritaire sur la surface cadastrale parcelles pour tous les calculs de l'analytique.</p>
+            </div>
+
+            <h3>Onglet Exploitation</h3>
+            <p>Renseignez ici les coordonnées administratives requises par les documents officiels :</p>
+            <ul>
+                <li>SIRET et Raison sociale de la structure</li>
+                <li>Numéro de Certiphyto de l'exploitant/opérateur</li>
+                <li>Descriptif du matériel roulant</li>
+                <li>Numéros de contrôle réglementaires</li>
+            </ul>
+
+            <h3>Catalogue Produits</h3>
+            <p>Permet d'ajouter ou modifier vos intrants et fournitures :</p>
+            <ul>
+                <li><strong>Phytosanitaire :</strong> Renseigner obligatoirement le numéro AMM, la dose homologuée, le Délai Avant Récolte (DAR) et le stade BBCH cible.</li>
+                <li><strong>Engrais :</strong> Saisir précisément les teneurs pondérales en <strong>Azote (N) / Phosphore (P₂O₅) / Potasse (K₂O) (%)</strong>. Ces chiffres débloquent les calculs automatiques d'unités du cahier de fertilisation.</li>
+                <li><strong>Semences :</strong> Indiquer la dose conseillée pour les semis.</li>
+            </ul>
+        </section>
+
+        <section id="analytique">
+            <h2>📈 Module Analytique</h2>
+            <p>Outil d'audit accessible via l'icône de la barre d'actions ou directement sur <code>/analytique</code>. Il dispose de filtres dynamiques croisés (période, tracteur, outil, type de travaux, parcelle).</p>
+            
+            <h3>Organisation en 3 onglets :</h3>
+            
+            <h4>📊 Général</h4>
+            <ul>
+                <li>Graphiques d'activités par tracteur (surfaces travaillées, débits de chantier en ha/h, nombre de passages), par outil, et par type d'intervention.</li>
+                <li>Graphique d'évolution mensuelle : affiche les surfaces cumulées couplées à la courbe d'ha/h sur un axe secondaire.</li>
+                <li>Tableaux analytiques détaillés par parcelle et par couplage tracteur × outil.</li>
+                <li>Chronologie complète des interventions classée par ordre d'exécution.</li>
+                <li>Calcul automatisé du rendement en <strong>ha/h</strong> dès que le temps de travail en minutes est présent.</li>
+            </ul>
+
+            <h4>🗺️ Suivi parcellaire</h4>
+            <ul>
+                <li><strong>Carte thermique parcelles × mois :</strong> Visualisez d'un coup d'œil l'intensité du travail du sol ou des traitements par un dégradé de couleurs.</li>
+                <li><strong>Historique par parcelle :</strong> Tableau interactif cliquable affichant les détails des opérations de la parcelle.</li>
+                <li>Indicateurs temporels : calcul automatique du délai moyen, minimum et maximum en jours s'étant écoulé entre deux passages.</li>
+            </ul>
+
+            <h4>🌱 Produits & Phyto</h4>
+            <ul>
+                <li>Bilan volumétrique par produit (surface traitée, volume/quantité totale consommée, dose moyenne appliquée).</li>
+                <li><strong>Indicateur de surdosage (Ratio dose appliquée / dose homologuée) :</strong> Représentation visuelle par jauge de couleur sécuritaire (Vert ≤ 100%, Orange ≤ 120%, Rouge > 120% en cas de dépassement de la dose AMM).</li>
+                <li>Listing détaillé et traçabilité des produits épandus par parcelle.</li>
+            </ul>
+            
+            <div class="info-box">
+                <p>📄 <strong>Export PDF Analytique :</strong> Génère à la demande un rapport complet de synthèse au format paysage A4 comprenant l'intégralité des graphiques et des tableaux selon les filtres choisis au préalable.</p>
+            </div>
+        </section>
+
+        <section id="fertilisation">
+            <h2>🌿 Cahier de Fertilisation</h2>
+            <p>Accessible sur <code>/fertilisation</code>. Vous permet de piloter vos apports d'engrais à l'aide de filtres par campagne, culture ou parcelle.</p>
+            <p><strong>⚠️ Prérequis indispensable :</strong> Les fiches produits de vos engrais doivent obligatoirement comporter leurs teneurs en N, P₂O₅, K₂O (%) dans le catalogue sous peine de fausser les indicateurs.</p>
+
+            <h3>Organisation en 3 onglets :</h3>
+
+            <h4>📊 Bilan apports</h4>
+            <ul>
+                <li><strong>Indicateurs clés (KPIs) :</strong> Azote moyen efficace apporté (U/ha), phosphore moyen, potasse moyenne et indicateur de surface totale fertilisée.</li>
+                <li><strong>Graphiques décisionnels :</strong> Comparatif de l'Azote (N) par parcelle face à l'objectif fixé, diagramme en anneau de la balance N/P/K, taux de couverture des besoins et graphique du cumul d'N dans le temps.</li>
+                <li><strong>Tableau de suivi des objectifs :</strong> Progression en temps réel de vos apports d'azote par parcelle vis-vis du plan de fumure (Vert pour une conformité ≥ 90%, Orange si sous-fertilisation < 90%, Rouge si sur-fertilisation risquée > 110%).</li>
+                <li>Lignes de parcelles cliquables pour déplier instantanément le détail complet de chaque apport (date de l'épandage, produit, dose hectare, unités pures d'N, P, K générées).</li>
+            </ul>
+
+            <h4>🎯 Objectifs</h4>
+            <ul>
+                <li>Interface permettant de saisir et de moduler vos objectifs de fumure en unités (U/ha) pour l'Azote, le Phosphore (P₂O₅) et la Potasse (K₂O), et ce, <strong>par type de culture</strong>.</li>
+                <li>Les valeurs saisies sont stockées en base SQLite pour être injectées dans les calculs visuels et les exports d'édition.</li>
+            </ul>
+
+            <h4>📋 Catalogue engrais</h4>
+            <ul>
+                <li>Vue d'ensemble de la liste des engrais référencés affichant leur formule brute NPK ainsi que les unités d'N/ha qui seraient apportées selon la dose conseillée.</li>
+                <li>Formulaire d'édition de fiches intégré directement sur la page (nom de l'engrais, dose de base, unité de mesure, pourcentages N%, P%, K%).</li>
+            </ul>
+
+            <div class="info-box">
+                <p>📄 <strong>Export PDF Fertilisation :</strong> Génère un document officiel au format portrait A4 imprimable, créant automatiquement une feuille par parcelle avec l'historique complet des apports, le cumul global NPK et l'écart visuel face à l'objectif de rendement.</p>
+            </div>
+        </section>
+
+        <section id="IFT">
+            <h2>Bilans IFT et Registre Phyto</h2>
+
+            <h3>Calcul des Bilans IFT</h3>
+            <ul>
+                <li>Sélectionnez simplement une culture ainsi qu'une campagne de travail.</li>
+                <li>Le système gère nativement le chevauchement des cultures d'hiver (ex : blé, triticale, colza) en nommant les campagnes sous la forme <code>2025-2026</code>.</li>
+                <li>Affiche les volumes d'intrants totaux, la surface cadastrale de l'îlot et l'Indicateur de Fréquence de Traitement (IFT) propre à chaque produit appliqué.</li>
+                <li>⚠️ Conformément à la réglementation, la surface exploitée comme base de calcul pour l'IFT est strictement la <strong>surface cadastrale</strong> enregistrée pour la parcelle.</li>
+            </ul>
+
+            <h3>Export Registre Phyto XML</h3>
+            <p>Génère un fichier de données structurées au format <strong>XML</strong>, répondant point par point au cahier des charges officiel du registre phytosanitaire :</p>
+            <ul>
+                <li>Identité administrative et coordonnées de l'exploitation agricole.</li>
+                <li>Historique des interventions phytosanitaires : produit, dose unitaire, surface cadastrale réglementaire (qui prévaut sur la surface calculée par le tracé GPS Traccar), relevés météo certifiés et nom de l'opérateur ayant réalisé le traitement.</li>
+            </ul>
+
+            <h3>Gestion Automatique de la Météo (API Open-Meteo)</h3>
+            <p>Le dashboard intègre l'API publique <strong>Open-Meteo</strong> (solution gratuite, open-source et ne nécessitant aucune clé d'activation API personnelle) :</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date de l'intervention saisie</th>
+                        <th>Source et type de données météo importées</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Moins de 24 heures</strong></td>
+                        <td>Importation immédiate des conditions météo en temps réel.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Plus de 24 heures</strong></td>
+                        <td>Requête automatique dans les archives météo historiques mondiales à l'heure précise où le travail a été enregistré (historique disponible jusqu'en 1940).</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><em>Note : Le serveur hébergeant l'application doit obligatoirement disposer d'un accès à internet pour interroger l'API Open-Meteo et remplir les fiches de carnet.</em></p>
+        </section>
+
+        <section id="maintenance">
+            <h2>Notes techniques & Maintenance</h2>
+            <ul>
+                <li><strong>Migrations de base de données silencieuses :</strong> La structure de la base SQLite <code>database.db</code> s'auto-ajuste de manière transparente en tâche de fond. Aucune exécution de script SQL ou action humaine n'est requise lors du déploiement d'une mise à jour applicative.</li>
+                <li><strong>Sécurité des accès :</strong> Votre mot de passe administrateur est chiffré de manière irréversible à l'aide d'un algorithme de hachage fort (SHA-256) avant d'être sauvegardé dans le fichier système <code>password.txt</code>.</li>
+                <li><strong>Optimisation du réseau (Cache Traccar) :</strong> Le temps de conservation du cache des requêtes API Traccar est modifiable via l'interface afin d'éviter les requêtes superflues vers le serveur GPS et de garantir une fluidité parfaite.</li>
+                <li><strong>Design Mobile-First :</strong> L'ensemble des tableaux, graphes et cartes bénéficie d'une interface responsive design fluide, optimisée pour le travail de terrain sur écrans tactiles de smartphones ou tablettes.</li>
+                <li><strong>Politique de Sauvegarde (Backups) :</strong> Par mesure de sécurité, la base de données <code>database.db</code> est automatiquement dupliquée dans le répertoire <code>backups/</code> lors de chaque démarrage du serveur, toutes les 24 heures à heure fixe via un thread d'arrière-plan, ou instantanément à la demande via l'action manuelle dédiée de l'interface (⚙️ État système → Sauvegarder).</li>
+            </ul>
+        </section>
+    </main>
+
+</body>
+</html>

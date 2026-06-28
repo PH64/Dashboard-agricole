@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytique — Dashboard Agricole v12.0</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0f172a; --card:#1e293b; --card2:#162032; --border:#334155;
+  --text:#e2e8f0; --muted:#94a3b8;
+  --blue:#2563eb; --green:#22c55e; --amber:#f59e0b;
+  --red:#ef4444; --purple:#a855f7; --teal:#14b8a6; --orange:#f97316;
+}
+body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* NAV */
+.topbar { background:var(--card); border-bottom:1px solid var(--border); padding:10px 20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.topbar-title { font-weight:bold; font-size:15px; margin-right:auto; }
+.topbar-title span { color:var(--teal); }
+.btn-back { background:#334155; color:var(--text); border:none; border-radius:6px; padding:7px 13px; cursor:pointer; font-size:13px; text-decoration:none; }
+.btn-back:hover { background:#475569; }
+
+/* SECTION TABS */
+.section-tabs { background:var(--card2); border-bottom:1px solid var(--border); padding:0 20px; display:flex; gap:0; }
+.stab { padding:11px 18px; font-size:13px; font-weight:bold; cursor:pointer; border-bottom:3px solid transparent; color:var(--muted); background:none; border-top:none; border-left:none; border-right:none; }
+.stab:hover { color:var(--text); }
+.stab.active { color:var(--text); border-bottom-color:var(--teal); }
+
+/* FILTERS */
+.filters { background:var(--card2); border-bottom:1px solid var(--border); padding:10px 20px; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; }
+.fgroup { display:flex; flex-direction:column; gap:3px; }
+.fgroup label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.fgroup input, .fgroup select { background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px 9px; font-size:13px; min-width:140px; }
+.fgroup input:focus, .fgroup select:focus { outline:none; border-color:var(--blue); }
+.btn-filter { background:var(--blue); color:white; border:none; border-radius:6px; padding:7px 16px; cursor:pointer; font-size:13px; font-weight:bold; align-self:flex-end; }
+.btn-filter:hover { background:#1d4ed8; }
+.btn-reset { background:#334155; color:var(--muted); border:none; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; align-self:flex-end; }
+
+/* KPI */
+.kpi-strip { display:flex; gap:10px; padding:14px 20px; flex-wrap:wrap; }
+.kpi { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:13px 18px; flex:1; min-width:150px; display:flex; flex-direction:column; gap:3px; }
+.kpi-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.kpi-value { font-size:24px; font-weight:bold; }
+.kpi-sub   { font-size:11px; color:var(--muted); }
+.kpi.blue   .kpi-value { color:var(--blue); }
+.kpi.green  .kpi-value { color:var(--green); }
+.kpi.amber  .kpi-value { color:var(--amber); }
+.kpi.purple .kpi-value { color:var(--purple); }
+.kpi.teal   .kpi-value { color:var(--teal); }
+
+/* LAYOUT */
+.section { display:none; padding:16px 20px; }
+.section.active { display:block; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(400px,1fr)); gap:14px; margin-bottom:16px; }
+.grid-wide { display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:16px; }
+.panel { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.panel-header { padding:11px 15px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+.panel-title  { font-size:13px; font-weight:bold; }
+.panel-body   { padding:13px 15px; }
+.chart-wrap   { position:relative; height:240px; }
+
+/* TABLE */
+.tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.tbl th { text-align:left; padding:7px 9px; font-size:10px; color:var(--muted); text-transform:uppercase; border-bottom:1px solid var(--border); background:#162032; white-space:nowrap; }
+.tbl td { padding:7px 9px; border-bottom:1px solid #1e293b; }
+.tbl tr:hover td { background:#1a2740; }
+.tbl .num { text-align:right; font-variant-numeric:tabular-nums; }
+.badge { display:inline-block; border-radius:4px; padding:1px 7px; font-size:11px; font-weight:bold; }
+.badge-teal   { background:#0d3d3a; color:var(--teal); }
+.badge-green  { background:#14532d; color:#86efac; }
+.badge-amber  { background:#451a03; color:#fcd34d; }
+.badge-red    { background:#450a0a; color:#fca5a5; }
+.badge-blue   { background:#1e3a5f; color:#93c5fd; }
+.badge-purple { background:#3b0764; color:#d8b4fe; }
+
+/* TABS */
+.tabs { display:flex; gap:3px; }
+.tab { padding:4px 11px; border-radius:5px; font-size:11px; cursor:pointer; border:1px solid var(--border); color:var(--muted); background:var(--card2); }
+.tab.active { background:var(--blue); border-color:var(--blue); color:white; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* HEATMAP */
+.heatmap-wrap { overflow-x:auto; }
+.heatmap-table { border-collapse:collapse; font-size:11px; min-width:100%; }
+.heatmap-table th { padding:5px 8px; color:var(--muted); font-weight:normal; white-space:nowrap; text-align:center; }
+.heatmap-table th.row-header { text-align:left; min-width:120px; }
+.heatmap-table td { width:36px; height:30px; text-align:center; border:1px solid #162032; font-size:11px; font-weight:bold; border-radius:3px; }
+.hm-0  { background:#1e293b; color:transparent; }
+.hm-1  { background:#1e3a5f; color:#93c5fd; }
+.hm-2  { background:#1d4ed8; color:#bfdbfe; }
+.hm-3  { background:#2563eb; color:white; }
+.hm-4  { background:#1e40af; color:white; }
+.hm-5p { background:#1d3d87; color:#e0f2fe; }
+
+/* HISTORIQUE PARCELLE */
+.detail-row { cursor:pointer; }
+.detail-row td:first-child::before { content:"▶ "; font-size:10px; color:var(--muted); }
+.detail-row.open td:first-child::before { content:"▼ "; }
+.sub-table-row { display:none; }
+.sub-table-row.open { display:table-row; }
+.sub-table-row td { padding:0 !important; }
+.sub-inner { background:#162032; padding:8px 14px; }
+.sub-inner table { width:100%; font-size:11px; border-collapse:collapse; }
+.sub-inner td, .sub-inner th { padding:4px 8px; border-bottom:1px solid #1e293b; }
+.sub-inner th { color:var(--muted); font-size:10px; text-transform:uppercase; }
+
+/* PRODUITS */
+.prod-type { font-size:10px; text-transform:uppercase; font-weight:bold; }
+.ratio-bar-wrap { display:flex; align-items:center; gap:6px; }
+.ratio-bar { height:6px; border-radius:3px; background:var(--green); }
+.ratio-bar.warn { background:var(--amber); }
+.ratio-bar.over { background:var(--red); }
+
+/* TIMELINE */
+.timeline-wrap { max-height:320px; overflow-y:auto; }
+.tl-row { display:flex; gap:10px; align-items:flex-start; padding:7px 0; border-bottom:1px solid #1e293b; font-size:12px; }
+.tl-date { color:var(--muted); min-width:82px; font-size:11px; padding-top:2px; }
+.tl-body { flex:1; }
+.tl-title { font-weight:bold; font-size:13px; }
+.tl-meta  { color:var(--muted); font-size:11px; margin-top:1px; }
+.tl-tags  { display:flex; gap:5px; margin-top:3px; flex-wrap:wrap; }
+.tag         { background:#1e3a5f; color:#93c5fd; border-radius:4px; padding:1px 7px; font-size:10px; }
+.tag.green   { background:#14532d; color:#86efac; }
+.tag.amber   { background:#451a03; color:#fcd34d; }
+.tag.purple  { background:#3b0764; color:#d8b4fe; }
+.tag.teal    { background:#0d3d3a; color:#5eead4; }
+
+/* MISC */
+.loading { display:flex; align-items:center; justify-content:center; height:160px; color:var(--muted); font-size:13px; gap:10px; }
+.spinner { width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.err-box { background:#450a0a; border:1px solid #7f1d1d; border-radius:8px; padding:14px 18px; margin:14px 0; color:#fca5a5; font-size:13px; }
+.err-box pre { margin-top:8px; font-size:11px; white-space:pre-wrap; color:#fecaca; }
+.search-input { background:#0f172a; border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 9px; font-size:12px; width:170px; }
+.empty-msg { color:var(--muted); font-size:13px; text-align:center; padding:20px; font-style:italic; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="btn-back">← Dashboard</a>
+  <div class="topbar-title">📈 <span>Analytique</span></div>
+  <span id="last-update" style="font-size:11px;color:var(--muted)"></span>
+</div>
+
+<!-- SECTION TABS -->
+<div class="section-tabs">
+  <button class="stab active" onclick="showSection('s-general',this)">📊 Général</button>
+  <button class="stab" onclick="showSection('s-parcelle',this)">🗺️ Suivi parcellaire</button>
+  <button class="stab" onclick="showSection('s-phyto',this)">🌱 Produits &amp; Phyto</button>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <div class="fgroup"><label>Du</label><input type="datetime-local" id="f-start"></div>
+  <div class="fgroup"><label>Au</label><input type="datetime-local" id="f-end"></div>
+  <div class="fgroup"><label>Tracteur</label><select id="f-vehicle"><option value="">Tous</option></select></div>
+  <div class="fgroup"><label>Outil</label><select id="f-outil"><option value="">Tous</option></select></div>
+  <div class="fgroup"><label>Type</label><select id="f-type"><option value="">Tous</option></select></div>
+  <div class="fgroup"><label>Parcelle</label><select id="f-geofence"><option value="">Toutes</option></select></div>
+  <button class="btn-filter" onclick="loadData()">🔍 Analyser</button>
+  <button class="btn-reset"  onclick="resetFilters()">✕ Reset</button>
+</div>
+
+<!-- KPIs (communs) -->
+<div id="kpis" class="kpi-strip">
+  <div class="loading"><div class="spinner"></div> Chargement…</div>
+</div>
+<div id="err-area" style="padding:0 20px"></div>
+
+<!-- ═══════════════════════════════ SECTION GÉNÉRAL ═══════════════════════════════ -->
+<div id="s-general" class="section active">
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🚜 Par tracteur</div>
+        <div id="tabs-tracteur" class="tabs"></div>
+      </div>
+      <div class="panel-body">
+        <div id="tc-surf" class="tab-content active"><div class="chart-wrap"><canvas id="chart-tracteur-surf"></canvas></div></div>
+        <div id="tc-hah"  class="tab-content"><div class="chart-wrap"><canvas id="chart-tracteur-hah"></canvas></div></div>
+        <div id="tc-pass" class="tab-content"><div class="chart-wrap"><canvas id="chart-tracteur-pass"></canvas></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">🔧 Par outil — Surface (ha)</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-outil"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">⚡ Rendement ha/h par outil</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-outil-hah"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">🌾 Par type d'intervention</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-type"></canvas></div></div>
+    </div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📅 Évolution mensuelle</div>
+        <div id="tabs-mois" class="tabs"></div>
+      </div>
+      <div class="panel-body">
+        <div id="tm-surf" class="tab-content active"><div class="chart-wrap" style="height:200px"><canvas id="chart-mois-surf"></canvas></div></div>
+        <div id="tm-pass" class="tab-content"><div class="chart-wrap" style="height:200px"><canvas id="chart-mois-pass"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🗺️ Détail par parcelle</div>
+        <input class="search-input" placeholder="Filtrer…" oninput="filterTable('tbl-parcelle',this.value)">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="tbl-parcelle">
+          <thead><tr><th>Parcelle</th><th class="num">Passages</th><th class="num">Surface (ha)</th><th class="num">Durée</th><th class="num">ha/h</th><th style="min-width:110px">Proportion</th></tr></thead>
+          <tbody id="tbody-parcelle"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">🔀 Tracteur × Outil</div></div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="tbl-combo">
+          <thead><tr><th>Combinaison</th><th class="num">Passages</th><th class="num">Surface (ha)</th><th class="num">Durée</th><th class="num">ha/h</th></tr></thead>
+          <tbody id="tbody-combo"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🕒 Chronologie</div>
+        <input class="search-input" id="search-timeline" placeholder="Filtrer…">
+      </div>
+      <div style="padding:0 15px"><div class="timeline-wrap" id="timeline-list"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ SECTION SUIVI PARCELLAIRE ═══════════════════════════════ -->
+<div id="s-parcelle" class="section">
+
+  <!-- Heatmap -->
+  <div class="grid" style="grid-template-columns:1fr; margin-bottom:16px">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🔥 Carte d'activité — Parcelles × Mois</div>
+        <span style="font-size:11px;color:var(--muted)">Nombre de passages</span>
+      </div>
+      <div class="panel-body">
+        <div class="heatmap-wrap" id="heatmap-container">
+          <div class="empty-msg">Chargement…</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--muted)">Intensité :</span>
+          <span class="badge badge-blue" style="background:#1e293b;color:var(--muted)">0</span>
+          <span class="badge badge-blue">1</span>
+          <span class="badge" style="background:#1d4ed8;color:#bfdbfe">2</span>
+          <span class="badge" style="background:#2563eb;color:white">3</span>
+          <span class="badge" style="background:#1e40af;color:white">4</span>
+          <span class="badge" style="background:#1d3d87;color:#e0f2fe">5+</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historique détaillé par parcelle -->
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📋 Historique complet par parcelle</div>
+        <input class="search-input" placeholder="Filtrer…" oninput="filterTable('tbl-hist',this.value)">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="tbl-hist">
+          <thead><tr>
+            <th>Parcelle</th>
+            <th class="num">Passages</th>
+            <th class="num">Surface tot.</th>
+            <th class="num">Durée tot.</th>
+            <th class="num">Dernière interv.</th>
+            <th class="num">Délai moy.</th>
+            <th class="num">Délai min/max</th>
+          </tr></thead>
+          <tbody id="tbody-hist"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════ SECTION PRODUITS & PHYTO ═══════════════════════════════ -->
+<div id="s-phyto" class="section">
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">📊 Surface traitée par produit</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-prod-surf"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">🧪 Répartition par type de produit</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-prod-type"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Table produits -->
+  <div class="grid" style="grid-template-columns:1fr; margin-bottom:16px">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🌱 Consommation détaillée par produit</div>
+        <input class="search-input" placeholder="Filtrer…" oninput="filterTable('tbl-prod',this.value)">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="tbl-prod">
+          <thead><tr>
+            <th>Produit</th>
+            <th>Type</th>
+            <th class="num">Passages</th>
+            <th class="num">Surface (ha)</th>
+            <th class="num">Quantité tot.</th>
+            <th class="num">Dose moy./ha</th>
+            <th class="num">Dose homol.</th>
+            <th style="min-width:120px">% dose homol.</th>
+          </tr></thead>
+          <tbody id="tbody-prod"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Produits par parcelle -->
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">🗺️ Produits utilisés par parcelle</div></div>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="tbl-prod-parc">
+          <thead><tr><th>Parcelle</th><th>Principaux produits</th></tr></thead>
+          <tbody id="tbody-prod-parc"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const charts = {};
+const PAL = ['#2563eb','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6','#f97316','#ec4899','#84cc16','#06b6d4'];
+const col = i => PAL[i % PAL.length];
+
+function toLocalISO(d) {
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function initDates() {
+  const now = new Date(), past = new Date(now - 90*864e5);
+  document.getElementById('f-end').value   = toLocalISO(now);
+  document.getElementById('f-start').value = toLocalISO(past);
+}
+function resetFilters() {
+  initDates();
+  ['f-vehicle','f-outil','f-type','f-geofence'].forEach(id => document.getElementById(id).value='');
+  loadData();
+}
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+function fillSelect(id, values) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Tous</option>';
+  (values||[]).forEach(v => {
+    if (!v) return;
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    if (v === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+async function loadData() {
+  const params = new URLSearchParams({
+    start:             document.getElementById('f-start').value,
+    end:               document.getElementById('f-end').value,
+    vehicle:           document.getElementById('f-vehicle').value,
+    geofence:          document.getElementById('f-geofence').value,
+    outil:             document.getElementById('f-outil').value,
+    intervention_type: document.getElementById('f-type').value,
+  });
+  document.getElementById('kpis').innerHTML = '<div class="loading"><div class="spinner"></div> Analyse en cours…</div>';
+  document.getElementById('err-area').innerHTML = '';
+
+  let data, resp;
+  try { resp = await fetch('/api/analytique?'+params, {credentials:'same-origin'}); }
+  catch(e) { showErr('Impossible de joindre le serveur.', e.message); return; }
+  if (resp.status===401||resp.redirected) { window.location.href='/login'; return; }
+  if (!resp.ok) { let b=''; try{b=await resp.text();}catch(_){} showErr(`Erreur HTTP ${resp.status}`, b.slice(0,800)); return; }
+  const ct = resp.headers.get('content-type')||'';
+  if (!ct.includes('application/json')) { let b=''; try{b=await resp.text();}catch(_){} showErr('Réponse HTML — vérifiez templates/ et relancez le serveur.', b.slice(0,600)); return; }
+  try { data = await resp.json(); } catch(e) { showErr('JSON invalide.', e.message); return; }
+  if (data.error) { showErr('Erreur serveur :', data.error+(data.trace?'\n\n'+data.trace:'')); return; }
+
+  const L = data.listes||{};
+  fillSelect('f-vehicle',  L.vehicles);
+  fillSelect('f-outil',    L.tools);
+  fillSelect('f-type',     L.types);
+  fillSelect('f-geofence', L.parcelles);
+
+  renderKPIs(data);
+  renderGeneral(data);
+  renderParcelle(data.suivi_parcellaire||{});
+  renderPhyto(data.phyto||{});
+  document.getElementById('last-update').textContent = 'Mis à jour '+new Date().toLocaleTimeString('fr-FR');
+}
+
+function showErr(msg, detail) {
+  document.getElementById('kpis').innerHTML='';
+  document.getElementById('err-area').innerHTML=`<div class="err-box">⚠️ ${msg}${detail?`<pre>${detail}</pre>`:''}</div>`;
+}
+
+function fmtDuree(mins) {
+  if (!mins) return '—';
+  const h=Math.floor(mins/60), m=mins%60;
+  return h>0?`${h}h${String(m).padStart(2,'0')}`:`${m}min`;
+}
+
+/* ── KPIs ── */
+function renderKPIs(d) {
+  const t = d.totaux;
+  const hah = t.ha_h!=null?`${t.ha_h} ha/h`:'—';
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi blue"><div class="kpi-label">Interventions</div><div class="kpi-value">${t.passages}</div><div class="kpi-sub">${d.by_parcelle.length} parcelle(s)</div></div>
+    <div class="kpi green"><div class="kpi-label">Surface traitée</div><div class="kpi-value">${t.surface} ha</div><div class="kpi-sub">Moy. ${t.passages>0?(t.surface/t.passages).toFixed(1):0} ha/passage</div></div>
+    <div class="kpi amber"><div class="kpi-label">Temps de travail</div><div class="kpi-value">${fmtDuree(t.minutes)}</div><div class="kpi-sub">${d.by_tracteur.length} tracteur(s)</div></div>
+    <div class="kpi teal"><div class="kpi-label">Rendement</div><div class="kpi-value">${hah}</div><div class="kpi-sub">${t.ha_h!=null?'moyen global':'durée non dispo'}</div></div>
+    <div class="kpi purple"><div class="kpi-label">Produits distincts</div><div class="kpi-value">${(d.phyto?.produits||[]).length}</div><div class="kpi-sub">${d.by_type.length} types d'interv.</div></div>`;
+}
+
+/* ── CHART HELPERS ── */
+function dc(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
+function barChart(id, labels, values, colors, yLabel) {
+  dc(id); if(!labels.length) return;
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{labels,datasets:[{data:values,backgroundColor:colors,borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'#1e293b'}},
+              y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'},beginAtZero:true,title:{display:!!yLabel,text:yLabel,color:'#64748b',font:{size:10}}}}}});
+}
+function doughnut(id, labels, values, colors) {
+  dc(id); if(!labels.length) return;
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:'#1e293b',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',boxWidth:11,font:{size:11}}}}}});
+}
+function buildTabs(containerId, tabDefs) {
+  const c=document.getElementById(containerId); c.innerHTML='';
+  tabDefs.forEach((t,i)=>{
+    const btn=document.createElement('button');
+    btn.className='tab'+(i===0?' active':''); btn.textContent=t.label;
+    btn.onclick=()=>{c.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');tabDefs.forEach(tt=>{const el=document.getElementById(tt.id);if(el)el.classList.toggle('active',tt.id===t.id);});};
+    c.appendChild(btn);
+  });
+}
+
+/* ── SECTION GÉNÉRAL ── */
+function renderGeneral(d) {
+  const tr=d.by_tracteur||[], tL=tr.map(x=>x.label), tC=tL.map((_,i)=>col(i));
+  barChart('chart-tracteur-surf', tL, tr.map(x=>x.surface), tC, 'ha');
+  barChart('chart-tracteur-hah',  tL, tr.map(x=>x.ha_h??0), tC, 'ha/h');
+  barChart('chart-tracteur-pass', tL, tr.map(x=>x.passages), tC, 'passages');
+  buildTabs('tabs-tracteur',[{id:'tc-surf',label:'📐 Surface'},{id:'tc-hah',label:'⚡ ha/h'},{id:'tc-pass',label:'🔢 Passages'}]);
+
+  const ou=d.by_outil||[];
+  doughnut('chart-outil', ou.map(x=>x.label), ou.map(x=>x.surface), ou.map((_,i)=>col(i)));
+  const ouF=ou.filter(x=>x.ha_h);
+  barChart('chart-outil-hah', ouF.map(x=>x.label), ouF.map(x=>x.ha_h), ouF.map((_,i)=>col(i)), 'ha/h');
+
+  const ty=d.by_type||[];
+  doughnut('chart-type', ty.map(x=>x.label), ty.map(x=>x.passages), ty.map((_,i)=>col(i)));
+
+  const mo=[...(d.by_mois||[])].sort((a,b)=>a.label.localeCompare(b.label));
+  const moL=mo.map(x=>{const[y,m]=x.label.split('-');return new Date(+y,+m-1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'});});
+  dc('chart-mois-surf'); dc('chart-mois-pass');
+  if(mo.length){
+    charts['chart-mois-surf']=new Chart(document.getElementById('chart-mois-surf'),{
+      data:{labels:moL,datasets:[
+        {type:'bar',  label:'Surface (ha)', data:mo.map(x=>x.surface),   backgroundColor:'#2563eb99', yAxisID:'y'},
+        {type:'line', label:'ha/h moyen',   data:mo.map(x=>x.ha_h??null),borderColor:'#14b8a6',tension:0.3,pointRadius:4,yAxisID:'y2',spanGaps:true}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},
+        scales:{x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'#1e293b'}},
+                y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'},beginAtZero:true,title:{display:true,text:'ha',color:'#64748b'}},
+                y2:{position:'right',ticks:{color:'#14b8a6'},grid:{display:false},beginAtZero:true,title:{display:true,text:'ha/h',color:'#14b8a6'}}}}
+    });
+    charts['chart-mois-pass']=new Chart(document.getElementById('chart-mois-pass'),{
+      type:'bar',data:{labels:moL,datasets:[{label:'Passages',data:mo.map(x=>x.passages),backgroundColor:'#a855f799',borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'},beginAtZero:true}}}
+    });
+  }
+  buildTabs('tabs-mois',[{id:'tm-surf',label:'📐 Surface + ha/h'},{id:'tm-pass',label:'🔢 Passages'}]);
+
+  // Table parcelles
+  const parc=d.by_parcelle||[], maxS=Math.max(...parc.map(x=>x.surface),1);
+  document.getElementById('tbody-parcelle').innerHTML=parc.map(x=>{
+    const pct=Math.round(x.surface/maxS*100);
+    const hah=x.ha_h!=null?`<span class="badge badge-teal">${x.ha_h}</span>`:'<span style="color:var(--muted)">—</span>';
+    return `<tr><td>${x.label}</td><td class="num">${x.passages}</td><td class="num">${x.surface}</td><td class="num">${x.duree}</td><td class="num">${hah}</td>
+      <td><div style="display:flex;align-items:center;gap:5px"><div style="height:6px;border-radius:3px;background:var(--blue);width:${pct}%;min-width:2px;max-width:100px"></div><span style="font-size:10px;color:var(--muted)">${x.surface} ha</span></div></td></tr>`;
+  }).join('')||'<tr><td colspan="6" class="empty-msg">Aucune donnée</td></tr>';
+
+  // Table combo
+  const combo=d.combinaisons||[];
+  document.getElementById('tbody-combo').innerHTML=combo.map((x,i)=>{
+    const hah=x.ha_h!=null?`<span class="badge badge-teal">${x.ha_h}</span>`:'<span style="color:var(--muted)">—</span>';
+    return `<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${col(i)};margin-right:6px"></span>${x.label}</td>
+      <td class="num">${x.passages}</td><td class="num">${x.surface}</td><td class="num">${x.duree}</td><td class="num">${hah}</td></tr>`;
+  }).join('')||'<tr><td colspan="5" class="empty-msg">Aucune donnée</td></tr>';
+
+  // Timeline
+  const tl=d.timeline||[], c=document.getElementById('timeline-list');
+  c.innerHTML=[...tl].map(ev=>{
+    const[y,m,day]=(ev.date||'').split('-');
+    const dl=(day&&m&&y)?`${day}/${m}/${y}`:ev.date||'';
+    const dur=fmtDuree(ev.minutes);
+    const hah=ev.minutes>0&&ev.surface>0?`<span class="tag teal">⚡ ${(ev.surface/(ev.minutes/60)).toFixed(2)} ha/h</span>`:'';
+    const search=[ev.parcelle,ev.tracteur,ev.outil,ev.type].join(' ').toLowerCase();
+    return `<div class="tl-row" data-search="${search}">
+      <div class="tl-date">${dl}</div>
+      <div class="tl-body">
+        <div class="tl-title">${ev.parcelle||'—'}</div>
+        <div class="tl-meta">${ev.tracteur||''}</div>
+        <div class="tl-tags">
+          ${ev.type&&ev.type!=='—'?`<span class="tag">${ev.type}</span>`:''}
+          ${ev.outil&&ev.outil!=='—'?`<span class="tag amber">${ev.outil}</span>`:''}
+          ${ev.surface>0?`<span class="tag purple">📐 ${ev.surface} ha</span>`:''}
+          ${dur!=='—'?`<span class="tag green">⏱ ${dur}</span>`:''}
+          ${hah}
+        </div>
+      </div></div>`;
+  }).join('')||'<div class="empty-msg">Aucune intervention sur la période</div>';
+  // Scroll vers le bas pour voir les plus récentes
+  c.scrollTop = c.scrollHeight;
+  document.getElementById('search-timeline').oninput=function(){
+    const q=this.value.toLowerCase();
+    c.querySelectorAll('.tl-row').forEach(r=>{r.style.display=!q||r.dataset.search.includes(q)?'':'none';});
+  };
+}
+
+/* ── SECTION SUIVI PARCELLAIRE ── */
+function renderParcelle(sp) {
+  renderHeatmap(sp.heatmap||[], sp.mois_labels||[]);
+  renderHistorique(sp.historique||[]);
+}
+
+function renderHeatmap(rows, moisLabels) {
+  const c=document.getElementById('heatmap-container');
+  if(!rows.length){c.innerHTML='<div class="empty-msg">Aucune donnée</div>';return;}
+  const moisFmt=moisLabels.map(mk=>{const[y,m]=mk.split('-');return new Date(+y,+m-1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'});});
+  let html=`<table class="heatmap-table"><thead><tr><th class="row-header">Parcelle</th>`;
+  moisFmt.forEach(m=>html+=`<th>${m}</th>`);
+  html+=`</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    html+=`<tr><td style="padding:5px 8px;color:var(--text);font-size:12px;white-space:nowrap">${r.parcelle}</td>`;
+    r.data.forEach(v=>{
+      const cls=v===0?'hm-0':v===1?'hm-1':v===2?'hm-2':v===3?'hm-3':v===4?'hm-4':'hm-5p';
+      html+=`<td class="${cls}">${v>0?v:''}</td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table>`;
+  c.innerHTML=html;
+}
+
+function renderHistorique(hist) {
+  const tbody=document.getElementById('tbody-hist');
+  if(!hist.length){tbody.innerHTML='<tr><td colspan="7" class="empty-msg">Aucune donnée</td></tr>';return;}
+  tbody.innerHTML=hist.map((h,i)=>{
+    const dm=h.delai_moy!=null?`${h.delai_moy} j`:'—';
+    const drange=h.delai_min!=null?`${h.delai_min}–${h.delai_max} j`:'—';
+    const badge=h.delai_moy!=null?(h.delai_moy<14?'badge-green':h.delai_moy<30?'badge-amber':'badge-blue'):'';
+    const subId=`sub-${i}`;
+    const ivRows=h.interventions.map(iv=>{
+      const[y,m,day]=(iv.date||'').split('-');
+      const dl=(day&&m&&y)?`${day}/${m}/${y}`:iv.date||'';
+      return `<tr><td>${dl}</td><td>${iv.type}</td><td>${iv.outil}</td><td>${iv.tracteur}</td><td style="text-align:right">${iv.surface} ha</td><td style="text-align:right">${fmtDuree(iv.minutes)}</td></tr>`;
+    }).join('');
+    return `
+      <tr class="detail-row" onclick="toggleSub('${subId}',this)">
+        <td>${h.parcelle}</td>
+        <td class="num">${h.passages}</td>
+        <td class="num">${h.surface_total} ha</td>
+        <td class="num">${h.duree_total}</td>
+        <td class="num">${h.derniere}</td>
+        <td class="num"><span class="badge ${badge}">${dm}</span></td>
+        <td class="num">${drange}</td>
+      </tr>
+      <tr class="sub-table-row" id="${subId}">
+        <td colspan="7">
+          <div class="sub-inner">
+            <table><thead><tr><th>Date</th><th>Type</th><th>Outil</th><th>Tracteur</th><th style="text-align:right">Surface</th><th style="text-align:right">Durée</th></tr></thead>
+            <tbody>${ivRows}</tbody></table>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function toggleSub(id, row) {
+  const sub=document.getElementById(id);
+  const open=sub.classList.toggle('open');
+  row.classList.toggle('open', open);
+}
+
+/* ── SECTION PRODUITS & PHYTO ── */
+function renderPhyto(ph) {
+  const prods=ph.produits||[], parc=ph.par_parcelle||[];
+
+  // Graphiques
+  const top10=prods.slice(0,10);
+  barChart('chart-prod-surf', top10.map(x=>x.name), top10.map(x=>x.surface_ha), top10.map((_,i)=>col(i)), 'ha');
+
+  // Donut par type
+  const byType={};
+  prods.forEach(p=>{byType[p.type]=(byType[p.type]||0)+p.surface_ha;});
+  const typeLabels=Object.keys(byType), typeVals=typeLabels.map(t=>Math.round(byType[t]*10)/10);
+  const typeColors={'phyto':'#22c55e','engrais':'#f59e0b','semence':'#a855f7'};
+  doughnut('chart-prod-type', typeLabels.map(t=>t==='phyto'?'🌱 Phyto':t==='engrais'?'🧲 Engrais':'🌾 Semence'), typeVals, typeLabels.map(t=>typeColors[t]||'#2563eb'));
+
+  // Table produits
+  const tbody=document.getElementById('tbody-prod');
+  tbody.innerHTML=prods.map(p=>{
+    const typeLabel=p.type==='phyto'?'<span class="badge badge-green">🌱 Phyto</span>':p.type==='engrais'?'<span class="badge badge-amber">🧲 Engrais</span>':'<span class="badge badge-purple">🌾 Semence</span>';
+    let ratioCell='<td class="num">—</td>';
+    if(p.ratio_dose!=null){
+      const cls=p.ratio_dose<=100?'badge-green':p.ratio_dose<=120?'badge-amber':'badge-red';
+      const barW=Math.min(p.ratio_dose,150);
+      const barCls=p.ratio_dose<=100?'ratio-bar':p.ratio_dose<=120?'ratio-bar warn':'ratio-bar over';
+      ratioCell=`<td><div class="ratio-bar-wrap">
+        <div class="${barCls}" style="width:${barW*0.6}px;max-width:80px"></div>
+        <span class="badge ${cls}">${p.ratio_dose}%</span>
+      </div></td>`;
+    }
+    const unit=p.unit||'';
+    return `<tr>
+      <td><strong>${p.name}</strong></td>
+      <td>${typeLabel}</td>
+      <td class="num">${p.passages}</td>
+      <td class="num">${p.surface_ha} ha</td>
+      <td class="num">${p.quantite>0?p.quantite+' '+unit:'—'}</td>
+      <td class="num">${p.dose_moy>0?p.dose_moy+' '+unit+'/ha':'—'}</td>
+      <td class="num">${p.dose_homologuee>0?p.dose_homologuee+' '+unit+'/ha':'—'}</td>
+      ${ratioCell}
+    </tr>`;
+  }).join('')||'<tr><td colspan="8" class="empty-msg">Aucun produit enregistré</td></tr>';
+
+  // Produits par parcelle
+  const tbody2=document.getElementById('tbody-prod-parc');
+  tbody2.innerHTML=parc.map(p=>{
+    const pills=p.produits.map(pr=>`<span class="badge badge-blue" style="margin:2px">${pr.name} <span style="color:var(--muted)">${pr.surface} ha</span></span>`).join('');
+    return `<tr><td>${p.parcelle}</td><td>${pills||'—'}</td></tr>`;
+  }).join('')||'<tr><td colspan="2" class="empty-msg">Aucune donnée</td></tr>';
+}
+
+function filterTable(tableId, q) {
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr=>{
+    if(tr.classList.contains('sub-table-row')) return;
+    tr.style.display=!q||tr.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';
+  });
+}
+
+initDates();
+loadData();
+</script>
+</body>
+</html>

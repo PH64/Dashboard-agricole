@@ -1,1 +1,3481 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Dashboard Agricole - v12.3</title>
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body { 
+    margin: 0; 
+    padding: 0; 
+    height: 100%; 
+    font-family: Arial, sans-serif; 
+    background: #f5f7fb; 
+    overflow: hidden;
+}
+
+#toastContainer {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+.toast {
+    background: #1e293b;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.25s, transform 0.25s;
+    white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { background: #15803d; }
+.toast.error { background: #b91c1c; }
+.toast.info { background: #1e40af; }
+
+header {
+    background: #111827;
+    color: white;
+    padding: 8px 12px;
+    font-weight: bold;
+    height: 18px;
+    font-size: 14px;
+}
+
+.container { 
+    display: flex; 
+    height: calc(100% - 34px); 
+    width: 100%;
+}
+
+.sidebar {
+    width: 480px;
+    min-width: 480px;
+    background: white;
+    padding: 6px;
+    overflow: hidden;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1000;
+    min-height: 0;
+}
+
+/* Mode compact mobile : carte réduite en hauteur, sidebar pleine largeur en dessous */
+
+
+#map { 
+    flex: 1; 
+    height: 100% !important; 
+    background: #e5e7eb;
+}
+
+select, input, button {
+    width: 100%;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    font-size: 12px;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover { background: #1e40af; }
+
+.row-inputs {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.row-inputs > div {
+    flex: 1;
+}
+
+.summary-container {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 12px;
+    max-height: 90px;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.summary-title {
+    font-weight: bold;
+    color: #1e40af;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    border-bottom: 1px dashed #dbeafe;
+}
+.summary-item:last-child { border-bottom: none; }
+
+.table-container {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    margin-top: 2px;
+    min-height: 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    min-width: 600px;
+}
+
+th {
+    background: #111827;
+    color: white;
+    position: sticky;
+    top: 0;
+    padding: 5px;
+    text-align: left;
+    z-index: 2;
+}
+
+td {
+    border-bottom: 1px solid #eee;
+    padding: 4px 5px;
+    white-space: nowrap;
+}
+
+th:first-child, td.action-cell {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.08);
+}
+th:first-child { z-index: 4; background: #111827; }
+td.action-cell { background: #fff; }
+tr.Entrée td.action-cell { background: #dcfce7; }
+tr.Sortie td.action-cell { background: #fee2e2; }
+
+.Entrée { background: #dcfce7 !important; }
+.Sortie { background: #fee2e2 !important; }
+
+.toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.toggle-wrap input {
+    width: auto;
+    margin: 0;
+}
+
+.toolbar {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.toolbar button {
+    flex: 1;
+    padding: 5px;
+}
+
+/* ── Action bar compacte ── */
+.action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+.ab-divider {
+    width: 1px;
+    background: #e2e8f0;
+    align-self: stretch;
+    margin: 0 2px;
+}
+.ab-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    font-size: 18px;
+    line-height: 1;
+    transition: transform 0.12s, filter 0.12s;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+.ab-btn:hover  { transform: translateY(-2px); filter: brightness(1.15); }
+.ab-btn:active { transform: translateY(0);    filter: brightness(0.9); }
+/* Tooltip */
+.ab-btn::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 5px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9999;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.ab-btn::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: #1e293b;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9999;
+}
+.ab-btn:hover::after, .ab-btn:hover::before { opacity: 1; }
+/* Badge notification */
+.ab-badge {
+    position: absolute;
+    top: 3px; right: 3px;
+    background: #ef4444;
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+/* Couleurs */
+.ab-green   { background: #16a34a; }
+.ab-purple  { background: #7c3aed; }
+.ab-blue    { background: #0891b2; }
+.ab-amber   { background: #b45309; }
+.ab-slate   { background: #374151; }
+.ab-brown   { background: #78350f; }
+.ab-navy    { background: #0369a1; }
+.ab-violet  { background: #6d28d9; }
+.ab-forest  { background: #15803d; }
+.ab-teal    { background: #0f766e; }
+.ab-map     { background: #1e3a5f; }
+.ab-dark    { background: #1e4035; }
+.ab-filter  { background: #10b981; }
+.ab-reset   { background: #64748b; }
+
+.touch-input {
+    height: 44px !important;
+    font-size: 15px !important;
+    padding: 10px !important;
+}
+.touch-btn {
+    height: 44px !important;
+    font-size: 14px !important;
+    padding: 0 15px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.geofence-group-card {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.geofence-group-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: #1e40af;
+    border-bottom: 2px solid #dbeafe;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+.intervention-sub-row {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+.prod-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-right: 4px;
+    margin-top: 4px;
+}
+.badge-phyto { background: #dcfce7; color: #166534; }
+.badge-engrais { background: #fef3c7; color: #92400e; }
+.badge-semence { background: #e0f2fe; color: #0369a1; }
+
+.item-row-list {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        height: calc(100% - 34px);
+    }
+    .sidebar {
+        width: 100%;
+        min-width: 0;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        order: 2;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+    }
+    .table-container {
+        flex: 1;
+        min-height: 200px;
+    }
+    #map {
+        order: 1;
+        flex: 0 0 25vh;
+        min-height: 150px;
+        width: 100%;
+    }
+    .toolbar button {
+        font-size: 11px;
+        padding: 6px 4px;
+    }
+    th, td {
+        font-size: 11px;
+        padding: 4px 3px !important;
+    }
+    .row-inputs {
+        flex-wrap: wrap;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="toastContainer"></div>
+
+<header style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#111827; color:white; font-weight:bold; font-size:14px;">
+    <span>🚜 Dashboard Agricole - v12.3</span>
+    <div style="display:flex; gap:6px;">
+        <a href="/change_password" style="background:transparent; border:1px solid rgba(255,255,255,0.4); color:white; padding:3px 10px; font-size:12px; border-radius:4px; text-decoration:none; font-weight:normal;">🔑 Mot de passe</a>
+        <a href="/logout" style="background:transparent; border:1px solid rgba(255,255,255,0.4); color:white; padding:3px 10px; font-size:12px; border-radius:4px; text-decoration:none; font-weight:normal;">🔓 Déconnexion</a>
+    </div>
+</header>
+
+<div class="container">
+<div class="sidebar">
+
+    <div class="summary-container">
+        <div class="summary-title">⏱️ Synthèse des temps</div>
+        <div id="summary-list">
+            <span style="color:#64748b; font-style:italic;">Aucune donnée</span>
+        </div>
+    </div>
+
+    <!-- Bandeau replié : filtres & période -->
+    <div onclick="toggleFiltersPanel()" style="display:flex; justify-content:space-between; align-items:center; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px; cursor:pointer; font-size:12px; font-weight:bold; color:#334155;">
+        <span>🔍 Filtres &amp; période</span>
+        <span id="filtersPanelChevron" style="transition:transform 0.2s;">▾</span>
+    </div>
+
+    <div id="filtersPanel" style="display:none; flex-direction:column; gap:6px; border:1px solid #e2e8f0; border-top:none; border-radius:0 0 6px 6px; padding:8px; margin-top:-6px; background:#fafafa;">
+
+        <div class="row-inputs">
+            <select id="vehicle"><option value="">Tous véhicules</option></select>
+            <select id="geofence"><option value="">Toutes parcelles</option></select>
+        </div>
+
+        <div class="row-inputs">
+            <input type="text" id="searchFilter" class="touch-input" placeholder="🔍 Rechercher (véhicule, parcelle, outil…)" oninput="applySearchFilter()" style="flex:2;">
+            <button onclick="showToday()" style="flex:1; background:#0891b2;">📍 Aujourd'hui</button>
+        </div>
+
+        <div class="row-inputs" style="flex-wrap:wrap; gap:4px;">
+            <select id="periodSelect" class="touch-input" style="flex:1; min-width:120px;" onchange="onPeriodChange()">
+                <option value="7">7 derniers jours</option>
+                <option value="30">30 derniers jours</option>
+                <option value="90">3 derniers mois</option>
+                <option value="180">6 derniers mois</option>
+                <option value="custom">Période personnalisée</option>
+            </select>
+            <label class="toggle-wrap">
+                <input type="checkbox" id="toggleGeofences" checked onchange="toggleGeofences()">
+                Parcelles
+            </label>
+        </div>
+        <div class="row-inputs" id="customPeriodRow" style="display:none;">
+            <div>
+                <input type="datetime-local" id="startDate" placeholder="Début">
+            </div>
+            <div>
+                <input type="datetime-local" id="endDate" placeholder="Fin">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Barre d'actions compacte ── -->
+    <div class="action-bar">
+
+      <!-- Saisie -->
+      <button class="ab-btn ab-green"  onclick="openTodayModal()"   id="todayBtn"       data-tip="📌 Aujourd'hui">📌</button>
+      <button class="ab-btn ab-purple" onclick="openHistoryModal()"                      data-tip="📋 Carnet">📋</button>
+      <button class="ab-btn ab-blue"   onclick="openCalendarModal()"                     data-tip="📅 Calendrier">📅</button>
+      <button class="ab-btn ab-amber"  onclick="openManualModal()"                       data-tip="✏️ Saisie manuelle">✏️</button>
+
+      <div class="ab-divider"></div>
+
+      <!-- Carte -->
+      <button class="ab-btn ab-map"    onclick="zoomVehicles()"                          data-tip="📍 Centrer véhicules">📍</button>
+      <button class="ab-btn ab-dark"   onclick="zoomGeofences()"                         data-tip="🗺 Centrer parcelles">🗺</button>
+
+      <div class="ab-divider"></div>
+
+      <!-- Gestion -->
+      <button class="ab-btn ab-slate"  onclick="openSystemStatusModal()" id="systemStatusBtn" data-tip="⚙️ État système">⚙️</button>
+      <button class="ab-btn ab-brown"  onclick="openParcellesModal()"                    data-tip="🗂️ Gérer parcelles">🗂️</button>
+      <button class="ab-btn ab-navy"   onclick="exportPhyto()"                           data-tip="🌱 Export Phyto">🌱</button>
+      <button class="ab-btn ab-violet" onclick="openBilanModal()"                        data-tip="📊 Bilans">📊</button>
+
+      <div class="ab-divider"></div>
+
+      <!-- Analyses -->
+      <a class="ab-btn ab-forest" href="/fertilisation" data-tip="🌿 Fertilisation">🌿</a>
+      <a class="ab-btn ab-teal"   href="/analytique"    data-tip="📈 Analytique">📈</a>
+
+      <div class="ab-divider"></div>
+
+      <!-- Filtres -->
+      <button class="ab-btn ab-filter" onclick="load()"          data-tip="🔍 Appliquer filtres">🔍</button>
+      <button class="ab-btn ab-reset"  onclick="resetFilters()"  data-tip="↺ Réinitialiser">↺</button>
+
+      <div class="ab-divider"></div>
+
+      <!-- Aide -->
+      <a class="ab-btn" href="/aide" target="_blank" data-tip="❓ Notice d'utilisation" style="background:#64748b;">❓</a>
+
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Véhicule</th>
+                    <th>Parcelle</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Durée</th>
+                    <th>Surf. Cult.</th>
+                    <th>Surf. Trav.</th>
+                    <th>Outil</th>
+                    <th>Larg.</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<div id="map"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL SAISIE MANUELLE
+     ══════════════════════════════════════════════════════════ -->
+<div id="manualModal" style="display:none; position:fixed; z-index:9998; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.65); font-family:sans-serif; overflow-y:auto;">
+  <div style="background:#fff; width:98%; max-width:860px; margin:1% auto; padding:20px; border-radius:10px; box-shadow:0 4px 30px rgba(0,0,0,0.4); box-sizing:border-box;">
+
+    <!-- Entête -->
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-bottom:16px;">
+      <strong style="font-size:16px; color:#1e1e2f;">✏️ Saisie manuelle — <span id="manualModalTitle" style="color:#b45309;">Nouvelle intervention</span></strong>
+      <button onclick="closeManualModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:#94a3b8;">✕</button>
+    </div>
+
+    <!-- Champs cachés pour l'édition -->
+    <input type="hidden" id="manualEditDeviceId">
+    <input type="hidden" id="manualEditGeofenceId">
+    <input type="hidden" id="manualEditExitTime">
+
+    <!-- 2 colonnes : parcelles gauche | date+tracteur+outil droite -->
+    <div style="display:flex; gap:14px; margin-bottom:14px; align-items:stretch;">
+
+      <!-- Colonne gauche : Parcelles -->
+      <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">🗺️ Parcelle(s) *
+          <span style="font-weight:normal;color:#94a3b8;font-size:11px;">— <span id="manualParcelleCount">0</span> sélectionnée(s)</span>
+        </label>
+        <input type="text" id="manualParcelleSearch" placeholder="🔍 Filtrer…" oninput="filterManualParcelles(this.value)"
+          style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:7px 10px; font-size:13px; box-sizing:border-box; margin-bottom:4px;">
+        <div id="manualParcelleList" style="flex:1; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; min-height:120px; max-height:200px; overflow-y:auto; padding:6px 8px; display:flex; flex-direction:column; gap:3px;"></div>
+        <div style="display:flex; gap:8px; margin-top:5px;">
+          <button type="button" onclick="selectAllManualParcelles(true)"  style="font-size:11px; background:none; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px; cursor:pointer; color:#475569;">✓ Tout</button>
+          <button type="button" onclick="selectAllManualParcelles(false)" style="font-size:11px; background:none; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px; cursor:pointer; color:#475569;">✕ Aucun</button>
+        </div>
+      </div>
+
+      <!-- Colonne droite : Date, Tracteur, Outil empilés -->
+      <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:10px;">
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">📅 Date et heure *</label>
+          <input type="datetime-local" id="manualDate" class="touch-input" style="width:100%; background:#f8fafc; font-size:14px; height:44px;">
+        </div>
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">🚜 Tracteur</label>
+          <input type="text" id="manualVehicle" class="touch-input" list="manualVehicleList" placeholder="Nom du tracteur" style="width:100%; background:#f8fafc; font-size:14px; height:44px;">
+          <datalist id="manualVehicleList"></datalist>
+        </div>
+        <div>
+          <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">🔧 Outil</label>
+          <input type="text" id="manualOutil" class="touch-input" list="manualOutilList" placeholder="Outil utilisé" style="width:100%; background:#f8fafc; font-size:14px; height:44px;" oninput="deduceManualType(this.value)">
+          <datalist id="manualOutilList"></datalist>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Ligne 3 : Type intervention + Surface + Durée -->
+    <div style="display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+      <div style="flex:2; min-width:180px;">
+        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">⚙️ Type d'intervention *</label>
+        <select id="manualType" class="touch-input" style="width:100%; background:#f8fafc; font-size:14px; height:46px;">
+          <option value="Labour">Labour</option>
+          <option value="Hersage">Hersage</option>
+          <option value="Semis">Semis</option>
+          <option value="Pulvérisation">Pulvérisation</option>
+          <option value="Épandage">Épandage</option>
+          <option value="Déchaumage">Déchaumage</option>
+          <option value="Broyage">Broyage</option>
+          <option value="Travail du sol">Travail du sol</option>
+          <option value="Récolte">Récolte</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:120px;">
+        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">📐 Surface (ha)</label>
+        <input type="text" id="manualSurface" class="touch-input" placeholder="Ex: 4.5" style="width:100%; background:#f8fafc; font-size:14px; height:46px; text-align:center;" oninput="this.dataset.userEdited='1'">
+      </div>
+      <div style="flex:1; min-width:120px;">
+        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">⏱ Durée (min)</label>
+        <input type="number" id="manualDuree" class="touch-input" placeholder="Ex: 120" min="0" style="width:100%; background:#f8fafc; font-size:14px; height:46px; text-align:center;">
+      </div>
+    </div>
+
+    <!-- Météo -->
+    <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:8px 10px; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="font-size:11px; font-weight:bold; color:#0369a1; white-space:nowrap;">🌤️ Météo :</span>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <label style="font-size:10px; color:#64748b;">T°</label>
+        <input type="text" id="manualMeteoTemp" class="touch-input" placeholder="°C" style="width:55px; padding:4px; font-size:12px;">
+      </div>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <label style="font-size:10px; color:#64748b;">Vent</label>
+        <input type="text" id="manualMeteoVent" class="touch-input" placeholder="km/h" style="width:60px; padding:4px; font-size:12px;">
+      </div>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <label style="font-size:10px; color:#64748b;">Pluie</label>
+        <input type="text" id="manualMeteoPluie" class="touch-input" placeholder="mm" style="width:55px; padding:4px; font-size:12px;">
+      </div>
+      <select id="manualMeteoConditions" class="touch-input" style="flex:1; min-width:120px; padding:4px; font-size:12px;">
+        <option value="">-- Conditions --</option>
+        <option value="Ensoleillé">☀️ Ensoleillé</option>
+        <option value="Nuageux">⛅ Nuageux</option>
+        <option value="Couvert">☁️ Couvert</option>
+        <option value="Pluvieux">🌧️ Pluvieux</option>
+        <option value="Venteux">💨 Venteux</option>
+      </select>
+      <button type="button" onclick="fetchManualMeteo()" class="touch-btn" style="background:#0369a1; color:#fff; border:none; border-radius:4px; white-space:nowrap; width:auto; font-weight:bold; padding:4px 10px;">🔄 Auto</button>
+    </div>
+
+    <!-- Produits -->
+    <div style="border:1px solid #cbd5e1; padding:12px; background:#f8fafc; border-radius:6px; margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
+        <span style="font-weight:bold; font-size:14px; color:#1e293b;">Produits apportés</span>
+        <button type="button" class="touch-btn" onclick="openCatalogModal()" style="background:#64748b; color:#fff; border:none; border-radius:4px; font-weight:bold; width:auto; height:34px;">⚙️ Catalogue</button>
+        <button type="button" class="touch-btn" onclick="addManualProductRow()" style="background:#10b981; color:#fff; border:none; border-radius:4px; font-weight:bold; width:auto; height:34px;">+ Ajouter un produit</button>
+      </div>
+      <div id="manualProductRows" style="max-height:220px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- Notes -->
+    <div style="margin-bottom:16px;">
+      <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px; color:#475569;">📝 Notes</label>
+      <textarea id="manualNotes" class="touch-input" rows="2" placeholder="Observations, remarques…" style="width:100%; background:#f8fafc; font-size:13px; resize:vertical;"></textarea>
+    </div>
+
+    <!-- Boutons -->
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; border-top:1px solid #e2e8f0; padding-top:12px; flex-wrap:wrap;">
+      <div id="manualDeleteBtn" style="display:none;">
+        <button type="button" class="touch-btn" onclick="deleteManualIntervention()" style="background:#ef4444; color:#fff; border-radius:4px; width:auto; font-weight:bold;">🗑️ Supprimer</button>
+      </div>
+      <div style="display:flex; gap:10px; margin-left:auto;">
+        <button type="button" class="touch-btn" onclick="closeManualModal()" style="background:#94a3b8; color:#fff; border-radius:4px; width:auto;">Annuler</button>
+        <button type="button" class="touch-btn" onclick="submitManualForm()" style="background:#b45309; color:#fff; border-radius:4px; font-weight:bold; width:auto;">💾 Enregistrer</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="interventionModal" style="display:none; position:fixed; z-index:9997; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif;">
+    <div style="background:#fff; width:98%; max-width:850px; margin:1% auto; padding:18px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing: border-box;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-bottom:15px;">
+            <strong style="font-size:16px; color:#1e1e2f;">📝 Carnet : <span id="modalTitleGeofence" style="color:#2563eb;">Parcelle</span></strong>
+            <span id="modalVehicleTool" style="color:#64748b; font-style:italic; font-size:13px;">Véhicule - Outil</span>
+        </div>
+
+        <input type="hidden" id="modalDeviceId">
+        <input type="hidden" id="modalGeofenceId">
+        <input type="hidden" id="modalExitTime">
+        <input type="hidden" id="modalToolDetected">
+        <input type="hidden" id="modalVehicleName">
+
+        <div style="margin-bottom:15px; display:flex; gap:10px; align-items:flex-end;">
+            <div style="flex:3;">
+                <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:15px; color:#475569;">Type d'intervention :</label>
+                <select id="modalInterventionType" class="touch-input" style="width:100%; background:#f8fafc; font-weight:bold; color:#1e293b; font-size:15px; height:50px;">
+                    <option value="Labour">Labour</option>
+                    <option value="Hersage">Hersage</option>
+                    <option value="Semis">Semis</option>
+                    <option value="Pulvérisation">Pulvérisation</option>
+                    <option value="Épandage">Épandage</option>
+                    <option value="Déchaumage">Déchaumage</option>
+                    <option value="Broyage">Broyage</option>
+                    <option value="Travail du sol">Travail du sol</option>
+                    <option value="Récolte">Récolte</option>
+                    <option value="Autre">Autre</option>
+                </select>
+            </div>
+            <div style="flex:1;">
+                <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:15px; color:#475569;">Surf. Trav. (ha) :</label>
+                <input type="text" id="modalAppliedArea" class="touch-input" placeholder="Ex: 4.5" style="background:#fff; font-weight:bold; color:#1e293b; font-size:15px; height:50px; text-align:center;">
+            </div>
+
+        </div>
+
+        <!-- Météo compact -->
+        <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:8px 10px; margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:bold; color:#0369a1; white-space:nowrap;">🌤️ Météo :</span>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <label style="font-size:10px; color:#64748b;">T°</label>
+                <input type="text" id="modalMeteoTemp" class="touch-input" placeholder="°C" style="width:55px; padding:4px; font-size:12px;">
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <label style="font-size:10px; color:#64748b;">Vent</label>
+                <input type="text" id="modalMeteoVent" class="touch-input" placeholder="km/h" style="width:60px; padding:4px; font-size:12px;">
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <label style="font-size:10px; color:#64748b;">Pluie</label>
+                <input type="text" id="modalMeteoPluie" class="touch-input" placeholder="mm" style="width:55px; padding:4px; font-size:12px;">
+            </div>
+            <select id="modalMeteoConditions" class="touch-input" style="flex:1; min-width:120px; padding:4px; font-size:12px;">
+                <option value="">-- Conditions --</option>
+                <option value="Ensoleillé">☀️ Ensoleillé</option>
+                <option value="Nuageux">⛅ Nuageux</option>
+                <option value="Couvert">☁️ Couvert</option>
+                <option value="Pluvieux">🌧️ Pluvieux</option>
+                <option value="Venteux">💨 Venteux</option>
+            </select>
+            <button type="button" onclick="fetchMeteo()" class="touch-btn" style="background:#0369a1; color:#fff; border:none; border-radius:4px; white-space:nowrap; width:auto; font-weight:bold;">🔄 Auto</button>
+        </div>
+
+        <div style="border:1px solid #cbd5e1; padding:12px; background:#f8fafc; border-radius:6px; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
+                <span style="font-weight:bold; font-size:14px; color:#1e293b;">Produits apportés</span>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="touch-btn" onclick="openCatalogModal()" style="background:#64748b; color:#fff; border:none; border-radius:4px; font-weight:bold; width:auto; height:36px !important;">⚙️ Gérer le catalogue</button>
+                    <button type="button" class="touch-btn" onclick="addProductRow()" style="background:#10b981; color:#fff; border:none; border-radius:4px; font-weight:bold; width:auto; height:36px !important;">+ Ajouter un produit</button>
+                </div>
+            </div>
+            <div id="productRowsContainer" style="max-height:240px; overflow-y:auto; padding-right:2px;"></div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <button type="button" class="touch-btn" onclick="openToolModal()" style="background:#4b5563; color:#fff; border-radius:4px; font-weight:bold; width:auto; white-space:nowrap;">🛠️ Config Outils</button>
+            <div style="display:flex; gap:10px;">
+                <button type="button" class="touch-btn" onclick="closeInterventionModal()" style="background:#94a3b8; color:#fff; border-radius:4px; width:auto;">Annuler</button>
+                <button type="button" class="touch-btn" onclick="submitInterventionForm()" style="background:#2563eb; color:#fff; border-radius:4px; font-weight:bold; width:auto;">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="historyModal" style="display:none; position:fixed; z-index:9996; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif;">
+    <div style="background:#fff; width:95%; max-width:750px; margin:2% auto; padding:18px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing: border-box; display:flex; flex-direction:column; max-height:90vh;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-bottom:15px;">
+            <strong style="font-size:16px; color:#1e1e2f;">📋 Historique des Interventions par Parcelle</strong>
+            <div style="display:flex; gap:8px;">
+                <button type="button" class="touch-btn" onclick="exportHistoryToPDF()" style="background:#b91c1c; color:#fff; border-radius:4px; font-weight:bold; height:36px!important; font-size:12px; width:auto;">📄 Exporter PDF</button>
+                <button type="button" onclick="closeHistoryModal()" style="background:transparent; color:#dc2626; border:none; font-size:22px; font-weight:bold; cursor:pointer; width:auto; padding:0; margin-left:10px;">✕</button>
+            </div>
+        </div>
+
+        <div id="historyContainer" style="flex:1; overflow-y:auto; padding-right:5px; margin-bottom:15px;"></div>
+
+        <div style="display:flex; justify-content:flex-end; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <button type="button" class="touch-btn" onclick="closeHistoryModal()" style="background:#1f2937; color:#fff; border-radius:4px; font-weight:bold; width:auto;">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<div id="catalogModal" style="display:none; position:fixed; z-index:9998; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); font-family:sans-serif;">
+    <div style="background:#fff; width:95%; max-width:620px; margin:2% auto; padding:20px; border-radius:8px; box-shadow:0 4px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+        
+        <div style="border-bottom:2px solid #e2e8f0; padding-bottom:8px; margin-bottom:15px;">
+            <strong style="font-size:16px; color:#0f172a;">⚙️ Gestion du catalogue produits</strong>
+        </div>
+
+        <input type="hidden" id="editProductId" value="">
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px; margin-bottom:15px;">
+            <div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:8px;" id="formActionTitle">Ajouter un produit :</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; gap:6px;">
+                    <div style="width:110px;">
+                        <select id="newProdType" class="touch-input" onchange="renderCatalogList(); togglePhytoFields();" style="background:#fff;">
+                            <option value="phyto">🌱 Phyto</option>
+                            <option value="engrais">🧲 Engrais</option>
+                            <option value="semence">🌾 Semence</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <input type="text" id="newProdName" class="touch-input" placeholder="Nom du produit" required>
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <div style="flex:2;"><input type="text" id="newProdAmm" class="touch-input" placeholder="N° AMM (optionnel)"></div>
+                    <div style="flex:1;"><input type="number" step="0.01" id="newProdDose" class="touch-input" placeholder="Dose/ha"></div>
+                    <div style="flex:1;"><input type="text" id="newProdUnit" class="touch-input" placeholder="Unité (L, kg…)"></div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <div style="flex:1;"><select id="newProdCulture" class="touch-input"><option value="">-- Culture --</option></select></div>
+                    <div style="flex:1;"><input type="text" id="newProdBbch" class="touch-input" placeholder="Stade BBCH"></div>
+                    <div style="flex:1;"><input type="number" step="1" id="newProdDre" class="touch-input" placeholder="DRE (h)"></div>
+                </div>
+                <div style="display:flex; gap:6px;" id="phytoFields">
+                    <div style="flex:2;"><input type="text" id="newProdTarget" class="touch-input" placeholder="Cible (mildiou, puceron…)"></div>
+                    <div style="flex:1;"><input type="number" step="1" id="newProdDar" class="touch-input" placeholder="DAR (jours)"></div>
+                    <div style="flex:1;"><input type="number" step="0.01" id="newProdDoseHomologuee" class="touch-input" placeholder="Dose homologuée"></div>
+                    <div style="flex:1; display:flex; align-items:center; gap:6px; padding:0 10px; background:#fff; border:1px solid #ddd; border-radius:4px; height:44px; box-sizing:border-box;">
+                        <input type="checkbox" id="newProdBio" style="width:18px; height:18px; margin:0;">
+                        <label for="newProdBio" style="font-size:13px; color:#374151; cursor:pointer;">🌿 Bio</label>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:6px;">
+                    <button type="button" id="cancelEditBtn" class="touch-btn" onclick="resetCatalogForm()" style="background:#94a3b8; color:#fff; border-radius:4px; display:none; height:36px!important; font-size:12px; width:auto;">Annuler</button>
+                    <button type="button" id="saveProdBtn" class="touch-btn" onclick="saveProductToCatalogue()" style="background:#10b981; color:#fff; border-radius:4px; font-weight:bold; height:36px!important; font-size:12px; width:auto;">➕ Ajouter</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="font-weight:bold; font-size:13px; color:#475569; margin-bottom:6px;">Produits enregistrés :</div>
+        <div id="catalogListContainer" style="max-height:180px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:15px; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <button type="button" class="touch-btn" onclick="closeCatalogModal()" style="background:#1f2937; color:#fff; border-radius:4px; font-weight:bold; width:auto;">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<div id="toolModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); font-family:sans-serif;">
+    <div style="background:#fff; width:95%; max-width:620px; margin:2% auto; padding:20px; border-radius:8px; box-shadow:0 4px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+        
+        <div style="border-bottom:2px solid #e2e8f0; padding-bottom:8px; margin-bottom:15px;">
+            <strong style="font-size:16px; color:#0f172a;">🛠️ Dictionnaire des Outils & Interventions</strong>
+        </div>
+
+        <input type="hidden" id="editToolId" value="">
+
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; border-radius:6px; margin-bottom:15px;">
+            <div style="font-weight:bold; font-size:13px; color:#166534; margin-bottom:8px;" id="toolFormTitle">Lier un mot-clé outil :</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; gap:6px;">
+                    <div style="flex:1;">
+                        <input type="text" id="newToolKeyword" class="touch-input" placeholder="Ex: UF1201, CHARRUE..." required>
+                    </div>
+                    <div style="flex:1;">
+                        <select id="newToolIntervention" class="touch-input" style="background:#fff;">
+                            <option value="Labour">Labour</option>
+                            <option value="Hersage">Hersage</option>
+                            <option value="Semis">Semis</option>
+                            <option value="Pulvérisation">Pulvérisation</option>
+                            <option value="Épandage">Épandage</option>
+                            <option value="Déchaumage">Déchaumage</option>
+                            <option value="Broyage">Broyage</option>
+                            <option value="Travail du sol">Travail du sol</option>
+                            <option value="Récolte">Récolte</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:6px;">
+                    <button type="button" id="cancelToolEditBtn" class="touch-btn" onclick="resetToolForm()" style="background:#94a3b8; color:#fff; border-radius:4px; display:none; height:36px!important; font-size:12px; width:auto;">Annuler</button>
+                    <button type="button" id="saveToolBtn" class="touch-btn" onclick="saveToolToCatalogue()" style="background:#16a34a; color:#fff; border-radius:4px; font-weight:bold; height:36px!important; font-size:12px; width:auto;">➕ Lier l'outil</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="font-weight:bold; font-size:13px; color:#475569; margin-bottom:6px;">Correspondances enregistrées :</div>
+        <div id="toolListContainer" style="max-height:180px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; padding:6px; background:#fff;"></div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:15px; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <button type="button" class="touch-btn" onclick="closeToolModal()" style="background:#1f2937; color:#fff; border-radius:4px; font-weight:bold; width:auto;">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showToast(message, type) {
+    type = type || 'success';
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    toast.innerHTML = icon + ' ' + message;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
+
+let CATALOGUE_PRODUITS = { phyto: [], engrais: [], semence: [] };
+let CATALOGUE_OUTILS = [];
+let CACHE_GEOFENCES = {};
+let CACHE_SURFACE_HA = {};
+
+let map = L.map('map').setView([46.2276, 2.2137], 6);
+let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+let satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+baseLayers = { "Plan": osm, "Satellite": satellite };
+L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
+osm.addTo(map);
+
+map.createPane("vehiclePane"); map.createPane("geofencePane");
+map.getPane("vehiclePane").style.zIndex = 650; map.getPane("geofencePane").style.zIndex = 300;
+
+let markers = []; let geos = []; let geoLayer = L.featureGroup().addTo(map);
+let filtersLoaded = false; let localInterventions = {};
+
+const tractorIcon = L.divIcon({
+    html: '<div style="font-size:20px; filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.4));">🚜</div>',
+    className: '', iconSize: [26, 26], iconAnchor: [13, 13]
+});
+
+function toggleGeofences(){
+    let c = document.getElementById("toggleGeofences").checked;
+    c ? map.addLayer(geoLayer) : map.removeLayer(geoLayer);
+}
+
+function updateDurationSummary(events) {
+    let summary = {};
+    events.forEach(e => {
+        if (e.type === "Sortie" && e.duration && e.duration !== "-") {
+            let minutes = 0;
+            let matchHours = e.duration.match(/(\d+)h/);
+            let matchMinutes = e.duration.match(/(\d+)m/);
+            if (matchHours) minutes += parseInt(matchHours[1]) * 60;
+            if (matchMinutes) minutes += parseInt(matchMinutes[1]);
+            summary[e.geofence] = (summary[e.geofence] || 0) + minutes;
+        }
+    });
+    let html = ""; let entries = Object.entries(summary).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) {
+        html = `<span style="color:#64748b; font-style:italic;">Aucun temps enregistré</span>`;
+    } else {
+        entries.forEach(([geoName, totalMin]) => {
+            let h = Math.floor(totalMin / 60); let m = totalMin % 60;
+            let displayTime = h > 0 ? h + "h" + m.toString().padStart(2, '0') + "m" : m + "m";
+            html += `<div class="summary-item"><span>🗺️ <b>${geoName}</b></span><span style="font-weight:bold; color:#1e3a8a;">${displayTime}</span></div>`;
+        });
+    }
+    document.getElementById("summary-list").innerHTML = html;
+}
+
+async function syncCatalogFromBDD() {
+    try {
+        const resProd = await fetch('/api/catalog_products');
+        if (resProd.ok) {
+            const dataProd = await resProd.json();
+            CATALOGUE_PRODUITS = { phyto: [], engrais: [], semence: [] };
+            dataProd.forEach(p => {
+                if(CATALOGUE_PRODUITS[p.type]) CATALOGUE_PRODUITS[p.type].push(p);
+            });
+        }
+        const resTools = await fetch('/api/catalog_tools');
+        if (resTools.ok) {
+            CATALOGUE_OUTILS = await resTools.json();
+        }
+    } catch (e) { console.error("Erreur de chargement des catalogues BDD:", e); }
+}
+
+async function loadLocalInterventions() {
+    try {
+        const response = await fetch('/api/interventions');
+        if (response.ok) {
+            const data = await response.json();
+            localInterventions = {};
+            data.forEach(item => {
+                const key = `${item.device_id}_${item.geofence_id}_${item.exit_time}`;
+                localInterventions[key] = item;
+            });
+        }
+    } catch (error) { console.error("Erreur synchro:", error); }
+}
+
+function formatDateFR(dateString) {
+    if(!dateString || dateString === "-") return "-";
+    try {
+        const d = new Date(dateString);
+        if(isNaN(d.getTime())) return dateString.replace("T", " ");
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+    } catch(e) {
+        return dateString.replace("T", " ");
+    }
+}
+
+// Nettoyer la valeur de la surface pour l'affichage
+function cleanAreaValue(val) {
+    if (val === undefined || val === null) return "";
+    let s = String(val).replace("ha", "").replace("✍️", "").replace("None", "").replace("NaN", "").trim();
+    s = s.replace(",", "."); 
+    let f = parseFloat(s);
+    return isNaN(f) || f <= 0 ? "" : f;
+}
+
+function load(){
+    Promise.all([syncCatalogFromBDD(), loadLocalInterventions(), loadParcellesStatuts()]).then(() => {
+        let vehicle = document.getElementById("vehicle").value || "";
+        let geofence = document.getElementById("geofence").value || "";
+        let start = document.getElementById("startDate").value || "";
+        let end = document.getElementById("endDate").value || "";
+        let url = `/data?vehicle=${encodeURIComponent(vehicle)}&geofence=${encodeURIComponent(geofence)}&start=${start}&end=${end}`;
+
+        fetch(url).then(r => r.json()).then(data => {
+            markers.forEach(m => map.removeLayer(m)); geos.forEach(g => map.removeLayer(g)); geoLayer.clearLayers();
+            markers = []; geos = [];
+            if (!filtersLoaded) { populateFilters(data); filtersLoaded = true; }
+            updateDurationSummary(data.events);
+
+            let tbody = document.getElementById("tbody"); tbody.innerHTML = "";
+            let sortedEvents = [...data.events].sort((a, b) => new Date(b.date) - new Date(a.date));
+            sortedEvents.forEach(e => {
+                let row = tbody.insertRow(); row.className = e.type;
+                let durationDisplay = e.type === "Sortie" && e.duration !== "-" ? `<b>⏳ ${e.duration}</b>` : `<span>${e.duration}</span>`;
+                
+                let currentField = e.field || "-";
+                let key = `${e.deviceId}_${e.geofenceId}_${e.date}`;
+                let alreadySaved = localInterventions[key];
+
+                let traccarArea = (e.appliedArea !== undefined && e.appliedArea !== null && e.appliedArea !== "") ? `${e.appliedArea} ha` : "-";
+                let surfTrav = traccarArea;
+                if (alreadySaved) {
+                    const sv = alreadySaved.applied_area ?? alreadySaved.appliedArea;
+                    if (sv !== null && sv !== undefined && sv !== "") surfTrav = `✍️ ${sv} ha`;
+                }
+
+                                // INTÉGRATION DES DEUX COLONNES DANS LE HTML DU TABLEAU
+                let statutBadge = "";
+                if (CACHE_STATUTS && CACHE_STATUTS[e.geofenceId]) {
+                    let si = statutInfo(CACHE_STATUTS[e.geofenceId]);
+                    if (si.value) statutBadge = `<span style="background:${si.color}; color:#fff; font-size:9px; padding:1px 6px; border-radius:8px; margin-left:6px;">${si.label}</span>`;
+                }
+                row.innerHTML = `
+                    <td class="action-cell" style="text-align:center;"></td>
+                    <td><b>${e.vehicle || "-"}</b></td>
+                    <td>${e.geofence || "-"}${statutBadge}</td>
+                    <td>${e.type || "-"}</td>
+                    <td>${e.date_fr || "-"}</td>
+                    <td class="duration-cell">${durationDisplay}</td>
+                    <td><b style="color:#0f766e;">${CACHE_SURFACE_HA[e.geofenceId] != null ? CACHE_SURFACE_HA[e.geofenceId] + " ha" : "-"}</b></td>
+                    <td><b style="color: #16a34a;">${surfTrav}</b></td>
+                    <td>${e.tool || "-"}</td>
+                    <td>${e.width ? e.width : "-"}</td>
+                `;
+
+                if (e.type === "Sortie" && e.deviceId && e.geofenceId && e.date) {
+                    let actionCell = row.querySelector(".action-cell");
+                    let btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.style.width = "auto";
+                    btn.style.padding = "6px 12px";
+                    btn.style.fontSize = "12px";
+                    btn.style.fontWeight = "bold";
+                    btn.style.borderRadius = "5px";
+                    btn.style.border = "1px solid";
+                    btn.style.cursor = "pointer";
+
+                    if (alreadySaved) {
+                        btn.innerText = "📝 Modifier";
+                        btn.style.background = "#eaf2f8";
+                        btn.style.color = "#2980b9";
+                        btn.style.borderColor = "#bcd9f0";
+                    } else {
+                        btn.innerText = "➕ Saisir";
+                        btn.style.background = "#f0fdf4";
+                        btn.style.color = "#16a34a";
+                        btn.style.borderColor = "#bbf7d0";
+                    }
+
+                    btn.onclick = (event) => { 
+                        event.stopPropagation(); 
+                        openInterventionModal(e.deviceId, e.geofenceId, e.date, e.geofence, e.vehicle, e.tool, e.appliedArea); 
+                    };
+                    actionCell.appendChild(btn);
+                }
+            });
+
+            applySearchFilter(); // Réappliquer le filtre de recherche après rendu
+
+            data.positions.forEach(p => {
+                if(!p.lat || !p.lon) return;
+                let m = L.marker([p.lat, p.lon], { icon: tractorIcon, pane: "vehiclePane" }).addTo(map);
+                m.bindPopup(`<b>🚜 Véhicule : ${p.vehicle}</b>`); markers.push(m);
+            });
+
+            Object.entries(data.geofences || {}).forEach(([id, g]) => {
+                if(!g.name || !g.area) return;
+                CACHE_GEOFENCES[id] = g.name;
+                
+                let matchCoords = g.area.match(/-?\d+\.\d+|-?\d+/g);
+                if (!matchCoords || matchCoords.length < 6) return;
+                
+                let coords = [];
+                for (let i = 0; i < matchCoords.length; i += 2) {
+                    let val1 = parseFloat(matchCoords[i]);
+                    let val2 = parseFloat(matchCoords[i+1]);
+                    
+                    if (!isNaN(val1) && !isNaN(val2)) {
+                        if (Math.abs(val1) > 40 && Math.abs(val1) < 52) {
+                            coords.push([val1, val2]);
+                        } else if (Math.abs(val2) > 40 && Math.abs(val2) < 52) {
+                            coords.push([val2, val1]);
+                        } else {
+                            coords.push([val1, val2]); 
+                        }
+                    }
+                }
+                
+                if(coords.length > 2){
+                    // Couleur selon le statut de la parcelle (semé/traité/récolté/préparé/en attente)
+                    const statutVal = CACHE_STATUTS[id] || '';
+                    const si = statutInfo(statutVal);
+                    const polyColor = statutVal ? si.color : "#2563eb";
+                    let poly = L.polygon(coords, { 
+                        color: polyColor, 
+                        weight: 3, 
+                        fillColor: polyColor, 
+                        fillOpacity: 0.2, 
+                        pane: "geofencePane" 
+                    });
+                    const statutLabel = statutVal ? si.label : 'Statut non renseigné';
+                    poly.bindPopup(`<b>🗺 Parcelle : ${g.name || "Sans nom"}</b><br>${statutLabel}`); 
+                    geos.push(poly); 
+                    geoLayer.addLayer(poly);
+                }
+            });
+        }).catch(err => console.error("Erreur traitement :", err));
+    });
+}
+
+// Fonction Modal mise à jour
+function openInterventionModal(deviceId, geofenceId, exitTime, geofenceName, vehicleName, tool, rawAppliedArea) {
+    document.getElementById("modalDeviceId").value = deviceId;
+    document.getElementById("modalGeofenceId").value = geofenceId;
+    document.getElementById("modalExitTime").value = exitTime;
+    document.getElementById("modalToolDetected").value = tool || "";
+    document.getElementById("modalVehicleName").value = vehicleName && vehicleName.trim() !== "" ? vehicleName : "Non spécifié"; 
+    document.getElementById("modalTitleGeofence").innerText = geofenceName || "Inconnue";
+    document.getElementById("modalVehicleTool").innerText = `${vehicleName || 'Véhicule'} ${tool ? '('+tool+')' : ''}`;
+
+    const container = document.getElementById("productRowsContainer");
+    container.innerHTML = "";
+
+    const key = `${deviceId}_${geofenceId}_${exitTime}`;
+    const savedData = localInterventions[key];
+    
+    ["modalMeteoTemp","modalMeteoVent","modalMeteoPluie"].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=""; });
+    var mc=document.getElementById("modalMeteoConditions"); if(mc) mc.value="";
+
+    if (savedData) {
+        document.getElementById("modalInterventionType").value = savedData.intervention_type;
+        const savedArea = savedData.applied_area ?? savedData.appliedArea;
+        const surfCadastraleEdit = CACHE_SURFACE_HA[geofenceId];
+        document.getElementById("modalAppliedArea").value = (savedArea !== null && savedArea !== undefined && savedArea !== "")
+            ? savedArea
+            : (surfCadastraleEdit != null ? surfCadastraleEdit : "");
+        if (savedData.meteo) {
+            var mt=document.getElementById("modalMeteoTemp"); if(mt) mt.value=savedData.meteo.temperature||'';
+            var mv=document.getElementById("modalMeteoVent"); if(mv) mv.value=savedData.meteo.vent||'';
+            var mp=document.getElementById("modalMeteoPluie"); if(mp) mp.value=savedData.meteo.pluie||'';
+            var mco=document.getElementById("modalMeteoConditions"); if(mco) mco.value=savedData.meteo.conditions||'';
+        }
+                if(savedData.products && savedData.products.length > 0) {
+            savedData.products.forEach(p => { addProductRow(p.type, p.name, p.dosage); });
+        }
+    } else {
+        const surfCadastrale = CACHE_SURFACE_HA[geofenceId];
+        document.getElementById("modalAppliedArea").value = surfCadastrale != null ? surfCadastrale : "";
+        
+        const tUpper = (tool || "").toUpperCase().trim();
+        let detectedType = "Autre";
+
+        for(let i = 0; i < CATALOGUE_OUTILS.length; i++) {
+            let kw = CATALOGUE_OUTILS[i].keyword.toUpperCase();
+            if (tUpper !== "" && tUpper.includes(kw)) {
+                detectedType = CATALOGUE_OUTILS[i].intervention;
+                break;
+            }
+        }
+
+        if(detectedType === "Autre") {
+            const selectMenu = document.getElementById("modalInterventionType");
+            for (let i = 0; i < selectMenu.options.length; i++) {
+                let optValue = selectMenu.options[i].value.toUpperCase();
+                if (tUpper !== "" && (tUpper.includes(optValue) || optValue.includes(tUpper))) {
+                    detectedType = selectMenu.options[i].value;
+                    break;
+                }
+            }
+        }
+
+        document.getElementById("modalInterventionType").value = detectedType;
+        
+
+    }
+    document.getElementById("interventionModal").style.display = "block";
+}
+
+function addProductRow(type = "phyto", savedName = "", savedDosage = "") {
+    const container = document.getElementById("productRowsContainer");
+    const div = document.createElement("div"); div.className = "product-row";
+    div.style.display = "flex"; div.style.gap = "6px"; div.style.marginBottom = "8px"; div.style.alignItems = "center";
+
+    div.innerHTML = `
+        <select class="prod-type touch-input" style="width:110px;">
+            <option value="phyto" ${type === 'phyto' ? 'selected' : ''}>🌱 Phyto</option>
+            <option value="engrais" ${type === 'engrais' ? 'selected' : ''}>🧲 Engrais</option>
+            <option value="semence" ${type === 'semence' ? 'selected' : ''}>🌾 Semence</option>
+        </select>
+        <div style="flex:1; display:flex; gap:4px;">
+            <select class="prod-select touch-input" style="width:100%; font-weight:bold;"></select>
+            <input type="text" class="prod-name-custom touch-input" placeholder="Nom libre" style="width:100%; display:none;">
+        </div>
+        <div style="display:flex; flex-direction:column; width:80px; text-align:center;">
+            <input type="number" step="0.01" class="prod-dosage touch-input" value="${savedDosage}" placeholder="Dose" style="width:100%; text-align:center;" required>
+            <span class="amm-display" style="font-size:9px; color:#64748b; margin-top:2px; font-style:italic;"></span>
+        </div>
+        <strong style="color:#334155; font-size:13px; white-space:nowrap;">/ ha</strong>
+        <button type="button" class="touch-btn" onclick="this.parentElement.remove()" style="background:#ef4444; color:#fff; border:none; border-radius:4px; cursor:pointer; width:44px; min-width:44px; padding:0; font-size:16px;">🗑️</button>
+    `;
+    container.appendChild(div);
+
+    const typeSelect = div.querySelector(".prod-type"); 
+    const productSelect = div.querySelector(".prod-select");
+    const customInput = div.querySelector(".prod-name-custom"); 
+    const dosageInput = div.querySelector(".prod-dosage");
+    const ammDisplay = div.querySelector(".amm-display");
+
+    function updateProductOptions(currentType, currentSavedName) {
+        const list = CATALOGUE_PRODUITS[currentType] || []; 
+        let html = ""; 
+        let matchFound = false;
+
+        list.forEach(p => {
+            const isSelected = p.name === currentSavedName; 
+            if(isSelected) matchFound = true;
+            html += `<option value="${p.name}" data-amm="${p.amm}" data-dose="${p.dose}" ${isSelected ? "selected" : ""}>${p.name}</option>`;
+        });
+
+        const setCustomActive = (currentSavedName && !matchFound) ? "selected" : "";
+        html += `<option value="__CUSTOM__" ${setCustomActive}>+ Saisie libre</option>`;
+        
+        productSelect.innerHTML = html; 
+        triggerProductChange(currentSavedName && !matchFound);
+    }
+
+    function triggerProductChange(forceCustom = false) {
+        if (productSelect.value === "__CUSTOM__" || forceCustom) {
+            if(forceCustom) productSelect.value = "__CUSTOM__";
+            customInput.style.display = "block"; 
+            productSelect.style.display = "none"; 
+            ammDisplay.innerText = "";
+            if (!savedDosage) dosageInput.value = "";
+        } else {
+            customInput.style.display = "none"; 
+            productSelect.style.display = "block"; 
+            const selectedOpt = productSelect.options[productSelect.selectedIndex];
+            if (selectedOpt) {
+                const amm = selectedOpt.getAttribute("data-amm"); 
+                const defaultDose = selectedOpt.getAttribute("data-dose");
+                ammDisplay.innerText = amm && amm !== "N/A" && amm.trim() !== "" ? `AMM: ${amm}` : "";
+                if (!savedDosage) dosageInput.value = defaultDose || "";
+            }
+        }
+    }
+
+    typeSelect.onchange = () => { savedDosage = ""; updateProductOptions(typeSelect.value, ""); };
+    productSelect.onchange = () => { savedDosage = ""; triggerProductChange(); };
+    
+    div.addEventListener('refreshOptions', (e) => { 
+        if(typeSelect.value === e.detail.type) updateProductOptions(e.detail.type, e.detail.selectName); 
+    });
+
+    updateProductOptions(type, savedName);
+}
+
+async function openHistoryModal() {
+    const container = document.getElementById("historyContainer");
+    container.innerHTML = `<div style="text-align:center; padding:20px; color:#64748b; font-style:italic;">Chargement de l'historique...</div>`;
+    document.getElementById("historyModal").style.display = "block";
+
+    try {
+        const response = await fetch('/api/interventions');
+        if (!response.ok) throw new Error("Erreur de récupération");
+        const data = await response.json();
+
+        if (data.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b; font-style:italic; font-size:14px;">Aucune intervention enregistrée dans le carnet pour le moment.</div>`;
+            return;
+        }
+
+        data.sort((a, b) => new Date(a.exit_time) - new Date(b.exit_time));
+
+        const grouped = {};
+        data.forEach(item => {
+            if (!grouped[item.geofence_id]) grouped[item.geofence_id] = [];
+            grouped[item.geofence_id].push(item);
+        });
+
+        let html = "";
+        Object.entries(grouped).forEach(([geoId, list]) => {
+            const geofenceName = CACHE_GEOFENCES[geoId] || `Parcelle (ID: ${geoId})`;
+            html += `<div class="geofence-group-card">
+                <div class="geofence-group-header">🗺️ ${geofenceName} (${list.length} intervention${list.length > 1 ? 's' : ''})</div>`;
+            
+            list.forEach(interv => {
+                const frenchDate = formatDateFR(interv.exit_time);
+                let prodHtml = "";
+                
+                if (interv.products) {
+                    let parsedProducts = [];
+                    if (typeof interv.products === 'string') {
+                        try { parsedProducts = JSON.parse(interv.products); } catch(e) { parsedProducts = []; }
+                    } else if (Array.isArray(interv.products)) {
+                        parsedProducts = interv.products;
+                    }
+
+                    if (parsedProducts.length > 0) {
+                        parsedProducts.forEach(p => {
+                            const emoji = p.type === "phyto" ? "🌱" : p.type === "engrais" ? "🧲" : "🌾";
+                            let ammLabel = "";
+                            const catalogList = CATALOGUE_PRODUITS[p.type] || [];
+                            const foundInCatalog = catalogList.find(cp => cp.name === p.name);
+                            if(foundInCatalog && foundInCatalog.amm && foundInCatalog.amm !== "N/A" && foundInCatalog.amm.trim() !== "") {
+                                ammLabel = ` (AMM: ${foundInCatalog.amm})`;
+                            }
+                            prodHtml += `<span class="prod-badge badge-${p.type}">${emoji} ${p.name}${ammLabel} : ${p.dosage} /ha</span>`;
+                        });
+                    } else {
+                        prodHtml = `<span style="color:#94a3b8; font-style:italic; font-size:11px;">Aucun produit associé</span>`;
+                    }
+                } else {
+                    prodHtml = `<span style="color:#94a3b8; font-style:italic; font-size:11px;">Aucun produit associé</span>`;
+                }
+
+                const vehicleDisplay = interv.vehicle_name && interv.vehicle_name.trim() !== "" ? interv.vehicle_name : "Non spécifié";
+                // AFFICHAGE HISTORIQUE APPLIED AREA
+                const _area = interv.applied_area ?? interv.appliedArea;
+                const surfaceDisplay = (_area !== null && _area !== undefined) ? `${_area} ha` : "0,00 ha";
+
+                const dKey = `${interv.device_id}_${interv.geofence_id}_${interv.exit_time}`;
+                const isManual = interv.device_id === 0 || interv.device_id === '0';
+                const editBtn = `<button onclick="openInterventionOrManualEdit(${JSON.stringify(interv).replace(/"/g,'&quot;')})" style="background:#b45309; color:#fff; border:none; border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer; font-weight:bold; margin-right:4px;">✏️</button>`;
+                html += `<div class="intervention-sub-row">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; color:#334155; margin-bottom:4px;">
+                        <span>⚙️ Type : <span style="color:#2563eb;">${interv.intervention_type || 'Autre'}</span>${isManual ? ' <span style="font-size:10px;background:#fef3c7;color:#92400e;border-radius:3px;padding:1px 5px;font-weight:normal;">✏️ Manuel</span>' : ''}</span>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="color:#64748b; font-weight:normal;">📅 ${frenchDate}</span>
+                            ${editBtn}
+                            <button onclick="deleteIntervention('${dKey}', '${interv.device_id}', '${interv.geofence_id}', '${interv.exit_time}')" style="background:#ef4444; color:#fff; border:none; border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer; font-weight:bold;">🗑️</button>
+                        </div>
+                    </div>
+                    <div style="color:#475569; font-size:11px; margin-bottom:4px;">
+                        Véhicule : <b>${vehicleDisplay}</b> | Outil : <b>${interv.tool_detected || 'Aucun'}</b> | Surf. Trav : <b>${surfaceDisplay}</b>
+                    </div>
+                    ${interv.meteo&&(interv.meteo.conditions||interv.meteo.temperature)?`<div style="color:#0369a1;font-size:10px;margin-top:2px;">🌤️ ${interv.meteo.conditions||''} ${interv.meteo.temperature?interv.meteo.temperature+'°C':''} ${interv.meteo.vent?'| 💨 '+interv.meteo.vent+' km/h':''} ${interv.meteo.pluie?'| 🌧️ '+interv.meteo.pluie+' mm':''}</div>`:''}
+                    <div style="margin-top:6px; border-top:1px dashed #e2e8f0; padding-top:4px;">
+                        <div style="font-size:11px; color:#64748b; margin-bottom:2px; font-weight:bold;">Produits associés :</div>
+                        ${prodHtml}
+                    </div>
+                </div>`;
+            });
+
+            html += `</div>`;
+        });
+
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444; font-weight:bold;">Impossible de charger les données de l'historique.</div>`;
+    }
+}
+
+function closeHistoryModal() { document.getElementById("historyModal").style.display = "none"; }
+
+function exportHistoryToPDF() {
+    const element = document.getElementById("historyContainer");
+    const headerTitle = document.createElement("div");
+    headerTitle.style.marginBottom = "25px";
+    headerTitle.style.paddingBottom = "15px";
+    headerTitle.style.borderBottom = "3px double #1e40af";
+    headerTitle.style.textAlign = "center";
+    
+    const today = new Date().toLocaleDateString('fr-FR');
+    headerTitle.innerHTML = `
+        <h1 style="color: #111827; margin: 0 0 5px 0; font-size: 22px; font-family: Arial, sans-serif;">CARNET DE PLAINE & INTERVENTIONS</h1>
+        <p style="color: #64748b; margin: 0; font-size: 13px; font-style: italic;">Rapport généré le ${today}</p>
+    `;
+    element.insertBefore(headerTitle, element.firstChild);
+
+    const opt = {
+        margin:       12,
+        filename:     'Carnet_Interventions_Parcelles.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => { headerTitle.remove(); });
+}
+
+async function openCatalogModal() {
+    document.getElementById("catalogModal").style.display = "block";
+    await populateCultureSelect();
+    resetCatalogForm(); renderCatalogList(); togglePhytoFields();
+}
+
+async function populateCultureSelect() {
+    const select = document.getElementById("newProdCulture");
+    const currentVal = select.value;
+    try {
+        const r = await fetch('/api/cultures');
+        const list = await r.json();
+        select.innerHTML = '<option value="">-- Culture --</option>'
+            + list.map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
+        select.value = currentVal;
+    } catch(e) { console.error(e); }
+}
+function closeCatalogModal() { document.getElementById("catalogModal").style.display = "none"; }
+function resetCatalogForm() {
+    ["editProductId","newProdName","newProdAmm","newProdDose","newProdUnit","newProdCulture","newProdBbch","newProdDre","newProdTarget"].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.value = "";
+    });
+    var bio = document.getElementById("newProdBio"); if(bio) bio.checked = false;
+    var ft = document.getElementById("formActionTitle"); if(ft) ft.innerText = "Ajouter un produit :";
+    var sb = document.getElementById("saveProdBtn"); if(sb) sb.innerText = "➕ Ajouter";
+    var cb = document.getElementById("cancelEditBtn"); if(cb) cb.style.display = "none";
+    togglePhytoFields();
+}
+function togglePhytoFields() {
+    var t = document.getElementById("newProdType");
+    var pf = document.getElementById("phytoFields");
+    if(t && pf) pf.style.display = t.value === "phyto" ? "flex" : "none";
+}
+
+function renderCatalogList() {
+    var type = document.getElementById("newProdType").value;
+    var container = document.getElementById("catalogListContainer");
+    var list = CATALOGUE_PRODUITS[type] || [];
+    if (list.length === 0) { container.innerHTML = '<span style="color:#94a3b8; font-style:italic; font-size:12px; display:block; padding:10px; text-align:center;">Aucun produit enregistré.</span>'; return; }
+    var html = "";
+    list.forEach(function(p) {
+        var ammText = p.amm && p.amm !== "N/A" ? " | AMM: " + p.amm : "";
+        var doseText = p.dose ? " | " + p.dose + " " + (p.unit||"") + "/ha" : "";
+        var extras = [
+            p.culture ? "Culture: " + p.culture : "",
+            p.bbch    ? "BBCH: " + p.bbch : "",
+            p.dre     ? "DRE: " + p.dre + "h" : "",
+            p.dar     ? "DAR: " + p.dar + "j" : "",
+            p.dose_homologuee ? "Dose homol.: " + p.dose_homologuee : "",
+            p.target  ? "Cible: " + p.target : "",
+            p.bio     ? "🌿 Bio" : ""
+        ].filter(Boolean).join(" | ");
+        var extraHtml = extras ? '<div style="font-size:10px; color:#64748b; margin-top:2px;">' + extras + '</div>' : "";
+        var n = String(p.name||"").replace(/'/g, "&#39;");
+        var a = String(p.amm||"").replace(/'/g, "&#39;");
+        var u = String(p.unit||"").replace(/'/g, "&#39;");
+        var c = String(p.culture||"").replace(/'/g, "&#39;");
+        var b = String(p.bbch||"").replace(/'/g, "&#39;");
+        var t = String(p.target||"").replace(/'/g, "&#39;");
+        html += '<div class="item-row-list" style="flex-direction:column; align-items:flex-start;">'
+             +  '<div style="display:flex; justify-content:space-between; width:100%; align-items:center;">'
+             +  '<div style="font-weight:bold;">' + p.name + ' <span style="font-weight:normal; font-size:11px; color:#64748b;">' + ammText + doseText + '</span></div>'
+             +  '<div style="display:flex; gap:4px; flex-shrink:0;">'
+             +  '<button type="button" onclick="setupEditProduct(\'' + p.id + '\',\'' + n + '\',\'' + a + '\',' + (p.dose||0) + ',\'' + u + '\',\'' + c + '\',\'' + b + '\',' + (p.dre||0) + ',\'' + t + '\',' + (p.bio?1:0) + ',' + (p.dar||0) + ',' + (p.dose_homologuee||0) + ')" style="background:#3b82f6; color:white; width:32px; height:32px; border-radius:4px; padding:0;">✏️</button>'
+             +  '<button type="button" onclick="deleteProductFromCatalogue(\'' + p.id + '\')" style="background:#ef4444; color:white; width:32px; height:32px; border-radius:4px; padding:0;">🗑️</button>'
+             +  '</div></div>' + extraHtml + '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function setupEditProduct(id, name, amm, dose, unit, culture, bbch, dre, target, bio, dar, dose_homologuee) {
+    document.getElementById("editProductId").value = id;
+    document.getElementById("newProdName").value = name;
+    document.getElementById("newProdAmm").value = amm === "N/A" ? "" : amm;
+    document.getElementById("newProdDose").value = dose || "";
+    document.getElementById("newProdUnit").value = unit || "";
+    document.getElementById("newProdCulture").value = culture || "";
+    document.getElementById("newProdBbch").value = bbch || "";
+    document.getElementById("newProdDre").value = dre || "";
+    document.getElementById("newProdTarget").value = target || "";
+    document.getElementById("newProdBio").checked = bio == 1;
+    document.getElementById("newProdDar").value = dar || "";
+    document.getElementById("newProdDoseHomologuee").value = dose_homologuee || "";
+    document.getElementById("formActionTitle").innerText = "Modifier le produit :";
+    document.getElementById("saveProdBtn").innerText = "💾 Valider";
+    document.getElementById("cancelEditBtn").style.display = "inline-flex";
+    togglePhytoFields();
+}
+
+async function saveProductToCatalogue() {
+    const type    = document.getElementById("newProdType").value;
+    const name    = document.getElementById("newProdName").value.trim();
+    const amm     = document.getElementById("newProdAmm").value.trim() || "N/A";
+    const dose    = parseFloat(document.getElementById("newProdDose").value) || 0;
+    const unit    = document.getElementById("newProdUnit").value.trim();
+    const culture = document.getElementById("newProdCulture").value.trim();
+    const bbch    = document.getElementById("newProdBbch").value.trim();
+    const dre     = parseInt(document.getElementById("newProdDre").value) || 0;
+    const target  = document.getElementById("newProdTarget").value.trim();
+    const bio     = document.getElementById("newProdBio").checked ? 1 : 0;
+    const dar     = parseInt(document.getElementById("newProdDar").value) || 0;
+    const dose_homologuee = parseFloat(document.getElementById("newProdDoseHomologuee").value) || 0;
+    const id      = document.getElementById("editProductId").value;
+    if (!name) { alert("Nom manquant."); return; }
+
+    const payload = { id: id || null, type, name, amm, dose, unit, culture, bbch, dre, target, bio, dar, dose_homologuee };
+    try {
+        const response = await fetch('/api/catalog_products', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+            await syncCatalogFromBDD(); resetCatalogForm(); renderCatalogList();
+            document.querySelectorAll("#productRowsContainer .product-row").forEach(row => { row.dispatchEvent(new CustomEvent('refreshOptions', { detail: { type: type, selectName: name } })); });
+            showToast('Produit enregistré');
+        } else {
+            showToast('Erreur lors de l\'enregistrement du produit.', 'error');
+        }
+    } catch (e) { console.error("Erreur save product:", e); showToast('Erreur réseau.', 'error'); }
+}
+
+async function deleteProductFromCatalogue(id) {
+    if (confirm("Supprimer ce produit définitivement de la BDD ?")) {
+        try {
+            const response = await fetch(`/api/catalog_products?id=${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                const type = document.getElementById("newProdType").value;
+                await syncCatalogFromBDD(); resetCatalogForm(); renderCatalogList();
+                document.querySelectorAll("#productRowsContainer .product-row").forEach(row => { row.dispatchEvent(new CustomEvent('refreshOptions', { detail: { type: type, selectName: "" } })); });
+            }
+        } catch (e) { console.error("Erreur delete product:", e); }
+    }
+}
+
+function openToolModal() { document.getElementById("toolModal").style.display = "block"; resetToolForm(); renderToolList(); }
+function closeToolModal() { document.getElementById("toolModal").style.display = "none"; }
+function resetToolForm() {
+    document.getElementById("editToolId").value = ""; document.getElementById("newToolKeyword").value = "";
+    document.getElementById("toolFormTitle").innerText = "Lier un mot-clé outil :"; document.getElementById("saveToolBtn").innerText = "➕ Lier l'outil";
+    document.getElementById("cancelToolEditBtn").style.display = "none";
+}
+
+function renderToolList() {
+    const container = document.getElementById("toolListContainer");
+    if (CATALOGUE_OUTILS.length === 0) { container.innerHTML = `<span style="color:#94a3b8; font-style:italic; font-size:12px; display:block; padding:10px; text-align:center;">Aucune correspondance définie.</span>`; return; }
+    let html = "";
+    CATALOGUE_OUTILS.forEach((t) => {
+        html += `<div class="item-row-list">
+            <div style="flex:1; font-weight:bold; color:#0f172a;">👉 Contient : <span style="color:#b45309; background:#fef3c7; padding:2px 6px; border-radius:4px;">${t.keyword}</span> ➔ <span style="color:#16a34a;">${t.intervention}</span></div>
+            <div style="display:flex; gap:4px;">
+                <button type="button" onclick="setupEditTool('${t.id}', '${t.keyword.replace(/'/g, "\\'")}', '${t.intervention}')" style="background:#3b82f6; color:white; width:32px; height:32px; border-radius:4px; padding:0;">✏️</button>
+                <button type="button" onclick="deleteToolFromCatalogue('${t.id}')" style="background:#ef4444; color:white; width:32px; height:32px; border-radius:4px; padding:0;">🗑️</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+function setupEditTool(id, keyword, intervention) {
+    document.getElementById("editToolId").value = id;
+    document.getElementById("newToolKeyword").value = keyword;
+    document.getElementById("newToolIntervention").value = intervention;
+    document.getElementById("toolFormTitle").innerText = "Modifier la correspondance :";
+    document.getElementById("saveToolBtn").innerText = "💾 Valider";
+    document.getElementById("cancelToolEditBtn").style.display = "inline-flex";
+}
+
+async function saveToolToCatalogue() {
+    const keyword = document.getElementById("newToolKeyword").value.trim().toUpperCase();
+    const intervention = document.getElementById("newToolIntervention").value;
+    const id = document.getElementById("editToolId").value;
+    if (!keyword) { alert("Veuillez saisir un mot-clé."); return; }
+
+    const payload = { id: id || null, keyword, intervention };
+    try {
+        const response = await fetch('/api/catalog_tools', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        if (response.ok) { await syncCatalogFromBDD(); resetToolForm(); renderToolList(); showToast('Outil enregistré'); }
+        else { showToast('Erreur lors de l\'enregistrement.', 'error'); }
+    } catch (e) { console.error("Erreur save tool:", e); showToast('Erreur réseau.', 'error'); }
+}
+
+async function deleteToolFromCatalogue(id) {
+    if (confirm("Supprimer cette correspondance de la BDD ?")) {
+        try {
+            const response = await fetch(`/api/catalog_tools?id=${id}`, { method: 'DELETE' });
+            if (response.ok) { await syncCatalogFromBDD(); resetToolForm(); renderToolList(); }
+        } catch (e) { console.error("Erreur delete tool:", e); }
+    }
+}
+
+function closeInterventionModal() { document.getElementById("interventionModal").style.display = "none"; }
+
+// ENREGISTREMENT APPLIED AREA 
+async function submitInterventionForm() {
+    const device_id = parseInt(document.getElementById("modalDeviceId").value);
+    const geofence_id = parseInt(document.getElementById("modalGeofenceId").value);
+    const exit_time = document.getElementById("modalExitTime").value;
+    const tool_detected = document.getElementById("modalToolDetected").value;
+    const vehicle_name = document.getElementById("modalVehicleName").value;
+    const intervention_type = document.getElementById("modalInterventionType").value;
+    
+    const valArea = document.getElementById("modalAppliedArea").value.trim().replace(",", ".");
+    const parsedArea = valArea !== "" ? parseFloat(valArea) : null;
+
+    const rows = document.querySelectorAll("#productRowsContainer .product-row"); const products = [];
+    rows.forEach(row => {
+        const type = row.querySelector(".prod-type").value; const selectVal = row.querySelector(".prod-select").value;
+        const customVal = row.querySelector(".prod-name-custom").value.trim(); const dosage = row.querySelector(".prod-dosage").value;
+        const finalName = selectVal === "__CUSTOM__" ? customVal : selectVal;
+        if (finalName && dosage) products.push({ type: type, name: finalName, dosage: parseFloat(dosage) });
+    });
+
+    const meteo = {
+        temperature: (document.getElementById("modalMeteoTemp")||{value:''}).value.trim(),
+        vent: (document.getElementById("modalMeteoVent")||{value:''}).value.trim(),
+        pluie: (document.getElementById("modalMeteoPluie")||{value:''}).value.trim(),
+        conditions: (document.getElementById("modalMeteoConditions")||{value:''}).value
+    };
+    const payload = { 
+        device_id, 
+        geofence_id, 
+        exit_time, 
+        tool_detected, 
+        vehicle_name, 
+        intervention_type, 
+        products, 
+        appliedArea: parsedArea,
+        applied_area: parsedArea,
+        meteo: meteo
+    };
+    try {
+        const response = await fetch('/api/interventions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (response.ok) { closeInterventionModal(); load(); showToast("Intervention enregistrée"); } else { showToast("Erreur lors de la sauvegarde.", "error"); }
+    } catch (error) { console.error("Erreur POST:", error); }
+}
+
+function populateFilters(data) {
+    let v = new Set(); let g = new Set();
+    data.positions.forEach(p => { if(p.vehicle) v.add(p.vehicle); }); 
+    Object.values(data.geofences || {}).forEach(geo => { if(geo.name) g.add(geo.name); });
+    
+    let currentV = document.getElementById("vehicle").value; 
+    let currentG = document.getElementById("geofence").value;
+    
+    document.getElementById("vehicle").innerHTML = `<option value="">Tous véhicules</option>` + [...v].sort().map(x => `<option value="${x}">${x}</option>`).join("");
+    document.getElementById("geofence").innerHTML = `<option value="">Toutes parcelles</option>` + [...g].sort().map(x => `<option value="${x}">${x}</option>`).join("");
+    
+    document.getElementById("vehicle").value = currentV; 
+    document.getElementById("geofence").value = currentG;
+}
+
+function resetFilters(){ 
+    document.getElementById("vehicle").value = ""; 
+    document.getElementById("geofence").value = ""; 
+    document.getElementById("periodSelect").value = "7";
+    onPeriodChange();
+}
+
+function zoomVehicles(){ if(markers.length) map.fitBounds(L.featureGroup(markers).getBounds(), { padding: [20, 20] }); }
+function zoomGeofences(){ if(geoLayer.getLayers().length) map.fitBounds(geoLayer.getBounds(), { padding: [20, 20] }); }
+function showToday() {
+    const customRow = document.getElementById("customPeriodRow");
+    customRow.style.display = "flex";
+    document.getElementById("periodSelect").value = "custom";
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59);
+    document.getElementById("startDate").value = startOfDay.toISOString().slice(0,16);
+    document.getElementById("endDate").value = endOfDay.toISOString().slice(0,16);
+    load();
+}
+
+function applySearchFilter() {
+    const term = document.getElementById("searchFilter").value.trim().toLowerCase();
+    const rows = document.querySelectorAll("#tbody tr");
+    rows.forEach(row => {
+        if (!term) { row.style.display = ""; return; }
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(term) ? "" : "none";
+    });
+}
+
+function toggleFiltersPanel() {
+    const panel = document.getElementById('filtersPanel');
+    const chevron = document.getElementById('filtersPanelChevron');
+    const isOpen = panel.style.display === 'flex';
+    panel.style.display = isOpen ? 'none' : 'flex';
+    chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function onPeriodChange() {
+    const val = document.getElementById("periodSelect").value;
+    const customRow = document.getElementById("customPeriodRow");
+    if (val === "custom") {
+        customRow.style.display = "flex";
+    } else {
+        customRow.style.display = "none";
+        // Calculer les dates automatiquement
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - parseInt(val));
+        document.getElementById("startDate").value = start.toISOString().slice(0,16);
+        document.getElementById("endDate").value = end.toISOString().slice(0,16);
+        load();
+    }
+}
+
+function getParams(){ return `vehicle=${encodeURIComponent(document.getElementById("vehicle").value)}&geofence=${encodeURIComponent(document.getElementById("geofence").value)}&start=${document.getElementById("startDate").value}&end=${document.getElementById("endDate").value}`; }
+function exportPDF(){ window.location = "/export_pdf?" + getParams(); }
+function exportExcel(){ window.location = "/export_excel?" + getParams(); }
+
+// Initialiser la période par défaut (30 jours)
+onPeriodChange();
+setTimeout(() => { map.invalidateSize(); }, 500); 
+window.addEventListener('resize', () => { map.invalidateSize(); });
+setInterval(load, 15000);
+
+async function checkAlertesDarBadge() {
+    try {
+        const r = await fetch('/api/alertes_dar');
+        if (!r.ok) return;
+        const dar = await r.json();
+        const btn = document.getElementById('systemStatusBtn');
+        if (!btn) return;
+        let badge = document.getElementById('darBadge');
+        if (dar.nb_alertes > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.id = 'darBadge';
+                badge.style.cssText = 'position:absolute; top:-6px; right:-6px; background:#dc2626; color:#fff; font-size:10px; font-weight:bold; border-radius:10px; padding:1px 5px; line-height:1.4;';
+                btn.appendChild(badge);
+            }
+            badge.textContent = dar.nb_alertes;
+        } else if (badge) {
+            badge.remove();
+        }
+    } catch(e) { console.error(e); }
+}
+checkAlertesDarBadge();
+
+// Vérification connexion Traccar au chargement
+(async function checkTraccarOnLoad() {
+    try {
+        const r = await fetch('/api/system_status');
+        if (!r.ok) return;
+        const s = await r.json();
+        if (!s.traccar_reachable && !document.getElementById('traccar-warning-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'traccar-warning-banner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:white;text-align:center;padding:8px 16px;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:12px;';
+            banner.innerHTML = '⚠️ Traccar inaccessible — Vérifiez l\'URL et le mot de passe dans <b>⚙️ État système</b><button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.3);border:none;color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px;">✕</button>';
+            document.body.prepend(banner);
+            const sysBtn = document.getElementById('systemStatusBtn');
+            if (sysBtn) {
+                const dot = document.createElement('span');
+                dot.id = 'traccar-dot';
+                dot.style.cssText = 'position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:#ef4444;border-radius:50%;border:2px solid white;';
+                sysBtn.appendChild(dot);
+            }
+        }
+    } catch(e) {}
+})();
+
+// Vérifier la connexion Traccar au chargement
+(async function checkTraccarOnLoad() {
+    try {
+        const r = await fetch('/api/system_status');
+        if (!r.ok) return;
+        const s = await r.json();
+        if (!s.traccar_reachable) {
+            const banner = document.createElement('div');
+            banner.id = 'traccar-warning-banner';
+            banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:9999; background:#dc2626; color:white; text-align:center; padding:8px 16px; font-size:13px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:12px;';
+            banner.innerHTML = '⚠️ Traccar inaccessible — Vérifiez l\'URL et le mot de passe dans <b>⚙️ État système</b>'
+                + '<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.3); border:none; color:white; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:12px;">✕</button>';
+            document.body.prepend(banner);
+        }
+    } catch(e) {}
+})();
+setInterval(checkAlertesDarBadge, 60000);
+
+// =========================================================================
+// CALENDRIER DES INTERVENTIONS
+// =========================================================================
+var calYear = new Date().getFullYear();
+var calMonth = new Date().getMonth();
+var calInterventions = [];
+
+var CAL_COLORS = {
+    'Semis': '#16a34a', 'Pulvérisation': '#2563eb', 'Épandage': '#d97706',
+    'Labour': '#7c3aed', 'Hersage': '#7c3aed', 'Déchaumage': '#7c3aed',
+    'Broyage': '#7c3aed', 'Récolte': '#dc2626', 'Travail du sol': '#7c3aed'
+};
+function calColor(type) { return CAL_COLORS[type] || '#64748b'; }
+
+async function openCalendarModal() {
+    document.getElementById('calendarModal').style.display = 'block';
+    document.getElementById('calDayDetail').style.display = 'none';
+    try { var r = await fetch('/api/interventions'); if (r.ok) calInterventions = await r.json(); }
+    catch(e) { calInterventions = []; }
+    renderCalendar();
+}
+
+function calPrevMonth() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+function calNextMonth() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+
+function renderCalendar() {
+    var months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    document.getElementById('calTitle').textContent = months[calMonth] + ' ' + calYear;
+    var byDay = {};
+    calInterventions.forEach(function(interv) {
+        if (!interv.exit_time) return;
+        var day = interv.exit_time.substring(0, 10);
+        if (!byDay[day]) byDay[day] = [];
+        byDay[day].push(interv);
+    });
+    var firstDay = new Date(calYear, calMonth, 1);
+    var lastDay = new Date(calYear, calMonth + 1, 0);
+    var startDow = firstDay.getDay() - 1; if (startDow < 0) startDow = 6;
+    var today = new Date().toISOString().substring(0, 10);
+    var html = '';
+    for (var i = 0; i < startDow; i++) html += '<div style="min-height:60px;"></div>';
+    for (var d = 1; d <= lastDay.getDate(); d++) {
+        var dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+        var events = byDay[dateStr] || [];
+        var isToday = dateStr === today;
+        var dow = new Date(calYear, calMonth, d).getDay();
+        var isWE = dow === 0 || dow === 6;
+        var bg = isToday ? '#eff6ff' : isWE ? '#fafafa' : '#fff';
+        var brd = isToday ? '#2563eb' : '#e2e8f0';
+        var numCol = isToday ? '#2563eb' : isWE ? '#dc2626' : '#334155';
+        var cell = '<div onclick="calShowDay(\'' + dateStr + '\')" style="min-height:60px; border:1px solid ' + brd + '; border-radius:6px; padding:4px; cursor:pointer; background:' + bg + ';">';
+        cell += '<div style="font-weight:bold; font-size:12px; color:' + numCol + '; margin-bottom:2px;">' + d + '</div>';
+        events.slice(0, 3).forEach(function(ev) {
+            cell += '<div style="background:' + calColor(ev.intervention_type) + '; color:#fff; font-size:9px; padding:1px 4px; border-radius:3px; margin-bottom:1px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">' + (ev.intervention_type || '?') + '</div>';
+        });
+        if (events.length > 3) cell += '<div style="font-size:9px; color:#64748b;">+' + (events.length - 3) + ' autre(s)</div>';
+        cell += '</div>';
+        html += cell;
+    }
+    document.getElementById('calendarGrid').innerHTML = html;
+}
+
+function calShowDay(dateStr) {
+    var events = calInterventions.filter(function(i) { return i.exit_time && i.exit_time.startsWith(dateStr); });
+    var months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    var parts = dateStr.split('-');
+    document.getElementById('calDayTitle').textContent = parseInt(parts[2]) + ' ' + months[parseInt(parts[1])-1] + ' ' + parts[0] + ' — ' + events.length + ' intervention(s)';
+    if (events.length === 0) {
+        document.getElementById('calDayList').innerHTML = '<div style="color:#64748b; font-style:italic; font-size:13px;">Aucune intervention ce jour.</div>';
+    } else {
+        document.getElementById('calDayList').innerHTML = events.map(function(ev) {
+            var color = calColor(ev.intervention_type);
+            var surf = ev.applied_area || ev.appliedArea || '';
+            var geoName = (CACHE_GEOFENCES && CACHE_GEOFENCES[ev.geofence_id])
+                ? CACHE_GEOFENCES[ev.geofence_id]
+                : ('Parcelle ' + (ev.geofence_id || ''));
+            var prodsHtml = '';
+            var darWarning = '';
+            if (ev.products && ev.products.length > 0) {
+                prodsHtml = ev.products.map(function(p) {
+                    var icon = p.type === 'phyto' ? '🌿' : p.type === 'engrais' ? '🧲' : p.type === 'semence' ? '🌾' : '🧪';
+                    var catProd = (CATALOGUE_PRODUITS.phyto || []).find(function(cp) { return cp.name === p.name; });
+                    var darHtml = '';
+                    if (catProd && catProd.dar) {
+                        var interDate = new Date(ev.exit_time);
+                        var endDar = new Date(interDate.getTime() + catProd.dar * 86400000);
+                        var today = new Date();
+                        var daysLeft = Math.ceil((endDar - today) / 86400000);
+                        if (daysLeft > 0) {
+                            darHtml = '<span style="background:#fef2f2; color:#dc2626; font-size:9px; padding:1px 5px; border-radius:8px; margin-left:6px; font-weight:bold;">⚠️ DAR actif — récolte interdite ' + daysLeft + ' j</span>';
+                        }
+                    }
+                    return '<div style="font-size:11px; color:#475569; padding:2px 0;">' + icon + ' ' + (p.name || '') + (p.dosage ? ' — ' + p.dosage : '') + darHtml + '</div>';
+                }).join('');
+            } else {
+                prodsHtml = '<div style="font-size:11px; color:#94a3b8;">Aucun produit renseigné</div>';
+            }
+            return '<div style="padding:10px; margin-bottom:8px; border-radius:6px; background:#f8fafc; border-left:4px solid ' + color + ';">'
+                + '<div style="font-weight:bold; color:' + color + '; font-size:14px; margin-bottom:4px;">' + (ev.intervention_type || 'Intervention') + '</div>'
+                + '<div style="font-size:12px; color:#334155; margin-bottom:4px;">📍 ' + geoName + (surf ? ' &nbsp;|&nbsp; 📐 ' + surf + ' ha' : '') + '</div>'
+                + prodsHtml
+                + '</div>';
+        }).join('');
+    }
+    document.getElementById('calDayDetail').style.display = 'block';
+}
+
+async function fetchMeteo() {
+    async function getCoords() {
+        try {
+            const r = await fetch('/data');
+            const d = await r.json();
+            if (d.positions && d.positions.length > 0 && d.positions[0].lat) {
+                return { lat: d.positions[0].lat, lon: d.positions[0].lon };
+            }
+        } catch(e) {}
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) { reject("no geo"); return; }
+            navigator.geolocation.getCurrentPosition(
+                p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+                () => reject("no position")
+            );
+        });
+    }
+    try {
+        const pos = await getCoords();
+        const exitTimeRaw = document.getElementById("modalExitTime")?.value || '';
+        let targetDate = exitTimeRaw ? new Date(exitTimeRaw) : new Date();
+        const isHistorical = targetDate < new Date(Date.now() - 24 * 3600000);
+        let cur;
+        if (isHistorical) {
+            const dateStr = targetDate.toISOString().slice(0,10); const hour = targetDate.getHours();
+            const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${pos.lat}&longitude=${pos.lon}&start_date=${dateStr}&end_date=${dateStr}&hourly=temperature_2m,windspeed_10m,precipitation,weathercode&timezone=Europe/Paris`;
+            const mr = await fetch(url); const md = await mr.json();
+            const h = Math.min(hour,(md.hourly?.time?.length||1)-1);
+            cur = {temperature_2m:md.hourly?.temperature_2m?.[h],windspeed_10m:md.hourly?.windspeed_10m?.[h],precipitation:md.hourly?.precipitation?.[h],weathercode:md.hourly?.weathercode?.[h]};
+        } else {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${pos.lat}&longitude=${pos.lon}&current=temperature_2m,windspeed_10m,precipitation,weathercode&timezone=Europe/Paris`;
+            const mr = await fetch(url); const md = await mr.json(); cur = md.current;
+        }
+        var mt = document.getElementById("modalMeteoTemp"); if(mt) mt.value = cur.temperature_2m!=null?Math.round(cur.temperature_2m*10)/10:'';
+        var mv = document.getElementById("modalMeteoVent"); if(mv) mv.value = cur.windspeed_10m!=null?Math.round(cur.windspeed_10m):'';
+        var mp = document.getElementById("modalMeteoPluie"); if(mp) mp.value = cur.precipitation!=null?cur.precipitation:'';
+        const wc = cur.weathercode;
+        let cond = wc===0?'Ensoleillé':wc<=3?'Nuageux':wc<=48?'Couvert':wc<=77?'Pluvieux':'Venteux';
+        var mco = document.getElementById("modalMeteoConditions"); if(mco) mco.value = cond;
+    } catch(e) { alert("Impossible de récupérer la météo automatiquement."); }
+}
+
+// =========================================================================
+// PARCELLES & EXPLOITATION
+// =========================================================================
+let CACHE_PARCELLES = {};
+let CACHE_STATUTS = {};
+let CACHE_STATUT_AUTO = {};
+const STATUT_OPTIONS = [
+    { value: '', label: '— Aucun —', color: '#94a3b8' },
+    { value: 'semis', label: '🌱 Semé', color: '#16a34a' },
+    { value: 'traite', label: '💧 Traité', color: '#2563eb' },
+    { value: 'recolte', label: '🌾 Récolté', color: '#dc2626' },
+    { value: 'prepare', label: '🚜 Préparé', color: '#7c3aed' },
+    { value: 'attente', label: '⏳ En attente', color: '#d97706' },
+];
+function statutInfo(val) { return STATUT_OPTIONS.find(s => s.value === val) || STATUT_OPTIONS[0]; }
+
+async function loadParcellesStatuts() {
+    try {
+        const r = await fetch('/api/parcelles');
+        if (r.ok) {
+            const list = await r.json();
+            list.forEach(p => {
+                CACHE_STATUTS[p.geofence_id] = p.statut || '';
+                CACHE_SURFACE_HA[p.geofence_id] = p.surface_ha != null ? p.surface_ha : null;
+            });
+        }
+    } catch(e) {}
+}
+
+async function openParcellesModal() {
+    document.getElementById("parcellesModal").style.display = "block";
+    // Recalculer les statuts automatiques avant d'afficher la liste
+    try { await fetch('/api/parcelles/refresh_statuts', { method: 'POST' }); } catch(e) { console.error(e); }
+    // Charger exploitation
+    try {
+        const r = await fetch('/api/exploitation');
+        if (r.ok) {
+            const d = await r.json();
+            document.getElementById("expSiret").value = d.siret || '';
+            document.getElementById("expRaisonSociale").value = d.raison_sociale || '';
+            var ea = document.getElementById("expApplicateur"); if(ea) ea.value = d.applicateur || '';
+            var ec = document.getElementById("expCertiphyto"); if(ec) ec.value = d.certiphyto || '';
+            var em = document.getElementById("expMateriel"); if(em) em.value = d.materiel || '';
+            var en = document.getElementById("expNumControle"); if(en) en.value = d.num_controle || '';
+            var ed = document.getElementById("expDateControle"); if(ed) ed.value = d.date_controle || '';
+        }
+    } catch(e) { console.error(e); }
+    // Charger parcelles et afficher
+    await renderParcellesList();
+}
+
+function closeParcellesModal() {
+    document.getElementById("parcellesModal").style.display = "none";
+}
+
+
+async function renderParcellesList() {
+    const container = document.getElementById("parcellesListContainer");
+    container.innerHTML = '<div style="padding:10px; color:#64748b; font-style:italic;">Chargement...</div>';
+
+    let savedParcelles = {};
+    try {
+        const r = await fetch('/api/parcelles');
+        if (r.ok) {
+            const list = await r.json();
+            list.forEach(p => {
+                savedParcelles[p.geofence_id] = p.identifiant;
+                CACHE_STATUTS[p.geofence_id] = p.statut || '';
+                CACHE_STATUT_AUTO[p.geofence_id] = (p.statut_auto === undefined || p.statut_auto === null) ? 1 : p.statut_auto;
+                CACHE_SURFACE_HA[p.geofence_id] = p.surface_ha != null ? p.surface_ha : null;
+            });
+            CACHE_PARCELLES = savedParcelles;
+        }
+    } catch(e) {}
+
+    const geos = Object.entries(CACHE_GEOFENCES);
+    if (geos.length === 0) {
+        container.innerHTML = '<div style="padding:10px; color:#64748b; font-style:italic;">Aucune parcelle Traccar détectée.</div>';
+        return;
+    }
+
+    let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">'
+             + '<thead><tr style="background:#f1f5f9;">'
+             + '<th style="padding:8px; text-align:left; border-bottom:1px solid #e2e8f0;">Parcelle Traccar</th>'
+             + '<th style="padding:8px; text-align:left; border-bottom:1px solid #e2e8f0; width:160px;">Identifiant export</th>'
+             + '<th style="padding:8px; text-align:center; border-bottom:1px solid #e2e8f0; width:90px;">Surface (ha)</th>'
+             + '<th style="padding:8px; text-align:left; border-bottom:1px solid #e2e8f0; width:140px;">Statut</th>'
+             + '<th style="padding:8px; text-align:center; border-bottom:1px solid #e2e8f0; width:60px;">Auto</th>'
+             + '<th style="padding:8px; text-align:center; border-bottom:1px solid #e2e8f0; width:60px;">Notes</th>'
+             + '</tr></thead><tbody>';
+
+    geos.sort((a, b) => a[1].localeCompare(b[1])).forEach(([geoId, geoName]) => {
+        const saved = savedParcelles[geoId] || '';
+        const curStatut = CACHE_STATUTS[geoId] || '';
+        let statutOpts = STATUT_OPTIONS.map(s => '<option value="' + s.value + '"' + (s.value === curStatut ? ' selected' : '') + '>' + s.label + '</option>').join('');
+        const isAuto = CACHE_STATUT_AUTO[geoId] === undefined ? true : !!CACHE_STATUT_AUTO[geoId];
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">'
+              + '<td style="padding:6px 8px; color:#334155;">' + geoName + '</td>'
+              + '<td style="padding:4px 8px;">'
+              + '<input type="text" data-geoid="' + geoId + '" data-geoname="' + geoName.replace(/"/g,'&quot;') + '" '
+              + 'value="' + saved.replace(/"/g,'&quot;') + '" '
+              + 'placeholder="ex: PAR001" '
+              + 'style="width:100%; padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; box-sizing:border-box;">'
+              + '</td>'
+              + '<td style="padding:4px 8px; text-align:center;">'
+              + '<input type="number" data-surfgeoid="' + geoId + '" '
+              + 'value="' + (CACHE_SURFACE_HA[geoId] !== null && CACHE_SURFACE_HA[geoId] !== undefined ? CACHE_SURFACE_HA[geoId] : '') + '" '
+              + 'placeholder="ha" step="0.01" min="0" '
+              + 'style="width:70px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; text-align:center;">'
+              + '</td>'
+              + '<td style="padding:4px 8px;">'
+              + '<select data-statutgeoid="' + geoId + '" ' + (isAuto ? 'disabled' : '') + ' style="width:100%; padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; box-sizing:border-box; background:' + (isAuto ? '#f1f5f9' : '#fff') + ';">' + statutOpts + '</select>'
+              + '</td>'
+              + '<td style="padding:4px 8px; text-align:center;">'
+              + '<input type="checkbox" data-statutautogeoid="' + geoId + '" ' + (isAuto ? 'checked' : '') + ' onchange="toggleStatutAuto(' + geoId + ', this.checked)" style="width:18px; height:18px; cursor:pointer;">'
+              + '</td>'
+              + '<td style="padding:4px 8px; text-align:center;">'
+              + '<button type="button" onclick="openNotesModal(' + geoId + ', \'' + geoName.replace(/'/g,"&#39;") + '\')" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; border-radius:4px; width:32px; height:28px; cursor:pointer; padding:0;">📝</button>'
+              + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+async function saveExploitation() {
+    const siret = document.getElementById("expSiret").value.trim();
+    const raison_sociale = document.getElementById("expRaisonSociale").value.trim();
+    try {
+        const r = await fetch('/api/exploitation', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                siret, raison_sociale,
+                applicateur: (document.getElementById('expApplicateur')||{value:''}).value.trim(),
+                certiphyto: (document.getElementById('expCertiphyto')||{value:''}).value.trim(),
+                materiel: (document.getElementById('expMateriel')||{value:''}).value.trim(),
+                num_controle: (document.getElementById('expNumControle')||{value:''}).value.trim(),
+                date_controle: (document.getElementById('expDateControle')||{value:''}).value.trim()
+            })
+        });
+        if (r.ok) { showToast('Exploitation sauvegardée'); }
+    } catch(e) { console.error(e); }
+}
+
+async function saveAllParcelles() {
+    const inputs = document.querySelectorAll('#parcellesListContainer input[data-geoid]');
+    let ok = 0, errors = 0;
+    for (const input of inputs) {
+        const geofence_id = parseInt(input.dataset.geoid);
+        if (isNaN(geofence_id)) continue;
+        const nom_parcelle = input.dataset.geoname || '';
+        const identifiant = input.value.trim();
+        const statutSelect = document.querySelector('select[data-statutgeoid="' + geofence_id + '"]');
+        const statut = statutSelect ? statutSelect.value : '';
+        const autoCheckbox = document.querySelector('input[data-statutautogeoid="' + geofence_id + '"]');
+        const statut_auto = autoCheckbox ? autoCheckbox.checked : true;
+        const surfInput = document.querySelector('input[data-surfgeoid="' + geofence_id + '"]');
+        const surface_ha = surfInput && surfInput.value !== '' ? parseFloat(surfInput.value) : null;
+        try {
+            const r = await fetch('/api/parcelles', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({geofence_id, identifiant, nom_parcelle, statut, statut_auto, surface_ha})
+            });
+            if (r.ok) ok++; else errors++;
+        } catch(e) { errors++; console.error('Erreur parcelle', geofence_id, e); }
+    }
+    if (errors === 0) showToast(ok + ' parcelle(s) sauvegardée(s)');
+    else showToast(ok + ' sauvegardée(s), ' + errors + ' erreur(s)', 'error');
+    await renderParcellesList();
+}
+
+async function toggleStatutAuto(geofence_id, isChecked) {
+    // Si on repasse en mode auto, on recalcule immédiatement le statut côté serveur
+    const nom_parcelle = (document.querySelector('input[data-geoid="' + geofence_id + '"]') || {}).dataset?.geoname || '';
+    const identifiant = (document.querySelector('input[data-geoid="' + geofence_id + '"]') || {}).value || '';
+    const statutSelect = document.querySelector('select[data-statutgeoid="' + geofence_id + '"]');
+    const statutActuel = statutSelect ? statutSelect.value : '';
+
+    try {
+        await fetch('/api/parcelles', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ geofence_id, identifiant, nom_parcelle, statut: statutActuel, statut_auto: isChecked })
+        });
+        if (isChecked) {
+            // Recalculer le statut automatique côté serveur immédiatement
+            await fetch('/api/parcelles/refresh_statuts', { method: 'POST' });
+        }
+        showToast(isChecked ? 'Statut automatique activé' : 'Statut figé manuellement');
+        await renderParcellesList();
+    } catch(e) {
+        console.error(e);
+        showToast('Erreur lors du changement de mode.', 'error');
+    }
+}
+
+function exportPhyto(){ window.location = "/export_phyto"; }
+
+// =========================================================================
+// AUJOURD'HUI EN UN COUP D'OEIL
+// =========================================================================
+function openTodayModal() {
+    document.getElementById('todayModal').style.display = 'block';
+    const now = new Date();
+    document.getElementById('todayDateLabel').textContent = now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    loadTodaySummary();
+}
+
+async function loadTodaySummary() {
+    const content = document.getElementById('todayModalContent');
+    content.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b; font-style:italic;">Chargement...</div>';
+    try {
+        const r = await fetch('/api/today_summary');
+        if (!r.ok) throw new Error('Erreur API');
+        const s = await r.json();
+        await renderTodaySummary(s);
+    } catch(e) {
+        content.innerHTML = '<div style="color:#dc2626; text-align:center; padding:20px;">Erreur de chargement.</div>';
+        console.error(e);
+    }
+}
+
+async function renderTodaySummary(s) {
+    let html = '';
+
+    // Cartes de synthèse
+    html += '<div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">';
+    html += '<div style="flex:1; min-width:120px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px; text-align:center;">'
+        + '<div style="font-size:22px; font-weight:bold; color:#16a34a;">' + s.nb_interventions_today + '</div>'
+        + '<div style="font-size:11px; color:#15803d; margin-top:2px;">Intervention(s) aujourd\'hui</div></div>';
+    html += '<div style="flex:1; min-width:120px; background:' + (s.nb_alertes_dar > 0 ? '#fef2f2' : '#f0fdf4') + '; border:1px solid ' + (s.nb_alertes_dar > 0 ? '#fecaca' : '#bbf7d0') + '; border-radius:8px; padding:12px; text-align:center;">'
+        + '<div style="font-size:22px; font-weight:bold; color:' + (s.nb_alertes_dar > 0 ? '#dc2626' : '#16a34a') + ';">' + s.nb_alertes_dar + '</div>'
+        + '<div style="font-size:11px; color:' + (s.nb_alertes_dar > 0 ? '#991b1b' : '#15803d') + '; margin-top:2px;">Alerte(s) DAR active(s)</div></div>';
+    html += '<div style="flex:1; min-width:120px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px; text-align:center;">'
+        + '<div style="font-size:22px; font-weight:bold; color:#d97706;">' + s.nb_parcelles_attention + '</div>'
+        + '<div style="font-size:11px; color:#92400e; margin-top:2px;">Parcelle(s) à traiter en priorité</div></div>';
+    html += '</div>';
+
+    // Météo locale (via OpenMeteo, à partir de la position du 1er véhicule)
+    html += '<div id="todayMeteoBox" style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:16px;">'
+        + '<div style="font-size:11px; color:#64748b; font-style:italic;">Météo locale en cours de récupération…</div>'
+        + '</div>';
+
+    // Interventions du jour
+    html += '<div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:8px;">📋 Interventions enregistrées aujourd\'hui</div>';
+    if (s.interventions_today.length === 0) {
+        html += '<div style="color:#94a3b8; font-style:italic; font-size:12px; margin-bottom:16px;">Aucune intervention saisie pour le moment.</div>';
+    } else {
+        html += '<div style="margin-bottom:16px;">';
+        s.interventions_today.forEach(i => {
+            const geoName = i.nom_parcelle || (CACHE_GEOFENCES && CACHE_GEOFENCES[i.geofence_id]) || ('Parcelle ' + i.geofence_id);
+            const heure = new Date(i.exit_time).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+            html += '<div style="font-size:12px; color:#334155; padding:4px 0; border-bottom:1px dashed #e2e8f0;">'
+                + '⏰ ' + heure + ' — <b>' + i.intervention_type + '</b> sur ' + geoName
+                + (i.applied_area ? ' (' + i.applied_area + ' ha)' : '')
+                + '</div>';
+        });
+        html += '</div>';
+    }
+
+    // Parcelles à traiter en priorité
+    html += '<div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:8px;">🚜 Parcelles nécessitant une attention</div>';
+    if (s.parcelles_attention.length === 0) {
+        html += '<div style="color:#94a3b8; font-style:italic; font-size:12px; margin-bottom:16px;">Aucune parcelle en attente ou en préparation.</div>';
+    } else {
+        html += '<div style="margin-bottom:16px;">';
+        s.parcelles_attention.forEach(p => {
+            const si = statutInfo(p.statut);
+            html += '<div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px dashed #e2e8f0;">'
+                + '<span>' + (p.nom_traccar || p.nom_parcelle || ('Parcelle ' + p.geofence_id)) + '</span>'
+                + '<span style="background:' + si.color + '; color:#fff; font-size:10px; padding:1px 6px; border-radius:8px;">' + si.label + '</span>'
+                + '</div>';
+        });
+        html += '</div>';
+    }
+
+    // Alertes DAR détaillées
+    if (s.alertes_dar.length > 0) {
+        html += '<div style="font-weight:bold; font-size:13px; color:#991b1b; margin-bottom:8px;">⚠️ Détail des alertes DAR</div>';
+        s.alertes_dar.forEach(a => {
+            const geoName = a.nom_parcelle || (CACHE_GEOFENCES && CACHE_GEOFENCES[a.geofence_id]) || ('Parcelle ' + a.geofence_id);
+            html += '<div style="font-size:11px; color:#7f1d1d; padding:4px 0; border-bottom:1px dashed #fecaca;">'
+                + '<b>' + a.produit + '</b> sur ' + geoName + ' — manque ' + a.jours_manquants + 'j de DAR'
+                + '</div>';
+        });
+    }
+
+    document.getElementById('todayModalContent').innerHTML = html;
+
+    // Charger la météo locale en arrière-plan (ne bloque pas l'affichage du reste)
+    if (s.first_position) {
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${s.first_position.lat}&longitude=${s.first_position.lon}&current=temperature_2m,windspeed_10m,precipitation,weathercode&timezone=Europe/Paris`;
+            const mr = await fetch(url);
+            const md = await mr.json();
+            const cur = md.current;
+            const wc = cur.weathercode;
+            const cond = wc === 0 ? '☀️ Ensoleillé' : wc <= 3 ? '⛅ Nuageux' : wc <= 48 ? '☁️ Couvert' : wc <= 77 ? '🌧️ Pluvieux' : '💨 Venteux';
+            const box = document.getElementById('todayMeteoBox');
+            if (box) {
+                box.innerHTML = '<div style="font-size:12px; color:#0369a1;"><b>' + cond + '</b> — '
+                    + cur.temperature_2m + '°C, vent ' + cur.windspeed_10m + ' km/h'
+                    + (cur.precipitation ? ', pluie ' + cur.precipitation + ' mm' : '') + '</div>';
+            }
+        } catch(e) {
+            const box = document.getElementById('todayMeteoBox');
+            if (box) box.innerHTML = '<div style="font-size:11px; color:#94a3b8;">Météo locale indisponible.</div>';
+        }
+    } else {
+        const box = document.getElementById('todayMeteoBox');
+        if (box) box.innerHTML = '<div style="font-size:11px; color:#94a3b8;">Aucun véhicule positionné pour estimer la météo locale.</div>';
+    }
+}
+
+async function checkTodayBadge() {
+    try {
+        const r = await fetch('/api/today_summary');
+        if (!r.ok) return;
+        const s = await r.json();
+        const btn = document.getElementById('todayBtn');
+        if (!btn) return;
+        let badge = document.getElementById('todayBadge');
+        const total = s.nb_alertes_dar + s.nb_parcelles_attention;
+        if (total > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.id = 'todayBadge';
+                badge.style.cssText = 'position:absolute; top:-6px; right:-6px; background:#dc2626; color:#fff; font-size:10px; font-weight:bold; border-radius:10px; padding:1px 5px; line-height:1.4;';
+                btn.appendChild(badge);
+            }
+            badge.textContent = total;
+        } else if (badge) {
+            badge.remove();
+        }
+    } catch(e) { console.error(e); }
+}
+checkTodayBadge();
+setInterval(checkTodayBadge, 60000);
+
+// =========================================================================
+// EXPORT / IMPORT DE CONFIGURATION
+// =========================================================================
+function exportConfig() {
+    window.location = "/api/export_config";
+}
+
+async function importConfig(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (!confirm("Importer cette configuration remplacera le catalogue produits, les outils, les cultures, les parcelles et l'exploitation actuels.\n\nUne sauvegarde de sécurité de la base actuelle sera créée automatiquement avant l'import. Continuer ?")) {
+        input.value = "";
+        return;
+    }
+
+    try {
+        const text = await file.text();
+        const config = JSON.parse(text);
+
+        const r = await fetch('/api/import_config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+
+        const result = await r.json();
+
+        if (r.ok) {
+            const counts = result.counts || {};
+            const summary = Object.entries(counts).map(([k, v]) => k + ': ' + v).join(', ');
+            showToast('Configuration importée (' + summary + '). Sauvegarde de sécurité : ' + result.backup_filename);
+            await syncCatalogFromBDD();
+            await loadParcellesStatuts();
+        } else {
+            showToast(result.message || 'Erreur lors de l\'import.', 'error');
+        }
+    } catch(e) {
+        console.error(e);
+        showToast('Fichier invalide ou erreur réseau.', 'error');
+    }
+    input.value = "";
+}
+
+// =========================================================================
+// NOTES LIBRES PAR PARCELLE
+// =========================================================================
+let currentNotesGeofenceId = null;
+
+async function openNotesModal(geofenceId, geofenceName) {
+    currentNotesGeofenceId = geofenceId;
+    document.getElementById('notesModalParcelleName').textContent = geofenceName;
+    document.getElementById('newNoteContenu').value = '';
+    document.getElementById('notesModal').style.display = 'block';
+    await renderNotesList();
+}
+
+async function renderNotesList() {
+    const container = document.getElementById('notesListContainer');
+    container.innerHTML = '<div style="padding:10px; color:#64748b; font-style:italic;">Chargement...</div>';
+    try {
+        const r = await fetch('/api/notes_parcelles?geofence_id=' + currentNotesGeofenceId);
+        const list = await r.json();
+        if (list.length === 0) {
+            container.innerHTML = '<div style="padding:10px; color:#94a3b8; font-style:italic; text-align:center;">Aucune note pour cette parcelle.</div>';
+            return;
+        }
+        container.innerHTML = list.map(n => {
+            const d = new Date(n.date_note);
+            const dateStr = isNaN(d) ? n.date_note : d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            return '<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px; margin-bottom:8px;">'
+                + '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">'
+                + '<div style="font-size:13px; color:#334155; white-space:pre-wrap; flex:1;">' + n.contenu.replace(/</g,'&lt;') + '</div>'
+                + '<button type="button" onclick="deleteNote(' + n.id + ')" style="background:#fee2e2; color:#991b1b; border:none; border-radius:4px; width:26px; height:26px; cursor:pointer; flex-shrink:0; padding:0;">🗑️</button>'
+                + '</div>'
+                + '<div style="font-size:10px; color:#94a3b8; margin-top:6px;">📅 ' + dateStr + '</div>'
+                + '</div>';
+        }).join('');
+    } catch(e) {
+        container.innerHTML = '<div style="color:#dc2626; padding:10px;">Erreur de chargement.</div>';
+        console.error(e);
+    }
+}
+
+async function saveNote() {
+    const contenu = document.getElementById('newNoteContenu').value.trim();
+    if (!contenu) { showToast('Note vide.', 'error'); return; }
+    try {
+        const r = await fetch('/api/notes_parcelles', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ geofence_id: currentNotesGeofenceId, contenu })
+        });
+        if (r.ok) {
+            document.getElementById('newNoteContenu').value = '';
+            showToast('Note ajoutée');
+            await renderNotesList();
+        } else {
+            showToast('Erreur lors de l\'ajout.', 'error');
+        }
+    } catch(e) { console.error(e); showToast('Erreur réseau.', 'error'); }
+}
+
+async function deleteNote(id) {
+    if (!confirm('Supprimer cette note ?')) return;
+    try {
+        const r = await fetch('/api/notes_parcelles?id=' + id, { method: 'DELETE' });
+        if (r.ok) { showToast('Note supprimée'); await renderNotesList(); }
+        else { showToast('Erreur lors de la suppression.', 'error'); }
+    } catch(e) { console.error(e); showToast('Erreur réseau.', 'error'); }
+}
+
+// =========================================================================
+// BILANS & INDICATEURS
+// =========================================================================
+async function openBilanModal() {
+    document.getElementById('bilanModal').style.display = 'block';
+    const select = document.getElementById('bilanCampagne');
+    select.innerHTML = '<option>Chargement...</option>';
+    try {
+        const r = await fetch('/api/campagnes_disponibles');
+        const combos = await r.json();
+        if (combos.error) {
+            select.innerHTML = '<option value="">Erreur serveur</option>';
+            console.error('Erreur /api/campagnes_disponibles :', combos.error, combos.trace);
+            alert('Erreur campagnes : ' + combos.error + '\n\n' + (combos.trace || ''));
+            return;
+        }
+        if (!r.ok) {
+            select.innerHTML = '<option value="">Erreur HTTP ' + r.status + '</option>';
+            return;
+        }
+        if (combos.length === 0) {
+            select.innerHTML = '<option value="">Aucune campagne détectée</option>';
+        } else {
+            select.innerHTML = combos.map(c => {
+                const val = c.culture + '|' + c.campagne;
+                const label = c.culture + ' — campagne ' + c.campagne;
+                return `<option value="${val}">${label}</option>`;
+            }).join('');
+        }
+    } catch(e) {
+        select.innerHTML = '<option value="">Erreur</option>';
+        console.error('Exception /api/campagnes_disponibles :', e);
+        alert('Exception chargement campagnes : ' + e.message);
+    }
+    loadBilan();
+}
+
+async function loadBilan() {
+    const raw = document.getElementById('bilanCampagne').value || '';
+    const [culture, campagne] = raw.split('|');
+    document.getElementById('bilanSynthese').innerHTML = '<span style="color:#64748b; font-style:italic;">Chargement...</span>';
+    document.getElementById('bilanProduitsBody').innerHTML = '';
+    try {
+        const params = new URLSearchParams();
+        if (culture) params.set('culture', culture);
+        if (campagne) params.set('year', campagne);
+        const r = await fetch('/api/bilan_annuel?' + params.toString());
+        if (!r.ok) throw new Error('Erreur API');
+        const data = await r.json();
+        renderBilan(data);
+    } catch(e) {
+        document.getElementById('bilanSynthese').innerHTML = '<span style="color:#dc2626;">Erreur de chargement du bilan.</span>';
+        console.error(e);
+    }
+}
+
+function renderBilan(data) {
+    // Synthèse en cartes
+    const nbProduits = data.produits.length;
+    const nbPhyto = data.produits.filter(p => p.type === 'phyto').length;
+    const cards = [
+        { label: 'Interventions', value: data.nb_interventions_total, color: '#2563eb' },
+        { label: 'Produits utilisés', value: nbProduits, color: '#7c3aed' },
+        { label: 'Dont phyto', value: nbPhyto, color: '#dc2626' },
+        { label: 'IFT global moyen', value: data.ift_global, color: '#16a34a' },
+    ];
+    document.getElementById('bilanSynthese').innerHTML = cards.map(c =>
+        '<div style="flex:1; min-width:140px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; text-align:center;">'
+        + '<div style="font-size:24px; font-weight:bold; color:' + c.color + ';">' + c.value + '</div>'
+        + '<div style="font-size:11px; color:#64748b; margin-top:4px;">' + c.label + '</div>'
+        + '</div>'
+    ).join('')
+    + '<div style="flex:1; min-width:140px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; text-align:center; cursor:pointer;" onclick="toggleIftDetail()">'
+    + '<div style="font-size:11px; color:#2563eb; text-decoration:underline;">📋 Voir le détail IFT</div>'
+    + '</div>';
+
+    // Stocker le détail pour affichage
+    window._iftDetail = data.ift_detail || [];
+    window._produitsExclusIft = data.produits_exclus_ift || [];
+
+    // Tableau détail par produit
+    const tbody = document.getElementById('bilanProduitsBody');
+    if (!data.produits || data.produits.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:16px; text-align:center; color:#94a3b8; font-style:italic;">Aucune donnée pour cette année.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.produits.map((p, i) => {
+        const typeIcon = p.type === 'phyto' ? '🌿 Phyto' : p.type === 'engrais' ? '🧲 Engrais' : p.type === 'semence' ? '🌾 Semence' : '—';
+        const bg = i % 2 === 0 ? '#fff' : '#f8fafc';
+        return '<tr style="background:' + bg + '; border-bottom:1px solid #f1f5f9;">'
+            + '<td style="padding:6px 8px; font-weight:bold; color:#334155;">' + p.name + '</td>'
+            + '<td style="padding:6px 8px;">' + typeIcon + '</td>'
+            + '<td style="padding:6px 8px; color:#64748b;">' + (p.amm || '-') + '</td>'
+            + '<td style="padding:6px 8px; text-align:right; font-weight:bold;">' + p.total_quantity + ' ' + (p.unit||'') + '</td>'
+            + '<td style="padding:6px 8px; text-align:center;">' + p.nb_interventions + '</td>'
+            + '<td style="padding:6px 8px; text-align:center;">' + p.nb_parcelles + '</td>'
+            + '<td style="padding:6px 8px; text-align:center;">' + (p.bio ? '🌿' : '-') + '</td>'
+            + '</tr>';
+    }).join('');
+}
+
+function toggleIftDetail() {
+    const existing = document.getElementById('iftDetailBox');
+    if (existing) { existing.remove(); return; }
+    const detail = window._iftDetail || [];
+    let html = '<div id="iftDetailBox" style="background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; padding:10px; margin-bottom:16px; font-size:11px;">';
+    html += '<div style="font-weight:bold; color:#92400e; margin-bottom:6px;">Détail du calcul IFT (formule : dose appliquée/ha ÷ dose HOMOLOGUÉE/ha × surface traitée/surface parcelle)</div>';
+    const exclus = window._produitsExclusIft || [];
+    if (exclus.length > 0) {
+        html += '<div style="color:#dc2626; margin-bottom:8px; padding:6px; background:#fef2f2; border-radius:4px;"><b>⚠️ Exclus du calcul IFT</b> (dose homologuée non renseignée) : ' + exclus.join(', ') + '</div>';
+    }
+    if (detail.length === 0) {
+        html += '<span style="color:#94a3b8; font-style:italic;">Aucun calcul IFT disponible. Renseignez le champ \"Dose homologuée\" (distinct de \"Dose/ha\") dans le catalogue pour chaque produit phyto.</span>';
+    } else {
+        detail.forEach(function(d) {
+            const geoName = (CACHE_GEOFENCES && CACHE_GEOFENCES[d.geofence_id]) ? CACHE_GEOFENCES[d.geofence_id] : ('Parcelle ' + d.geofence_id);
+            const ratioDose = (d.dose_appliquee / d.dose_homologuee).toFixed(3);
+            html += '<div style="padding:4px 0; border-bottom:1px dashed #fed7aa;">'
+                + '<b>' + d.produit + '</b> sur ' + geoName + ' :<br>'
+                + '<span style="color:#78716c;">(dose appliquée ' + d.dose_appliquee + ' ÷ dose homologuée ' + d.dose_homologuee + ' = ' + ratioDose + ')'
+                + ' × (surface traitée ' + d.surface_traitee + ' ha ÷ surface parcelle ' + d.surface_parcelle + ' ha = ' + d.ratio_surface + ')</span>'
+                + ' = <b>' + d.contribution_ift + '</b>'
+                + '</div>';
+        });
+    }
+    html += '</div>';
+    document.getElementById('bilanSynthese').insertAdjacentHTML('afterend', html);
+
+    // Tableau produits
+    if (data.produits.length === 0) {
+        document.getElementById('bilanProduitsBody').innerHTML = '<tr><td colspan="7" style="padding:16px; text-align:center; color:#94a3b8; font-style:italic;">Aucune donnée pour cette année.</td></tr>';
+        return;
+    }
+    document.getElementById('bilanProduitsBody').innerHTML = data.produits.map((p, i) => {
+        const typeIcon = p.type === 'phyto' ? '🌿 Phyto' : p.type === 'engrais' ? '🧲 Engrais' : p.type === 'semence' ? '🌾 Semence' : '—';
+        const bg = i % 2 === 0 ? '#fff' : '#f8fafc';
+        return '<tr style="background:' + bg + '; border-bottom:1px solid #f1f5f9;">'
+            + '<td style="padding:6px 8px; font-weight:bold; color:#334155;">' + p.name + '</td>'
+            + '<td style="padding:6px 8px;">' + typeIcon + '</td>'
+            + '<td style="padding:6px 8px; color:#64748b;">' + (p.amm || '-') + '</td>'
+            + '<td style="padding:6px 8px; text-align:right; font-weight:bold;">' + p.total_quantity + ' ' + (p.unit||'') + '</td>'
+            + '<td style="padding:6px 8px; text-align:center;">' + p.nb_interventions + '</td>'
+            + '<td style="padding:6px 8px; text-align:center;">' + p.nb_parcelles + '</td>'
+            + '<td style="padding:6px 8px; text-align:center;">' + (p.bio ? '🌿' : '-') + '</td>'
+            + '</tr>';
+    }).join('');
+}
+
+function exportBilanExcel() {
+    window.location = '/export_phyto_excel';
+}
+
+// =========================================================================
+// GESTION DES CULTURES
+// =========================================================================
+async function openCulturesModal() {
+    document.getElementById('culturesModal').style.display = 'block';
+    resetCultureForm();
+    await renderCulturesList();
+}
+
+function resetCultureForm() {
+    document.getElementById('editCultureId').value = '';
+    document.getElementById('newCultureNom').value = '';
+    document.getElementById('newCultureOepp').value = '';
+    document.getElementById('newCultureDebut').value = '';
+    document.getElementById('newCultureFin').value = '';
+    document.getElementById('saveCultureBtn').textContent = '➕ Ajouter';
+    document.getElementById('cancelCultureBtn').style.display = 'none';
+}
+
+function mmddToJjMm(mmdd) {
+    if (!mmdd) return '';
+    const [mm, dd] = mmdd.split('-');
+    return dd + '/' + mm;
+}
+
+function jjMmToMmdd(jjmm) {
+    const m = jjmm.trim().match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (!m) return null;
+    return m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+}
+
+async function renderCulturesList() {
+    const container = document.getElementById('culturesListContainer');
+    container.innerHTML = '<div style="padding:10px; color:#64748b; font-style:italic;">Chargement...</div>';
+    try {
+        const r = await fetch('/api/cultures');
+        const list = await r.json();
+        if (list.length === 0) {
+            container.innerHTML = '<div style="padding:10px; color:#64748b; font-style:italic;">Aucune culture définie.</div>';
+            return;
+        }
+        container.innerHTML = list.map(c => {
+            const debut = mmddToJjMm(c.debut_mmdd);
+            const fin = mmddToJjMm(c.fin_mmdd);
+            const oepp = c.code_oepp ? ' | OEPP: ' + c.code_oepp : ' | <span style="color:#dc2626;">⚠️ Pas de code OEPP</span>';
+            return '<div class="item-row-list">'
+                + '<div style="flex:1; font-weight:bold;">' + c.nom + ' <span style="font-weight:normal; font-size:11px; color:#64748b;">(' + debut + ' → ' + fin + ')' + oepp + '</span></div>'
+                + '<div style="display:flex; gap:4px;">'
+                + '<button type="button" onclick="setupEditCulture(' + c.id + ',\'' + c.nom.replace(/'/g,"&#39;") + '\',\'' + (c.code_oepp||'') + '\',\'' + c.debut_mmdd + '\',\'' + c.fin_mmdd + '\')" style="background:#3b82f6; color:white; width:32px; height:32px; border-radius:4px; padding:0;">✏️</button>'
+                + '<button type="button" onclick="deleteCulture(' + c.id + ')" style="background:#ef4444; color:white; width:32px; height:32px; border-radius:4px; padding:0;">🗑️</button>'
+                + '</div></div>';
+        }).join('');
+    } catch(e) {
+        container.innerHTML = '<div style="color:#dc2626; padding:10px;">Erreur de chargement.</div>';
+        console.error(e);
+    }
+}
+
+function setupEditCulture(id, nom, code_oepp, debut_mmdd, fin_mmdd) {
+    document.getElementById('editCultureId').value = id;
+    document.getElementById('newCultureNom').value = nom;
+    document.getElementById('newCultureOepp').value = code_oepp || '';
+    document.getElementById('newCultureDebut').value = mmddToJjMm(debut_mmdd);
+    document.getElementById('newCultureFin').value = mmddToJjMm(fin_mmdd);
+    document.getElementById('saveCultureBtn').textContent = '💾 Valider';
+    document.getElementById('cancelCultureBtn').style.display = 'inline-flex';
+}
+
+async function saveCulture() {
+    const id = document.getElementById('editCultureId').value;
+    const nom = document.getElementById('newCultureNom').value.trim();
+    const code_oepp = document.getElementById('newCultureOepp').value.trim().toUpperCase();
+    const debutRaw = document.getElementById('newCultureDebut').value.trim();
+    const finRaw = document.getElementById('newCultureFin').value.trim();
+
+    if (!nom) { showToast('Nom de culture manquant.', 'error'); return; }
+    const debut_mmdd = jjMmToMmdd(debutRaw);
+    const fin_mmdd = jjMmToMmdd(finRaw);
+    if (!debut_mmdd || !fin_mmdd) { showToast('Format de date invalide (JJ/MM attendu).', 'error'); return; }
+
+    try {
+        const r = await fetch('/api/cultures', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id || null, nom, code_oepp, debut_mmdd, fin_mmdd })
+        });
+        if (r.ok) {
+            showToast('Culture enregistrée');
+            resetCultureForm();
+            await renderCulturesList();
+        } else {
+            showToast('Erreur lors de l\'enregistrement.', 'error');
+        }
+    } catch(e) { console.error(e); showToast('Erreur réseau.', 'error'); }
+}
+
+async function deleteCulture(id) {
+    if (!confirm('Supprimer cette culture ?')) return;
+    try {
+        const r = await fetch('/api/cultures?id=' + id, { method: 'DELETE' });
+        if (r.ok) { showToast('Culture supprimée'); await renderCulturesList(); }
+        else { showToast('Erreur lors de la suppression.', 'error'); }
+    } catch(e) { console.error(e); showToast('Erreur réseau.', 'error'); }
+}
+
+// =========================================================================
+// ETAT SYSTEME
+// =========================================================================
+function openSystemStatusModal() {
+    document.getElementById('systemStatusModal').style.display = 'block';
+    loadSystemStatus();
+}
+
+async function loadSystemStatus() {
+    const content = document.getElementById('systemStatusContent');
+    content.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b; font-style:italic;">Chargement...</div>';
+    try {
+        const [rs, rd] = await Promise.all([
+            fetch('/api/system_status'),
+            fetch('/api/alertes_dar')
+        ]);
+        if (!rs.ok) throw new Error('Erreur API');
+        const s = await rs.json();
+        const dar = rd.ok ? await rd.json() : { alertes: [], nb_alertes: 0 };
+        renderSystemStatus(s, dar);
+    } catch(e) {
+        content.innerHTML = '<div style="color:#dc2626; text-align:center; padding:20px;">Erreur de chargement.</div>';
+        console.error(e);
+    }
+}
+
+function renderSystemStatus(s, dar) {
+    const traccarColor = s.traccar_reachable ? '#16a34a' : '#dc2626';
+    const traccarLabel = s.traccar_reachable ? '🟢 Connecté' : '🔴 Inaccessible';
+    const cacheAge = s.cache_age_seconds !== null ? Math.round(s.cache_age_seconds) + ' s' : '-';
+
+    if (!s.traccar_reachable) {
+        if (!document.getElementById('traccar-warning-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'traccar-warning-banner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:white;text-align:center;padding:8px 16px;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;gap:12px;';
+            banner.innerHTML = '⚠️ Traccar inaccessible — Vérifiez l\'URL et le mot de passe dans <b>⚙️ État système</b><button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.3);border:none;color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px;">✕</button>';
+            document.body.prepend(banner);
+        }
+        const sysBtn = document.getElementById('systemStatusBtn');
+        if (sysBtn && !document.getElementById('traccar-dot')) {
+            const dot = document.createElement('span');
+            dot.id = 'traccar-dot';
+            dot.style.cssText = 'position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:#ef4444;border-radius:50%;border:2px solid white;';
+            sysBtn.appendChild(dot);
+        }
+    } else {
+        const warn = document.getElementById('traccar-warning-banner');
+        if (warn) warn.remove();
+        const dot = document.getElementById('traccar-dot');
+        if (dot) dot.remove();
+    }
+
+    // Bannière d'avertissement si Traccar inaccessible
+    if (!s.traccar_reachable) {
+        const warn = document.getElementById('traccar-warning-banner');
+        if (!warn) {
+            const banner = document.createElement('div');
+            banner.id = 'traccar-warning-banner';
+            banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:9999; background:#dc2626; color:white; text-align:center; padding:8px 16px; font-size:13px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:12px;';
+            banner.innerHTML = '⚠️ Traccar inaccessible — Vérifiez l\'URL et le mot de passe dans <b>⚙️ État système</b>'
+                + '<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.3); border:none; color:white; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:12px;">✕</button>';
+            document.body.prepend(banner);
+        }
+        // Point rouge sur le bouton système
+        const sysBtn = document.getElementById('systemStatusBtn');
+        if (sysBtn && !document.getElementById('traccar-dot')) {
+            const dot = document.createElement('span');
+            dot.id = 'traccar-dot';
+            dot.style.cssText = 'position:absolute; top:-4px; right:-4px; width:10px; height:10px; background:#ef4444; border-radius:50%; border:2px solid white;';
+            sysBtn.appendChild(dot);
+        }
+    } else {
+        const warn = document.getElementById('traccar-warning-banner');
+        if (warn) warn.remove();
+        const dot = document.getElementById('traccar-dot');
+        if (dot) dot.remove();
+    }
+
+    let html = '';
+
+    // Version du dashboard.py réellement exécuté côté serveur (utile pour vérifier le déploiement)
+    if (s.dashboard_version) {
+        html += '<div style="display:flex; justify-content:space-between; align-items:center; background:#f1f5f9; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:12px; color:#475569;">'
+            + '<span>🏷️ Version du serveur</span>'
+            + '<b style="color:#1e293b;">v' + s.dashboard_version + '</b>'
+            + '</div>';
+    }
+
+    // Alertes DAR/récolte
+    dar = dar || { alertes: [], nb_alertes: 0 };
+    if (dar.nb_alertes > 0) {
+        html += '<div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:14px; margin-bottom:12px;">'
+            + '<div style="font-weight:bold; font-size:13px; color:#991b1b; margin-bottom:8px;">⚠️ Alertes DAR / récolte (' + dar.nb_alertes + ')</div>';
+        dar.alertes.forEach(a => {
+            const geoName = a.nom_parcelle || (CACHE_GEOFENCES && CACHE_GEOFENCES[a.geofence_id]) || ('Parcelle ' + a.geofence_id);
+            html += '<div style="font-size:11px; color:#7f1d1d; padding:4px 0; border-bottom:1px dashed #fecaca;">'
+                + '<b>' + a.produit + '</b> sur ' + geoName + ' : traité le ' + a.date_traitement
+                + ', récolté le ' + a.date_recolte + ' (DAR requis : ' + a.dar_requis_jours + 'j, écoulé : ' + a.jours_ecoules + 'j — manque ' + a.jours_manquants + 'j)'
+                + '</div>';
+        });
+        html += '</div>';
+    } else {
+        html += '<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:14px; margin-bottom:12px;">'
+            + '<div style="font-weight:bold; font-size:13px; color:#166534;">✅ Aucune alerte DAR/récolte détectée</div>'
+            + '</div>';
+    }
+
+    // Connexion Traccar
+    html += '<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:12px;">'
+        + '<div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:8px;">📡 Connexion Traccar</div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>État</span><b style="color:' + traccarColor + ';">' + traccarLabel + '</b></div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>Dernière synchro</span><b>' + s.last_traccar_sync + '</b></div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>Âge du cache</span><b>' + cacheAge + '</b></div>'
+        + '</div>';
+
+    // Base de données
+    html += '<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:12px;">'
+        + '<div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:8px;">🗄️ Base de données</div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>Taille</span><b>' + s.db_size_kb + ' Ko</b></div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>Dernière modification</span><b>' + s.db_last_modified + '</b></div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>Interventions enregistrées</span><b>' + s.nb_interventions + '</b></div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>Produits au catalogue</span><b>' + s.nb_produits + '</b></div>'
+        + '<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;"><span>Parcelles identifiées</span><b>' + s.nb_parcelles_identifiees + '</b></div>'
+        + '</div>';
+
+    // Sauvegardes
+    html += '<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">'
+        + '<div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:8px;">💾 Sauvegardes automatiques (' + s.backups.length + ', ' + s.backups_total_kb + ' Ko)</div>';
+
+    if (s.backups.length === 0) {
+        html += '<div style="color:#94a3b8; font-style:italic; font-size:12px;">Aucune sauvegarde disponible pour le moment.</div>';
+    } else {
+        html += '<div style="max-height:180px; overflow-y:auto;">';
+        s.backups.forEach(b => {
+            html += '<div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px dashed #e2e8f0;">'
+                + '<span>' + b.name + '</span><span style="color:#64748b;">' + b.date + ' — ' + b.size_kb + ' Ko</span>'
+                + '</div>';
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+
+    html += `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-top:12px;">
+        <div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:10px;">⚙️ Paramétrage Traccar</div>
+        <div style="display:grid; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;"><label style="font-size:11px;color:#64748b;width:120px;flex-shrink:0;">URL serveur</label><input id="cfg-traccar-url" type="text" value="${s.traccar_url||''}" placeholder="http://traccar:8082/api" style="flex:1;padding:6px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;"></div>
+            <div style="display:flex; align-items:center; gap:8px;"><label style="font-size:11px;color:#64748b;width:120px;flex-shrink:0;">Identifiant</label><input id="cfg-traccar-user" type="text" value="${s.traccar_user||''}" style="flex:1;padding:6px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;"></div>
+            <div style="display:flex; align-items:center; gap:8px;"><label style="font-size:11px;color:#64748b;width:120px;flex-shrink:0;">Mot de passe</label><input id="cfg-traccar-pwd" type="password" placeholder="(inchangé si vide)" style="flex:1;padding:6px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;"></div>
+            <div style="display:flex; align-items:center; gap:8px;"><label style="font-size:11px;color:#64748b;width:120px;flex-shrink:0;">Période défaut (j)</label><input id="cfg-traccar-days" type="number" value="${s.traccar_days_back||30}" min="1" max="365" style="width:80px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;"></div>
+            <div style="display:flex; align-items:center; gap:8px;"><label style="font-size:11px;color:#64748b;width:120px;flex-shrink:0;">Cache (secondes)</label><input id="cfg-traccar-cache" type="number" value="${s.traccar_cache||60}" min="10" max="3600" style="width:80px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+            <button onclick="saveTraccarConfig()" style="background:#2563eb;color:white;border:none;border-radius:5px;padding:7px 16px;cursor:pointer;font-size:12px;font-weight:bold;">💾 Enregistrer</button>
+            <button onclick="testTraccarConfig()" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:5px;padding:7px 14px;cursor:pointer;font-size:12px;">🔌 Tester</button>
+            <span id="cfg-traccar-msg" style="font-size:11px;color:#64748b;"></span>
+        </div>
+    </div>`;
+    document.getElementById('systemStatusContent').innerHTML = html;
+}
+
+function openInterventionOrManualEdit(interv) {
+    const isManual = interv.device_id === 0 || interv.device_id === '0';
+    if (isManual) { openManualModal(interv); }
+    else { openInterventionModal(interv.device_id, interv.geofence_id, interv.exit_time, interv.vehicle_name||'', interv.tool_detected||'', interv.applied_area||'', `${interv.device_id}_${interv.geofence_id}_${interv.exit_time}`); }
+}
+async function saveTraccarConfig() {
+    const url=document.getElementById('cfg-traccar-url')?.value.trim();
+    const user=document.getElementById('cfg-traccar-user')?.value.trim();
+    const pwd=document.getElementById('cfg-traccar-pwd')?.value;
+    const days=parseInt(document.getElementById('cfg-traccar-days')?.value)||30;
+    const cache=parseInt(document.getElementById('cfg-traccar-cache')?.value)||60;
+    const msg=document.getElementById('cfg-traccar-msg');
+    if(!url||!user){if(msg)msg.textContent='⚠️ URL et identifiant obligatoires.';return;}
+    const payload={url,user,days_back:days,cache_duration:cache};if(pwd)payload.password=pwd;
+    try{
+        const r=await fetch('/api/config_traccar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const d=await r.json();
+        if(r.ok){if(msg){msg.textContent='✅ '+(d.message||'Enregistré');msg.style.color='#16a34a';}setTimeout(()=>loadSystemStatus(),1500);}
+        else{if(msg){msg.textContent='❌ Erreur';msg.style.color='#dc2626';}}
+    }catch(e){if(msg){msg.textContent='❌ '+e.message;msg.style.color='#dc2626';}}
+}
+async function testTraccarConfig() {
+    const msg=document.getElementById('cfg-traccar-msg');
+    if(msg){msg.textContent='⏳ Test en cours…';msg.style.color='#64748b';}
+    try{
+        const r=await fetch('/api/system_status');const s=await r.json();
+        if(s.traccar_reachable){if(msg){msg.textContent='🟢 Traccar accessible';msg.style.color='#16a34a';}}
+        else{if(msg){msg.textContent='🔴 Traccar inaccessible';msg.style.color='#dc2626';}}
+    }catch(e){if(msg){msg.textContent='❌ Erreur';msg.style.color='#dc2626';}}
+}
+function openInterventionOrManualEdit(interv) {
+    const isManual = interv.device_id === 0 || interv.device_id === '0';
+    if (isManual) { openManualModal(interv); }
+    else { openInterventionModal(interv.device_id, interv.geofence_id, interv.exit_time, interv.vehicle_name||'', interv.tool_detected||'', interv.applied_area||'', `${interv.device_id}_${interv.geofence_id}_${interv.exit_time}`); }
+}
+async function saveTraccarConfig() {
+    const url=document.getElementById('cfg-traccar-url')?.value.trim();
+    const user=document.getElementById('cfg-traccar-user')?.value.trim();
+    const pwd=document.getElementById('cfg-traccar-pwd')?.value;
+    const days=parseInt(document.getElementById('cfg-traccar-days')?.value)||30;
+    const cache=parseInt(document.getElementById('cfg-traccar-cache')?.value)||60;
+    const msg=document.getElementById('cfg-traccar-msg');
+    if(!url||!user){if(msg)msg.textContent='⚠️ URL et identifiant obligatoires.';return;}
+    const payload={url,user,days_back:days,cache_duration:cache};if(pwd)payload.password=pwd;
+    try{
+        const r=await fetch('/api/config_traccar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const d=await r.json();
+        if(r.ok){if(msg){msg.textContent='✅ '+(d.message||'Enregistré');msg.style.color='#16a34a';}setTimeout(()=>loadSystemStatus(),1500);}
+        else{if(msg){msg.textContent='❌ Erreur';msg.style.color='#dc2626';}}
+    }catch(e){if(msg){msg.textContent='❌ '+e.message;msg.style.color='#dc2626';}}
+}
+async function testTraccarConfig() {
+    const msg=document.getElementById('cfg-traccar-msg');
+    if(msg){msg.textContent='⏳ Test en cours…';msg.style.color='#64748b';}
+    try{
+        const r=await fetch('/api/system_status');const s=await r.json();
+        if(s.traccar_reachable){if(msg){msg.textContent='🟢 Traccar accessible';msg.style.color='#16a34a';}}
+        else{if(msg){msg.textContent='🔴 Traccar inaccessible';msg.style.color='#dc2626';}}
+    }catch(e){if(msg){msg.textContent='❌ Erreur';msg.style.color='#dc2626';}}
+}
+async function deleteIntervention(key, device_id, geofence_id, exit_time) {
+    if (!confirm('Supprimer cette intervention ? Cette action est irréversible.')) return;
+    try {
+        const r = await fetch('/api/interventions/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({device_id: parseInt(device_id), geofence_id: parseInt(geofence_id), exit_time: exit_time})
+        });
+        if (r.ok) {
+            delete localInterventions[key];
+            await openHistoryModal();  // Recharge l'historique pour faire disparaître la ligne
+            await load();              // Recharge le tableau principal (bouton ✍️ redevient ➕)
+            showToast('Intervention supprimée');
+        } else {
+            showToast('Erreur lors de la suppression.', 'error');
+        }
+    } catch(e) { console.error(e); showToast('Erreur réseau.', 'error'); }
+}
+
+// ═══════════════════════════════════════════════════
+// SAISIE MANUELLE
+// ═══════════════════════════════════════════════════
+
+// Déduit le type d'intervention depuis l'outil (même logique que Traccar)
+function deduceManualType(toolValue) {
+    const tUpper = (toolValue || '').toUpperCase().trim();
+    if (!tUpper) return;
+    let detected = '';
+    for (let i = 0; i < CATALOGUE_OUTILS.length; i++) {
+        const kw = CATALOGUE_OUTILS[i].keyword.toUpperCase();
+        if (tUpper.includes(kw)) { detected = CATALOGUE_OUTILS[i].intervention; break; }
+    }
+    if (!detected) {
+        const sel = document.getElementById('manualType');
+        for (let i = 0; i < sel.options.length; i++) {
+            const v = sel.options[i].value.toUpperCase();
+            if (tUpper.includes(v) || v.includes(tUpper)) { detected = sel.options[i].value; break; }
+        }
+    }
+    if (detected) document.getElementById('manualType').value = detected;
+}
+
+// ── Parcelles checkbox ──
+let _manualParcelles = []; // [{id, nom}]
+
+function renderManualParcelleList(filter='') {
+    const container = document.getElementById('manualParcelleList');
+    const q = filter.toLowerCase();
+    container.innerHTML = '';
+    _manualParcelles
+        .filter(p => !q || p.nom.toLowerCase().includes(q))
+        .forEach(p => {
+            const checked = p.selected ? 'checked' : '';
+            const row = document.createElement('label');
+            row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:5px 6px; border-radius:5px; cursor:pointer; font-size:13px; color:#1e293b; user-select:none;';
+            row.innerHTML = `<input type="checkbox" value="${p.id}" ${checked} style="width:16px;height:16px;accent-color:#b45309;cursor:pointer;"> ${p.nom}`;
+            row.querySelector('input').addEventListener('change', e => {
+                const par = _manualParcelles.find(x => x.id == e.target.value);
+                if (par) par.selected = e.target.checked;
+                updateManualParcelleCount();
+                row.style.background = e.target.checked ? '#fef3c7' : '';
+                const sel = _manualParcelles.filter(p => p.selected);
+                const surfField = document.getElementById('manualSurface');
+                if (sel.length === 1 && !surfField.dataset.userEdited) {
+                    const surf = CACHE_SURFACE_HA[sel[0].id];
+                    if (surf != null) surfField.value = surf;
+                } else if (sel.length === 0) { surfField.value=''; delete surfField.dataset.userEdited; }
+            });
+            if (p.selected) row.style.background = '#fef3c7';
+            container.appendChild(row);
+        });
+}
+
+function filterManualParcelles(q) {
+    renderManualParcelleList(q);
+}
+
+function selectAllManualParcelles(val) {
+    const q = document.getElementById('manualParcelleSearch').value.toLowerCase();
+    _manualParcelles.forEach(p => {
+        if (!q || p.nom.toLowerCase().includes(q)) p.selected = val;
+    });
+    renderManualParcelleList(q);
+    updateManualParcelleCount();
+}
+
+function updateManualParcelleCount() {
+    const n = _manualParcelles.filter(p => p.selected).length;
+    document.getElementById('manualParcelleCount').textContent = n;
+}
+
+function getSelectedParcelles() {
+    return _manualParcelles.filter(p => p.selected);
+}
+
+// Météo automatique pour le modal manuel
+async function fetchManualMeteo() {
+    try {
+        const r = await fetch('/data');
+        const d = await r.json();
+        let lat, lon;
+        if (d.positions && d.positions.length > 0 && d.positions[0].lat) {
+            lat = d.positions[0].lat; lon = d.positions[0].lon;
+        } else {
+            await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    p => { lat = p.coords.latitude; lon = p.coords.longitude; resolve(); },
+                    () => reject('no position')
+                );
+            });
+        }
+        const dateVal = document.getElementById('manualDate')?.value || '';
+        let targetDate = dateVal ? new Date(dateVal) : new Date();
+        const isHistorical = targetDate < new Date(Date.now() - 24 * 3600000);
+        let cur;
+        if (isHistorical) {
+            const dateStr = targetDate.toISOString().slice(0,10); const hour = targetDate.getHours();
+            const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateStr}&end_date=${dateStr}&hourly=temperature_2m,windspeed_10m,precipitation,weathercode&timezone=Europe/Paris`;
+            const mr = await fetch(url); const md = await mr.json();
+            const h = Math.min(hour,(md.hourly?.time?.length||1)-1);
+            cur = {temperature_2m:md.hourly?.temperature_2m?.[h],windspeed_10m:md.hourly?.windspeed_10m?.[h],precipitation:md.hourly?.precipitation?.[h],weathercode:md.hourly?.weathercode?.[h]};
+        } else {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,windspeed_10m,precipitation,weathercode&timezone=Europe/Paris`;
+            const mr = await fetch(url); const md = await mr.json(); cur = md.current;
+        }
+        document.getElementById('manualMeteoTemp').value  = cur.temperature_2m!=null?Math.round(cur.temperature_2m*10)/10:'';
+        document.getElementById('manualMeteoVent').value  = cur.windspeed_10m!=null?Math.round(cur.windspeed_10m):'';
+        document.getElementById('manualMeteoPluie').value = cur.precipitation!=null?cur.precipitation:'';
+        const wc = cur.weathercode;
+        document.getElementById('manualMeteoConditions').value =
+            wc===0?'Ensoleillé':wc<=3?'Nuageux':wc<=48?'Couvert':wc<=77?'Pluvieux':'Venteux';
+    } catch(e) { alert('Impossible de récupérer la météo automatiquement.'); }
+}
+
+async function openManualModal(editData) {
+    // Remplir la liste des parcelles
+    try {
+        const r = await fetch('/api/parcelles');
+        const parcelles = await r.json();
+        _manualParcelles = parcelles
+            .sort((a,b) => (a.nom_parcelle||'').localeCompare(b.nom_parcelle||''))
+            .map(p => ({ id: p.geofence_id, nom: p.nom_parcelle || `Parcelle ${p.geofence_id}`, selected: false }));
+    } catch(e) { console.error('Erreur chargement parcelles', e); }
+
+    // Datalists tracteurs et outils
+    const vehicles = new Set(), outils = new Set();
+    Object.values(localInterventions || {}).forEach(iv => {
+        if (iv.vehicle_name) vehicles.add(iv.vehicle_name);
+        if (iv.tool_detected) outils.add(iv.tool_detected);
+    });
+    document.querySelectorAll('#vehicle option').forEach(o => { if(o.value) vehicles.add(o.value); });
+    document.getElementById('manualVehicleList').innerHTML = [...vehicles].sort().map(v => `<option value="${v}">`).join('');
+    document.getElementById('manualOutilList').innerHTML   = [...outils].sort().map(v => `<option value="${v}">`).join('');
+
+    if (editData) {
+        document.getElementById('manualModalTitle').textContent = 'Modifier une intervention';
+        document.getElementById('manualDeleteBtn').style.display = 'block';
+        document.getElementById('manualEditDeviceId').value   = editData.device_id;
+        document.getElementById('manualEditGeofenceId').value = editData.geofence_id;
+        document.getElementById('manualEditExitTime').value   = editData.exit_time;
+        // Pré-sélectionner la parcelle
+        const geo_id = String(editData.geofence_id);
+        _manualParcelles.forEach(p => { p.selected = String(p.id) === geo_id; });
+        document.getElementById('manualDate').value      = (editData.exit_time||'').slice(0,16);
+        document.getElementById('manualVehicle').value   = editData.vehicle_name || '';
+        document.getElementById('manualOutil').value     = editData.tool_detected || '';
+        document.getElementById('manualType').value      = editData.intervention_type || 'Autre';
+        document.getElementById('manualSurface').value   = editData.applied_area || '';
+        document.getElementById('manualDuree').value     = editData.duration_min || '';
+        document.getElementById('manualNotes').value     = editData.notes || '';
+        if (editData.meteo) {
+            document.getElementById('manualMeteoTemp').value       = editData.meteo.temperature || '';
+            document.getElementById('manualMeteoVent').value       = editData.meteo.vent || '';
+            document.getElementById('manualMeteoPluie').value      = editData.meteo.pluie || '';
+            document.getElementById('manualMeteoConditions').value = editData.meteo.conditions || '';
+        }
+        document.getElementById('manualProductRows').innerHTML = '';
+        let prods = [];
+        try { prods = typeof editData.products === 'string' ? JSON.parse(editData.products) : (editData.products || []); } catch(e){}
+        prods.forEach(p => addManualProductRow(p.type, p.name, p.dosage));
+    } else {
+        document.getElementById('manualModalTitle').textContent = 'Nouvelle intervention';
+        document.getElementById('manualDeleteBtn').style.display = 'none';
+        document.getElementById('manualEditDeviceId').value   = '';
+        document.getElementById('manualEditGeofenceId').value = '';
+        document.getElementById('manualEditExitTime').value   = '';
+        _manualParcelles.forEach(p => p.selected = false);
+        const now = new Date();
+        const pad = n => String(n).padStart(2,'0');
+        document.getElementById('manualDate').value    = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        document.getElementById('manualVehicle').value = '';
+        document.getElementById('manualOutil').value   = '';
+        document.getElementById('manualType').value    = 'Autre';
+        document.getElementById('manualSurface').value = '';
+        delete document.getElementById('manualSurface').dataset.userEdited;
+        delete document.getElementById('manualSurface').dataset.userEdited;
+        document.getElementById('manualDuree').value   = '';
+        document.getElementById('manualNotes').value   = '';
+        document.getElementById('manualMeteoTemp').value       = '';
+        document.getElementById('manualMeteoVent').value       = '';
+        document.getElementById('manualMeteoPluie').value      = '';
+        document.getElementById('manualMeteoConditions').value = '';
+        document.getElementById('manualProductRows').innerHTML = '';
+    }
+
+    document.getElementById('manualParcelleSearch').value = '';
+    renderManualParcelleList();
+    updateManualParcelleCount();
+    document.getElementById('manualModal').style.display = 'block';
+}
+
+function closeManualModal() {
+    document.getElementById('manualModal').style.display = 'none';
+}
+
+function addManualProductRow(type='phyto', savedName='', savedDosage='') {
+    const container = document.getElementById('manualProductRows');
+    const div = document.createElement('div');
+    div.className = 'product-row';
+    div.style.cssText = 'display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;';
+
+    const typeOpts = ['phyto','engrais','semence'].map(t =>
+        `<option value="${t}" ${t===type?'selected':''}>${t==='phyto'?'🌱 Phyto':t==='engrais'?'🧲 Engrais':'🌾 Semence'}</option>`
+    ).join('');
+
+    const buildProdOpts = (t, selName) => {
+        let opts = '<option value="">-- Produit --</option>';
+        (CATALOGUE_PRODUITS[t]||[]).forEach(p => {
+            opts += `<option value="${p.name}" data-dose="${p.dose||''}" ${p.name===selName?'selected':''}>${p.name}</option>`;
+        });
+        opts += `<option value="__CUSTOM__">✏️ Autre…</option>`;
+        return opts;
+    };
+
+    div.innerHTML = `
+        <select class="touch-input prod-type" style="width:115px; padding:4px; font-size:12px;">${typeOpts}</select>
+        <select class="touch-input prod-select" style="flex:2; min-width:140px; padding:4px; font-size:12px;">${buildProdOpts(type, savedName)}</select>
+        <input type="text" class="touch-input prod-name-custom" placeholder="Nom libre" style="flex:2; min-width:120px; padding:4px; font-size:12px; display:none;" value="">
+        <input type="number" class="touch-input prod-dosage" placeholder="Dose/ha" step="0.01" min="0" style="width:90px; padding:4px; font-size:12px;" value="${savedDosage||''}">
+        <button type="button" onclick="this.closest('.product-row').remove()" style="background:#ef4444; color:#fff; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-size:14px; font-weight:bold;">✕</button>
+    `;
+
+    const typeEl = div.querySelector('.prod-type');
+    const selEl  = div.querySelector('.prod-select');
+    const custEl = div.querySelector('.prod-name-custom');
+    const doseEl = div.querySelector('.prod-dosage');
+
+    typeEl.addEventListener('change', () => {
+        selEl.innerHTML = buildProdOpts(typeEl.value, '');
+        custEl.style.display = 'none'; custEl.value = ''; doseEl.value = '';
+    });
+    selEl.addEventListener('change', () => {
+        if (selEl.value === '__CUSTOM__') {
+            custEl.style.display = 'block'; custEl.value = ''; doseEl.value = '';
+        } else {
+            custEl.style.display = 'none'; custEl.value = '';
+            const opt = selEl.options[selEl.selectedIndex];
+            const dose = opt.getAttribute('data-dose');
+            if (dose) doseEl.value = dose;
+        }
+    });
+
+    const allProdNames = Object.values(CATALOGUE_PRODUITS).flat().map(p => p.name);
+    if (savedName && !allProdNames.includes(savedName)) {
+        selEl.value = '__CUSTOM__'; custEl.style.display = 'block'; custEl.value = savedName;
+    } else if (savedName && !savedDosage) {
+        const opt = selEl.querySelector(`option[value="${savedName}"]`);
+        if (opt) doseEl.value = opt.getAttribute('data-dose') || '';
+    }
+
+    container.appendChild(div);
+}
+
+async function submitManualForm() {
+    const selectedParcelles = getSelectedParcelles();
+    const dateVal = document.getElementById('manualDate').value;
+
+    if (!selectedParcelles.length || !dateVal) {
+        showToast('Parcelle(s) et date obligatoires.', 'error'); return;
+    }
+
+    const exit_time    = dateVal.length === 16 ? dateVal + ':00' : dateVal;
+    const vehicle      = document.getElementById('manualVehicle').value.trim() || 'Manuel';
+    const outil        = document.getElementById('manualOutil').value.trim();
+    const itype        = document.getElementById('manualType').value;
+    const surfVal      = document.getElementById('manualSurface').value.trim().replace(',','.');
+    const applied_area = surfVal !== '' ? parseFloat(surfVal) : null;
+    const duration_min = parseInt(document.getElementById('manualDuree').value) || null;
+
+    const products = [];
+    document.querySelectorAll('#manualProductRows .product-row').forEach(row => {
+        const type   = row.querySelector('.prod-type').value;
+        const selVal = row.querySelector('.prod-select').value;
+        const custVal= row.querySelector('.prod-name-custom').value.trim();
+        const dosage = parseFloat(row.querySelector('.prod-dosage').value);
+        const name   = selVal === '__CUSTOM__' ? custVal : selVal;
+        if (name && dosage > 0) products.push({ type, name, dosage });
+    });
+
+    const meteo = {
+        temperature: document.getElementById('manualMeteoTemp').value.trim(),
+        vent:        document.getElementById('manualMeteoVent').value.trim(),
+        pluie:       document.getElementById('manualMeteoPluie').value.trim(),
+        conditions:  document.getElementById('manualMeteoConditions').value,
+    };
+
+    const isEdit    = !!document.getElementById('manualEditExitTime').value;
+    const device_id = isEdit ? parseInt(document.getElementById('manualEditDeviceId').value) : 0;
+
+    if (isEdit) {
+        await fetch('/api/interventions/delete', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ device_id, geofence_id: parseInt(document.getElementById('manualEditGeofenceId').value), exit_time: document.getElementById('manualEditExitTime').value })
+        });
+    }
+
+    let errors = 0;
+    for (const parc of selectedParcelles) {
+        try {
+            const r = await fetch('/api/interventions', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ device_id: 0, geofence_id: parc.id, exit_time, vehicle_name: vehicle, tool_detected: outil, intervention_type: itype, appliedArea: applied_area, applied_area, duration_min, products, meteo })
+            });
+            if (!r.ok) errors++;
+        } catch(e) { errors++; }
+    }
+
+    closeManualModal(); load();
+    if (errors === 0) {
+        showToast(selectedParcelles.length > 1 ? `${selectedParcelles.length} interventions enregistrées ✓` : (isEdit ? 'Intervention modifiée ✓' : 'Intervention enregistrée ✓'), 'success');
+    } else {
+        showToast(`${errors} erreur(s) lors de la sauvegarde.`, 'error');
+    }
+}
+
+async function deleteManualIntervention() {
+    if (!confirm('Supprimer cette intervention ? Action irréversible.')) return;
+    try {
+        const r = await fetch('/api/interventions/delete', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ device_id: parseInt(document.getElementById('manualEditDeviceId').value), geofence_id: parseInt(document.getElementById('manualEditGeofenceId').value), exit_time: document.getElementById('manualEditExitTime').value })
+        });
+        if (r.ok) { closeManualModal(); load(); showToast('Intervention supprimée.'); }
+        else showToast('Erreur suppression.', 'error');
+    } catch(e) { showToast('Erreur réseau.', 'error'); }
+}
+
+</script>
+
+<!-- MODAL PARCELLES & EXPLOITATION -->
+<div id="parcellesModal" style="display:none; position:fixed; z-index:9995; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif; overflow-y:auto;">
+    <div style="background:#fff; width:95%; max-width:700px; margin:2% auto; padding:20px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-bottom:15px;">
+            <strong style="font-size:16px; color:#1e1e2f;">🗂️ Parcelles & Exploitation</strong>
+            <button onclick="closeParcellesModal()" style="background:transparent; color:#dc2626; border:none; font-size:22px; font-weight:bold; cursor:pointer; width:auto; padding:0;">✕</button>
+        </div>
+
+        <!-- Exploitation -->
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:12px; margin-bottom:20px;">
+            <div style="font-weight:bold; font-size:13px; color:#166534; margin-bottom:10px;">🏢 Exploitation</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:180px;">
+                    <label style="font-size:11px; color:#64748b; display:block; margin-bottom:3px;">Raison sociale</label>
+                    <input type="text" id="expRaisonSociale" class="touch-input" placeholder="Nom de l'exploitation">
+                </div>
+                <div style="flex:1; min-width:150px;">
+                    <label style="font-size:11px; color:#64748b; display:block; margin-bottom:3px;">N° SIRET</label>
+                    <input type="text" id="expSiret" class="touch-input" placeholder="14 chiffres">
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                <div style="flex:2; min-width:180px;">
+                    <label style="font-size:11px; color:#64748b; display:block; margin-bottom:3px;">Nom de l'applicateur</label>
+                    <input type="text" id="expApplicateur" class="touch-input" placeholder="Prénom NOM">
+                </div>
+                <div style="flex:1; min-width:150px;">
+                    <label style="font-size:11px; color:#64748b; display:block; margin-bottom:3px;">N° Certiphyto</label>
+                    <input type="text" id="expCertiphyto" class="touch-input" placeholder="Ex: FR-12345">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <button type="button" class="touch-btn" onclick="saveExploitation()" style="background:#16a34a; color:#fff; border-radius:4px; font-weight:bold; width:auto; height:44px;">💾 Sauvegarder</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matériel de pulvérisation -->
+        <div style="background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:12px; margin-bottom:20px;">
+            <div style="font-weight:bold; font-size:13px; color:#92400e; margin-bottom:10px;">🚜 Matériel de pulvérisation</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div style="flex:2; min-width:180px;">
+                    <label style="font-size:11px; color:#64748b; display:block; margin-bottom:3px;">Nom / Marque du pulvérisateur</label>
+                    <input type="text" id="expMateriel" class="touch-input" placeholder="Ex: Amazone UF1201">
+                </div>
+                <div style="flex:1; min-width:140px;">
+                    <label style="font-size:11px; color:#64748b; display:block; margin-bottom:3px;">N° contrôle</label>
+                    <input type="text" id="expNumControle" class="touch-input" placeholder="Ex: 64-2024-001">
+                </div>
+                <div style="flex:1; min-width:140px;">
+                    <label style="font-size:11px; color:#64748b; display:block; margin-bottom:3px;">Date dernier contrôle</label>
+                    <input type="date" id="expDateControle" class="touch-input">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <button type="button" class="touch-btn" onclick="saveExploitation()" style="background:#d97706; color:#fff; border-radius:4px; font-weight:bold; width:auto; height:44px;">💾 Sauvegarder</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parcelles -->
+        <div style="font-weight:bold; font-size:13px; color:#1e293b; margin-bottom:8px;">🗺️ Correspondance des parcelles</div>
+        <div style="font-size:11px; color:#64748b; margin-bottom:10px;">Associez un identifiant court à chaque parcelle Traccar. Cet identifiant apparaîtra dans l'export Phyto/Semis.</div>
+        <div id="parcellesListContainer" style="max-height:350px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; background:#fff;"></div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <button type="button" class="touch-btn" onclick="saveAllParcelles()" style="background:#2563eb; color:#fff; border-radius:4px; font-weight:bold; width:auto; font-size:14px; padding:0 20px;">💾 Sauvegarder les identifiants</button>
+            <button type="button" class="touch-btn" onclick="closeParcellesModal()" style="background:#1f2937; color:#fff; border-radius:4px; font-weight:bold; width:auto;">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CALENDRIER -->
+<div id="calendarModal" style="display:none; position:fixed; z-index:9994; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif; overflow-y:auto;">
+    <div style="background:#fff; width:98%; max-width:900px; margin:1% auto; padding:20px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+            <button onclick="calPrevMonth()" class="touch-btn" style="background:#e2e8f0; color:#1e293b; width:auto; padding:0 14px;">◀</button>
+            <strong id="calTitle" style="font-size:18px; color:#1e293b;"></strong>
+            <button onclick="calNextMonth()" class="touch-btn" style="background:#e2e8f0; color:#1e293b; width:auto; padding:0 14px;">▶</button>
+            <button onclick="document.getElementById('calendarModal').style.display='none'" style="background:transparent; border:none; font-size:22px; font-weight:bold; cursor:pointer; color:#dc2626; width:auto; padding:0 8px;">✕</button>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; font-size:11px;">
+            <span style="background:#16a34a; color:#fff; padding:2px 8px; border-radius:10px;">🌾 Semis</span>
+            <span style="background:#2563eb; color:#fff; padding:2px 8px; border-radius:10px;">💧 Pulvérisation</span>
+            <span style="background:#d97706; color:#fff; padding:2px 8px; border-radius:10px;">🌿 Épandage</span>
+            <span style="background:#7c3aed; color:#fff; padding:2px 8px; border-radius:10px;">🚜 Labour/Hersage</span>
+            <span style="background:#dc2626; color:#fff; padding:2px 8px; border-radius:10px;">🌾 Récolte</span>
+            <span style="background:#64748b; color:#fff; padding:2px 8px; border-radius:10px;">⚙️ Autre</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px;">
+            <div style="text-align:center; font-weight:bold; font-size:12px; color:#64748b; padding:4px;">Lun</div>
+            <div style="text-align:center; font-weight:bold; font-size:12px; color:#64748b; padding:4px;">Mar</div>
+            <div style="text-align:center; font-weight:bold; font-size:12px; color:#64748b; padding:4px;">Mer</div>
+            <div style="text-align:center; font-weight:bold; font-size:12px; color:#64748b; padding:4px;">Jeu</div>
+            <div style="text-align:center; font-weight:bold; font-size:12px; color:#64748b; padding:4px;">Ven</div>
+            <div style="text-align:center; font-weight:bold; font-size:12px; color:#dc2626; padding:4px;">Sam</div>
+            <div style="text-align:center; font-weight:bold; font-size:12px; color:#dc2626; padding:4px;">Dim</div>
+        </div>
+        <div id="calendarGrid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;"></div>
+        <div id="calDayDetail" style="display:none; margin-top:16px; border-top:1px solid #e2e8f0; padding-top:12px;">
+            <strong id="calDayTitle" style="font-size:14px; color:#1e293b;"></strong>
+            <div id="calDayList" style="margin-top:8px;"></div>
+        </div>
+    </div>
+</div>
+<!-- MODAL BILANS -->
+<div id="bilanModal" style="display:none; position:fixed; z-index:9993; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif; overflow-y:auto;">
+    <div style="background:#fff; width:98%; max-width:950px; margin:1% auto; padding:20px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+            <strong style="font-size:16px; color:#1e293b;">📊 Bilans & Indicateurs</strong>
+            <button onclick="document.getElementById('bilanModal').style.display='none'" style="background:transparent; border:none; font-size:22px; font-weight:bold; cursor:pointer; color:#dc2626; width:auto; padding:0 8px;">✕</button>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+            <label style="font-size:13px; color:#475569;">Campagne :</label>
+            <select id="bilanCampagne" class="touch-input" style="width:220px;" onchange="loadBilan()"></select>
+            <button onclick="openCulturesModal()" class="touch-btn" style="background:#92400e; color:#fff; width:auto; padding:0 14px; font-weight:bold;">🌾 Gérer les cultures</button>
+            <button onclick="openCatalogModal()" class="touch-btn" style="background:#64748b; color:#fff; width:auto; padding:0 16px; font-weight:bold;">⚙️ Catalogue produits</button>
+            <button onclick="exportBilanExcel()" class="touch-btn" style="background:#15803d; color:#fff; width:auto; padding:0 16px; font-weight:bold;">📥 Export Excel registre phyto</button>
+        </div>
+
+        <!-- Synthèse -->
+        <div id="bilanSynthese" style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;"></div>
+
+        <!-- Tableau produits -->
+        <div style="font-weight:bold; font-size:14px; color:#1e293b; margin-bottom:8px;">🧪 Détail par produit</div>
+        <div style="max-height:320px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead style="position:sticky; top:0; background:#1e293b; color:#fff;">
+                    <tr>
+                        <th style="padding:8px; text-align:left;">Produit</th>
+                        <th style="padding:8px; text-align:left;">Type</th>
+                        <th style="padding:8px; text-align:left;">N° AMM</th>
+                        <th style="padding:8px; text-align:right;">Quantité totale utilisée</th>
+                        <th style="padding:8px; text-align:center;">Interventions</th>
+                        <th style="padding:8px; text-align:center;">Parcelles</th>
+                        <th style="padding:8px; text-align:center;">Bio</th>
+                    </tr>
+                </thead>
+                <tbody id="bilanProduitsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- MODAL ETAT SYSTEME -->
+<div id="systemStatusModal" style="display:none; position:fixed; z-index:9992; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif; overflow-y:auto;">
+    <div style="background:#fff; width:95%; max-width:650px; margin:2% auto; padding:20px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+            <strong style="font-size:16px; color:#1e293b;">⚙️ État du système</strong>
+            <div>
+                <button onclick="loadSystemStatus()" style="background:#2563eb; color:#fff; border:none; border-radius:4px; padding:4px 10px; font-size:12px; cursor:pointer; margin-right:6px;">🔄 Actualiser</button>
+                <button onclick="document.getElementById('systemStatusModal').style.display='none'" style="background:transparent; border:none; font-size:22px; font-weight:bold; cursor:pointer; color:#dc2626; padding:0 8px;">✕</button>
+            </div>
+        </div>
+        <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px; margin-bottom:14px;">
+            <div style="font-weight:bold; font-size:13px; color:#0369a1; margin-bottom:8px;">💾 Sauvegarde &amp; restauration de la configuration</div>
+            <div style="font-size:11px; color:#64748b; margin-bottom:10px;">Catalogue produits, outils, cultures, identifiants de parcelles et exploitation — en un seul fichier.</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button onclick="exportConfig()" style="background:#0369a1; color:#fff; border:none; border-radius:4px; padding:8px 14px; font-size:12px; font-weight:bold; cursor:pointer;">📥 Exporter la configuration</button>
+                <label style="background:#fff; border:1px solid #93c5fd; color:#0369a1; border-radius:4px; padding:8px 14px; font-size:12px; font-weight:bold; cursor:pointer; display:inline-block;">
+                    📤 Importer une configuration
+                    <input type="file" id="importConfigFile" accept=".json" style="display:none;" onchange="importConfig(this)">
+                </label>
+            </div>
+        </div>
+
+        <div id="systemStatusContent">
+            <div style="text-align:center; padding:30px; color:#64748b; font-style:italic;">Chargement...</div>
+        </div>
+    </div>
+</div>
+<!-- MODAL GESTION CULTURES -->
+<div id="culturesModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif; overflow-y:auto;">
+    <div style="background:#fff; width:95%; max-width:600px; margin:2% auto; padding:20px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+            <strong style="font-size:16px; color:#1e293b;">🌾 Cultures & Règles de campagne</strong>
+            <button onclick="document.getElementById('culturesModal').style.display='none'" style="background:transparent; border:none; font-size:22px; font-weight:bold; cursor:pointer; color:#dc2626; padding:0 8px;">✕</button>
+        </div>
+        <div style="font-size:11px; color:#64748b; margin-bottom:12px;">
+            La campagne d'une culture définit la période (jour/mois début → jour/mois fin) à laquelle ses interventions sont rattachées.
+            Ex : Blé du 01/09 au 31/08 (campagne à cheval sur deux années civiles).
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px; margin-bottom:15px;">
+            <input type="hidden" id="editCultureId" value="">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <div style="flex:2; min-width:140px;">
+                    <input type="text" id="newCultureNom" class="touch-input" placeholder="Nom (ex: Blé tendre d'hiver)">
+                </div>
+                <div style="flex:1; min-width:100px;">
+                    <input type="text" id="newCultureOepp" class="touch-input" placeholder="Code OEPP" maxlength="6" style="text-transform:uppercase;">
+                </div>
+                <div style="flex:1; min-width:110px;">
+                    <input type="text" id="newCultureDebut" class="touch-input" placeholder="Début JJ/MM">
+                </div>
+                <div style="flex:1; min-width:110px;">
+                    <input type="text" id="newCultureFin" class="touch-input" placeholder="Fin JJ/MM">
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:8px;">
+                <button type="button" id="cancelCultureBtn" onclick="resetCultureForm()" style="background:#94a3b8; color:#fff; border-radius:4px; display:none; width:auto; padding:0 14px;">Annuler</button>
+                <button type="button" id="saveCultureBtn" onclick="saveCulture()" style="background:#10b981; color:#fff; border-radius:4px; font-weight:bold; width:auto; padding:0 14px;">➕ Ajouter</button>
+            </div>
+        </div>
+
+        <div id="culturesListContainer" style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; padding:6px;"></div>
+    </div>
+</div>
+<!-- MODAL NOTES PARCELLE -->
+<div id="notesModal" style="display:none; position:fixed; z-index:9998; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif; overflow-y:auto;">
+    <div style="background:#fff; width:95%; max-width:550px; margin:3% auto; padding:20px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+            <strong style="font-size:15px; color:#1e293b;">📝 Notes — <span id="notesModalParcelleName" style="color:#92400e;"></span></strong>
+            <button onclick="document.getElementById('notesModal').style.display='none'" style="background:transparent; border:none; font-size:22px; font-weight:bold; cursor:pointer; color:#dc2626; padding:0 8px;">✕</button>
+        </div>
+
+        <div style="background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:10px; margin-bottom:14px;">
+            <textarea id="newNoteContenu" class="touch-input" placeholder="Observation, problème constaté, décision à prendre…" style="width:100%; min-height:70px; resize:vertical; padding:8px; box-sizing:border-box; font-family:inherit; font-size:13px;"></textarea>
+            <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                <button type="button" onclick="saveNote()" style="background:#d97706; color:#fff; border:none; border-radius:4px; padding:8px 16px; font-weight:bold; cursor:pointer;">➕ Ajouter la note</button>
+            </div>
+        </div>
+
+        <div id="notesListContainer" style="max-height:320px; overflow-y:auto;"></div>
+    </div>
+</div>
+<!-- MODAL AUJOURD'HUI EN UN COUP D'OEIL -->
+<div id="todayModal" style="display:none; position:fixed; z-index:9994; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.6); font-family:sans-serif; overflow-y:auto;">
+    <div style="background:#fff; width:95%; max-width:700px; margin:2% auto; padding:20px; border-radius:8px; box-shadow:0 4px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+            <strong style="font-size:16px; color:#1e293b;">📌 Aujourd'hui — <span id="todayDateLabel"></span></strong>
+            <div>
+                <button onclick="loadTodaySummary()" style="background:#2563eb; color:#fff; border:none; border-radius:4px; padding:4px 10px; font-size:12px; cursor:pointer; margin-right:6px;">🔄 Actualiser</button>
+                <button onclick="document.getElementById('todayModal').style.display='none'" style="background:transparent; border:none; font-size:22px; font-weight:bold; cursor:pointer; color:#dc2626; padding:0 8px;">✕</button>
+            </div>
+        </div>
+        <div id="todayModalContent">
+            <div style="text-align:center; padding:30px; color:#64748b; font-style:italic;">Chargement...</div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
