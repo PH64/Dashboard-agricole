@@ -1,4 +1,4 @@
-# 🚜 Dashboard Agricole v12
+# 🚜 Dashboard Agricole
 
 Une application web qui tourne en local sur un NAS ou PC, et qui transforme les données d'**AgOpenGPS (Urepom design)** envoyées sur **Traccar** (suivi des tracteurs et outils) en **carnet d'interventions agricoles** enrichi.
 
