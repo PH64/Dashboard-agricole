@@ -14,7 +14,7 @@ Traccar server est disponible ici : https://www.traccar.org/download/
 AgOpenGPS Urepom Design → Traccar → Dashboard Agricole → Navigateur web
 ```
 
-1. **AgOpenGPS Urepom** Design envoi la position GPS position GPS des tracteurs à un serveur **Traccar**
+1. **AgOpenGPS Urepom Design** envoi la position GPS position GPS des tracteurs à un serveur **Traccar**
 2. Le Dashboard récupère automatiquement les **entrées/sorties de parcelles** (périmètres virtuels)
 3. L'agriculteur complète chaque passage : type d'intervention, produits, météo
 4. Les données sont stockées localement dans une base **SQLite**
