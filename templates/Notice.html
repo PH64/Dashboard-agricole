@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notice d'utilisation complète — Dashboard Agricole v15.6</title>
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --primary-light: #e8f5e9;
+            --secondary-color: #37474f;
+            --bg-color: #f4f6f7;
+            --text-color: #2c3e50;
+            --border-color: #cfd8dc;
+            --warning-bg: #fffde7;
+            --warning-border: #fbc02d;
+            --sidebar-width: 280px;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: #ffffff;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar li {
+            margin-bottom: 12px;
+        }
+
+        .sidebar a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 0.95rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            padding-left: 15px;
+        }
+
+        .content {
+            margin-left: var(--sidebar-width);
+            padding: 40px 50px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.6rem;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #546e7a;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: var(--secondary-color);
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 50px;
+            scroll-margin-top: 20px;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin-top: 30px;
+        }
+
+        p, li {
+            font-size: 1.05rem;
+            text-align: justify;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 14px 18px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+
+        code {
+            background-color: #eceff1;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 0.95rem;
+        }
+
+        pre {
+            background-color: #263238;
+            color: #eceff1;
+            padding: 18px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        .info-box {
+            background-color: var(--warning-bg);
+            border-left: 5px solid var(--warning-border);
+            padding: 18px;
+            margin: 25px 0;
+            border-radius: 0 6px 6px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .info-box p {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .content { margin-left: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <h3>Sommaire</h3>
+        <ul>
+            <li><a href="#prerequis">🛠 Prérequis</a></li>
+            <li><a href="#structure">📂 Fichiers</a></li>
+            <li><a href="#configuration">⚙️ Configuration</a></li>
+            <li><a href="#lancement">🚀 Lancement</a></li>
+            <li><a href="#utilisation">📝 Utilisation</a></li>
+            <li><a href="#carnet">📌 Carnet Phyto</a></li>
+            <li><a href="#gestion">🗂️ Gestion Parcelles</a></li>
+            <li><a href="#chantier">🗺️ Carte de Chantier</a></li>
+            <li><a href="#sous-parcelles">✂️ Sous-parcelles</a></li>
+            <li><a href="#synthese">📊 Synthèse de campagne</a></li>
+            <li><a href="#tracabilite">📔 Cahier de traçabilité</a></li>
+            <li><a href="#traccar-import">🛰️ Import Traccar</a></li>
+            <li><a href="#analytique">📈 Module Analytique</a></li>
+            <li><a href="#fertilisation">🌿 Fertilisation</a></li>
+            <li><a href="#IFT">📊 Bilans IFT & Météo</a></li>
+            <li><a href="#ephy">🌿 Intégration e-phy (ANSES)</a></li>
+            <li><a href="#alertes">⚠️ Alertes réglementaires</a></li>
+            <li><a href="#maintenance">🔧 Notes Techniques</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>🚜 Dashboard Agricole — v15.6</h1>
+        <div class="subtitle">Application web de suivi des interventions agricoles, couplée à Traccar (GPS) et enrichie d'un carnet de terrain, d'une carte de chantier RTK avec alertes automatiques, d'un assistant d'import Traccar, d'un cahier de fertilisation et d'un module analytique.</div>
+
+        <section id="prerequis">
+            <h2>Prérequis d'installation</h2>
+            
+            <h3>Matériel recommandé</h3>
+            <ul>
+                <li>Pour une utilisation en réseau : NAS Synology ou tout serveur Linux</li>
+                <li>Pour une utilisation monoposte : un PC linux ou windows</li>
+                <li>Accès réseau local et/ou internet pour Traccar et météo</li>
+            </ul>
+
+            <h3>Python</h3>
+            <ul>
+                <li><strong>Python 3.9 ou supérieur</strong></li>
+                <li>Vérifier l'installation : <code>python3 --version</code></li>
+            </ul>
+
+            <h3>Dépendances Python</h3>
+            <p>Installez les packages requis via votre terminal :</p>
+            <pre><code>pip3 install flask requests openpyxl fpdf2</code></pre>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>flask</code></td>
+                        <td>Serveur web de l'application</td>
+                    </tr>
+                    <tr>
+                        <td><code>requests</code></td>
+                        <td>Communication avec l'API Traccar</td>
+                    </tr>
+                    <tr>
+                        <td><code>openpyxl</code></td>
+                        <td>Export Excel (.xlsx)</td>
+                    </tr>
+                    <tr>
+                        <td><code>fpdf2</code></td>
+                        <td>Génération des rapports PDF (analytique, fertilisation)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <p>Les modules suivants sont inclus par défaut dans la bibliothèque standard Python : <code>sqlite3</code>, <code>json</code>, <code>re</code>, <code>threading</code>, <code>csv</code>, <code>io</code>, <code>os</code>, <code>time</code>, <code>secrets</code>.</p>
+            </div>
+
+            <h3>Traccar</h3>
+            <ul>
+                <li>Instance Traccar accessible en réseau (locale ou distante)</li>
+                <li>Version Traccar ≥ 5.0 vivement recommandée</li>
+                <li>Les appareils GPS doivent être préalablement déclarés dans Traccar</li>
+                <li>Les <strong>périmètres virtuels</strong> créées dans Traccar correspondent directement aux parcelles de l'exploitation.</li>
+            </ul>
+        </section>
+
+        <section id="structure">
+            <h2>Structure des fichiers</h2>
+            <pre><code>/
+├── run.py                  # Point d'entrée à utiliser pour lancer le serveur
+├── dashboard.py            # Application principale Flask (noyau + état partagé)
+├── interventions.py        # Blueprint : interventions, parcelles, catalogue, sous-parcelles, exploitation
+├── ndvi_bp.py              # Blueprint : NDVI Sentinel-2 (carte + historique par parcelle)
+├── ephy_bp.py               # Blueprint : référentiel e-phy ANSES (autonome, tables dédiées)
+├── templates_bp.py           # Blueprint : modèles d'intervention réutilisables
+├── share_tokens_bp.py         # Blueprint : liens de partage en lecture seule (Synthèse)
+├── field_points_bp.py          # Blueprint : points d'observation terrain + sous-parcelles
+├── cahier_bp.py                 # Blueprint : cahier de traçabilité (export PDF)
+├── chantier_export_bp.py         # Blueprint : exports du rapport de chantier (Excel/PDF)
+├── analytique_bp.py                # Blueprint : module analytique
+├── traccar_import_bp.py             # Blueprint : assistant d'import Traccar + proxy + liaisons
+├── config_backup_bp.py               # Blueprint : export/import de la config métier (JSON)
+├── fertilisation_bp.py                # Blueprint : cahier de fertilisation
+├── azote_bp.py                          # Blueprint : prévisionnel de fumure azotée (GREN)
+├── backup.py                           # Sauvegarde quotidienne automatique de la base (sans route Flask)
+├── database.db             # Base de données SQLite (créée automatiquement)
+├── config.json              # Configuration Traccar / alertes / NDVI (créé via l'interface, optionnel)
+├── secret_key.txt            # Clé secrète Flask (session), générée au premier démarrage
+├── password_override.txt      # Mot de passe admin haché (PBKDF2-HMAC-SHA256)
+├── templates/               # Dossier contenant les vues HTML
+│   ├── index.html          # Dashboard principal
+│   ├── chantier.html       # Carte de chantier RTK
+│   ├── synthese.html       # Synthèse de campagne
+│   ├── traccar_import.html # Assistant d'import Traccar
+│   ├── analytique.html     # Module analytique
+│   ├── fertilisation.html  # Cahier de fertilisation
+│   ├── Notice.html         # Aide (cette page)
+│   ├── login.html          # Page de connexion sécurisée
+│   └── change_password.html
+├── exports/                 # Fichiers PDF et Excel générés (créé automatiquement)
+├── backups/                 # Sauvegardes automatiques de la DB (créé automatiquement)
+├── start.sh                 # Script système de démarrage (Linux/NAS)
+└── restart.sh                # Script système de redémarrage (Linux/NAS)</code></pre>
+        </section>
+
+        <section id="configuration">
+            <h2>Configuration</h2>
+
+            <h3>Option 1 — Via l'interface (Recommandé, nouveauté v12.0)</h3>
+            <p>Ouvrir le dashboard → <strong>⚙️ État système</strong> → section <strong>Paramétrage Traccar</strong> :</p>
+            <ul>
+                <li>Renseignez l'URL du serveur, l'identifiant et le mot de passe utilisateur.</li>
+                <li>Cliquez sur <strong>💾 Enregistrer</strong> — la configuration est appliquée <strong>immédiatement sans aucun redémarrage</strong>.</li>
+                <li>Cliquez sur <strong>🔌 Tester</strong> pour vérifier instantanément la bonne liaison avec l'API.</li>
+            </ul>
+            <p>Cette configuration est définitivement sauvegardée dans le fichier <code>config.json</code> et rechargée automatiquement à chaque démarrage du serveur.</p>
+
+            <h3>Option 2 — Dans le code (Fallback / Secours)</h3>
+            <p>Si le fichier <code>config.json</code> est absent, l'application utilise par défaut les valeurs codées en dur situées dans <code>dashboard.py</code> :</p>
+            <pre><code>TRACCAR_URL      = "http://votre-traccar:8082/api"
+TRACCAR_USER     = "votre@email.com"
+TRACCAR_PASSWORD = "votre_mot_de_passe"
+DAYS_BACK        = 7    # Période par défaut en jours affichée à l'écran
+CACHE_DURATION   = 60   # Durée du cache Traccar en secondes</code></pre>
+        </section>
+
+        <section id="lancement">
+            <h2>Lancement</h2>
+            <div class="info-box">
+                <p>⚠️ Toujours démarrer via <code>run.py</code>, jamais <code>dashboard.py</code> directement. Plusieurs blueprints font <code>import dashboard</code> pour accéder à son état partagé (config Traccar rechargeable à chaud, etc.) et le voir toujours à jour. Cela ne fonctionne que si <code>dashboard</code> est le nom sous lequel Python a chargé ce fichier — or lancer <code>python3 dashboard.py</code> directement le charge sous le nom <code>__main__</code>, ce qui déclenche une erreur d'import circulaire au démarrage.</p>
+            </div>
+            <p>Pour démarrer l'application directement :</p>
+            <pre><code>python3 run.py</code></pre>
+            <p>Ou utilisez les scripts fournis :</p>
+            <pre><code>bash start.sh     # démarrage en arrière-plan, log dans app.log
+bash restart.sh   # arrêt puis redémarrage</code></pre>
+            <p>L'application est ensuite accessible via votre navigateur à l'adresse : <strong><code>http://[IP-du-serveur]:8080</code></strong>.</p>
+
+            <h3>Connexion par défaut</h3>
+            <ul>
+                <li><strong>Identifiant :</strong> <code>admin</code></li>
+                <li><strong>Mot de passe :</strong> défini automatiquement lors du premier lancement (haché et stocké dans le fichier généré <code>password_override.txt</code> — jamais en clair).</li>
+            </ul>
+            <div class="info-box">
+                <p>⚠️ Pour des raisons de sécurité, il est fortement recommandé de changer le mot de passe via l'onglet <strong>Système → Changer le mot de passe</strong> dès votre premier accès. Un bandeau d'avertissement s'affiche automatiquement en haut du dashboard tant que ce changement n'a pas été effectué.</p>
+            </div>
+        </section>
+
+        <section id="utilisation">
+            <h2>Notice d'utilisation</h2>
+
+            <h3>Dashboard Principal</h3>
+            <p>L'écran principal de contrôle est séparé verticalement en deux parties :</p>
+            <ul>
+                <li><strong>Carte interactive (à droite) :</strong> Suivi des positions GPS en temps réel et affichage des périmètres virtuels (parcelles).</li>
+                <li><strong>Tableau des événements (à gauche) :</strong> Journal des entrées et sorties de parcelles automatiquement détectées par Traccar.</li>
+            </ul>
+
+            <h4>Filtres disponibles</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filtre</th>
+                        <th>Options disponibles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Période</strong></td>
+                        <td>7 jours (valeur par défaut), 30 jours, 3 mois, 6 mois, ou période personnalisée</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tracteur</strong></td>
+                        <td>Permet de filtrer l'affichage par véhicule spécifique</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Parcelle</strong></td>
+                        <td>Permet de filtrer par périmètre virtuel Traccar</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>Utilisez le bouton 🔍 pour appliquer les filtres choisis, et le bouton ↺ pour réinitialiser la recherche.</p>
+
+            <h4>Barre d'actions</h4>
+            <p>Depuis la v14.2, les icônes sont regroupées par fonction plutôt que par ordre d'ajout, pour une prise en main plus intuitive :</p>
+
+            <table>
+                <thead><tr><th>Groupe</th><th>Icône</th><th>Action déclenchée</th></tr></thead>
+                <tbody>
+                    <tr><td rowspan="4">📋 Journal / saisie</td><td>📌</td><td><strong>Aujourd'hui :</strong> Vue d'ensemble du jour — interventions saisies, alertes DAR actives, parcelles à traiter, parcelles sans intervention depuis longtemps, météo locale</td></tr>
+                    <tr><td>✏️</td><td><strong>Saisie manuelle :</strong> Enregistrer manuellement une intervention non détectée par le GPS</td></tr>
+                    <tr><td>📋</td><td><strong>Carnet :</strong> Historique complet des interventions, avec recherche et lien direct vers la carte de chantier pour chaque fiche liée à un véhicule GPS</td></tr>
+                    <tr><td>📅</td><td><strong>Calendrier :</strong> Vue mensuelle des interventions</td></tr>
+
+                    <tr><td rowspan="3">🗺️ Carte</td><td>📍</td><td><strong>Centrer véhicules :</strong> Recadrer la carte sur les véhicules GPS actifs</td></tr>
+                    <tr><td>🗺</td><td><strong>Centrer parcelles :</strong> Recadrer la carte pour voir toutes les parcelles</td></tr>
+                    <tr><td>🚜</td><td><strong>Carte de chantier :</strong> Ouvre la carte de chantier RTK (corridors, NDVI, alertes, couverture) — voir <a href="#chantier">section dédiée</a></td></tr>
+
+                    <tr><td rowspan="2">🔍 Filtres</td><td>🔍</td><td><strong>Appliquer filtres :</strong> Recharge le tableau selon les filtres choisis</td></tr>
+                    <tr><td>↺</td><td><strong>Réinitialiser :</strong> Remet les filtres à leur valeur par défaut</td></tr>
+
+                    <tr><td rowspan="3">🗂️ Gestion des données</td><td>🗂️</td><td><strong>Gérer parcelles :</strong> Administration des parcelles et de l'exploitation</td></tr>
+                    <tr><td>⚙️</td><td><strong>État système :</strong> État de l'application, version, paramétrage Traccar</td></tr>
+                    <tr><td>🛰️</td><td><strong>Paramétrage Traccar :</strong> Ouvre l'assistant d'import Traccar (véhicules, parcelles, liaisons) — voir <a href="#traccar-import">section dédiée</a>, nouveauté v14.2</td></tr>
+
+                    <tr><td rowspan="4">📊 Rapports et exports</td><td>📊</td><td><strong>Bilans :</strong> Indicateurs de fréquence de traitement (IFT) par culture et campagne</td></tr>
+                    <tr><td>📈</td><td><strong>Analytique :</strong> Module complet de performances</td></tr>
+                    <tr><td>🌿</td><td><strong>Fertilisation :</strong> Cahier de fertilisation N/P/K</td></tr>
+                    <tr><td>🌱</td><td><strong>Export Phyto :</strong> Export réglementaire du registre phytosanitaire (XML)</td></tr>
+
+                    <tr><td>❓ Aide</td><td>❓</td><td><strong>Notice d'utilisation :</strong> Cette page</td></tr>
+                </tbody>
+            </table>
+
+            <h4>📌 Aujourd'hui en un coup d'œil</h4>
+            <p>Ce tableau de bord condensé affiche quatre indicateurs cliquables :</p>
+            <ul>
+                <li><strong>Interventions du jour</strong> — avec un lien 🗺️ vers la carte de chantier pour chaque intervention liée à un véhicule GPS (nouveauté v14.2).</li>
+                <li><strong>Alertes DAR actives</strong> — produits dont le délai avant récolte n'est pas encore écoulé.</li>
+                <li><strong>Parcelles à traiter en priorité</strong> — parcelles au statut "attente" ou "préparé".</li>
+                <li><strong>Parcelles sans intervention depuis longtemps</strong> <em>(nouveauté v14.2)</em> — détecte automatiquement les parcelles actives (hors récolte) n'ayant reçu aucune intervention depuis un seuil configurable (21 jours par défaut, voir <a href="#maintenance">Notes techniques</a>), ou jamais travaillées.</li>
+            </ul>
+            <p>La météo locale (Open-Meteo) est également affichée, calculée à partir de la position du premier véhicule actif.</p>
+
+            <h4>🔍 Recherche</h4>
+            <p>Un champ de recherche filtre en direct le tableau principal (véhicule, parcelle, outil). Depuis la v14.2, la recherche est également disponible <strong>dans le Carnet d'interventions</strong> (filtre par parcelle, véhicule, outil, type ou produit) et <strong>dans le catalogue produits</strong> (filtre par nom, AMM, culture ou cible).</p>
+        </section>
+
+        <section id="carnet">
+            <h2>Carnet Phyto et Interventions</h2>
+            
+            <h3>Saisie depuis une détection automatique Traccar</h3>
+            <ol>
+                <li>Sur une ligne d'événement du tableau principal, cliquez sur le bouton <strong>✍️</strong> (Saisir).</li>
+                <li>Sélectionnez le <strong>type d'intervention</strong> (celui-ci est automatiquement déduit en fonction de l'outil attelé).</li>
+                <li>Renseignez la <strong>surface</strong> — le champ se pré-remplit automatiquement avec la surface cultivée cadastrale si elle est paramétrée, sinon il reste vide.</li>
+                <li>Ajoutez les <strong>produits</strong> utilisés à partir du catalogue (la dose conseillée se pré-remplit seule).</li>
+                <li>Importez la <strong>météo automatiquement</strong> 🔄 — le système récupère les données météo <strong>historiques exactes au jour et à l'heure de l'intervention</strong> (et non du jour actuel).</li>
+                <li>Validez en cliquant sur <strong>Sauvegarder</strong>.</li>
+            </ol>
+            <div class="info-box">
+                <p>💡 Le bouton <strong>Modifier</strong> (✏️) présent dans l'historique du carnet vous permet de corriger ou modifier a posteriori <strong>absolument toutes les interventions</strong> (qu'elles soient issues d'une détection GPS ou saisies à la main). Le bouton 🗺️ (nouveauté v14.2), présent sur chaque fiche liée à un véhicule GPS, ouvre directement la <a href="#chantier">carte de chantier</a> à la date et sur le véhicule concernés.</p>
+            </div>
+
+            <h3>Saisie manuelle</h3>
+            <p>Pour enregistrer les travaux agricoles réalisés sans l'aide du tracker GPS Traccar :</p>
+            <ol>
+                <li><strong>Sélectionnez une ou plusieurs parcelles</strong> via les cases à cocher (un champ de recherche textuelle ainsi que des boutons de sélection globale "Tout/Aucun" sont à disposition).</li>
+                <li>Renseignez la date/heure, le tracteur et l'outil employé. Le type de travaux est déduit seul par rapport à l'outil choisi.</li>
+                <li>La <strong>surface</strong> se pré-remplit avec la surface cadastrale uniquement si une seule parcelle est cochée.</li>
+                <li>Ajoutez les produits et lancez l'importation de la météo historique.</li>
+                <li>Si vous cochez plusieurs parcelles d'un coup : le système génère intelligemment une intervention distincte pour chaque parcelle.</li>
+                <li>Saisissez la <strong>durée</strong> du chantier (en minutes) : elle sera sauvegardée et exploitée pour calculer les rendements en ha/h du module analytique.</li>
+            </ol>
+
+            <h3>🌾 Rendement à la récolte <em>(nouveauté v15.0)</em></h3>
+            <p>Un champ "Rendement (t/ha)" apparaît automatiquement dans les deux formulaires de saisie (GPS et manuelle) dès que le type d'intervention sélectionné est <strong>"Récolte"</strong> — invisible pour les autres types, pour ne pas alourdir la saisie courante.</p>
+
+            <h3>🗓️ Filtre par campagne <em>(nouveauté v15.0)</em></h3>
+            <p>Un sélecteur "Toutes les campagnes" / année précise permet de n'afficher, par défaut, que la campagne en cours (la plus récente) plutôt que l'historique complet — la campagne de chaque intervention est résolue automatiquement (même logique que le Bilan et la Fertilisation). Le choix d'une campagne précédente est conservé le temps de la session, y compris après une sauvegarde.</p>
+
+            <h3>✂️ Distinction des sous-parcelles <em>(nouveauté v15.0)</em></h3>
+            <p>Quand une parcelle est scindée en plusieurs cultures (voir <a href="#sous-parcelles">Sous-parcelles</a>), chaque sous-parcelle obtient sa propre carte dans le Carnet plutôt qu'un historique mélangé, avec son nom affiché dans l'en-tête. Les interventions liées à une sous-parcelle portent également un badge <span style="color:#7c3aed;">✂️</span> individuel.</p>
+        </section>
+
+        <section id="gestion">
+            <h2>Gestion Parcelles et Exploitation</h2>
+
+            <h3>Onglet Parcelles</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Champ</th>
+                        <th>Description et rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Identifiant export</strong></td>
+                        <td>Code court (ex: PAR001) servant de passerelle avec la périmètre virtuel Traccar.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Surface cultivée (ha)</strong></td>
+                        <td>Valeur pivot servant de référence pour les pré-remplissages automatiques, le registre phytosanitaire (XML) et l'IFT.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Statut</strong></td>
+                        <td>Permet de spécifier l'état de l'assolement (En culture, Jachère, etc.).</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="info-box">
+                <p>Note : La surface saisie manuellement au sein d'une intervention reste prioritaire sur la surface cadastrale parcelles pour tous les calculs de l'analytique.</p>
+            </div>
+
+            <h3>Onglet Exploitation</h3>
+            <p>Renseignez ici les coordonnées administratives requises par les documents officiels :</p>
+            <ul>
+                <li>SIRET et Raison sociale de la structure</li>
+                <li>Numéro de Certiphyto de l'exploitant/opérateur</li>
+                <li>Descriptif du matériel roulant</li>
+                <li>Numéros de contrôle réglementaires</li>
+            </ul>
+
+            <h3>Catalogue Produits</h3>
+            <p>Permet d'ajouter ou modifier vos intrants et fournitures :</p>
+            <ul>
+                <li><strong>Phytosanitaire :</strong> Renseigner obligatoirement le numéro AMM, la dose homologuée, le Délai Avant Récolte (DAR) et le stade BBCH cible.</li>
+                <li><strong>Engrais :</strong> Saisir précisément les teneurs pondérales en <strong>Azote (N) / Phosphore (P₂O₅) / Potasse (K₂O) (%)</strong>. Ces chiffres débloquent les calculs automatiques d'unités du cahier de fertilisation.</li>
+                <li><strong>Semences :</strong> Indiquer la dose conseillée pour les semis. Pour le maïs, les besoins "semis→floraison" et "semis→maturité" (en °C.jours, base 6-30) activent le suivi phénologique de la <a href="#synthese">Synthèse de campagne</a> pour cette variété.</li>
+            </ul>
+
+            <h3>📦 Stock produit <em>(nouveauté v15.0)</em></h3>
+            <p>Deux champs optionnels sur chaque produit : <strong>stock restant</strong> et <strong>seuil d'alerte</strong>. Dès que le stock passe sous le seuil, un badge d'alerte apparaît sur la fiche produit, et le compteur "Produit(s) en stock faible" du bloc "📌 Aujourd'hui" (dashboard principal) le signale, avec le détail par produit.</p>
+
+            <h3>🔄 Nouvelle campagne <em>(nouveauté v15.0)</em></h3>
+            <p>Bloc dédié dans "Gérer parcelles" : remet le statut de <strong>toutes</strong> les parcelles à "⏳ En attente" pour démarrer une nouvelle saison, sans toucher aux identifiants, surfaces, ni à l'historique des interventions passées (toujours consultable dans le Carnet). Action protégée par une double confirmation (case à cocher + saisie du texte de confirmation), vu son caractère irréversible sur les statuts.</p>
+        </section>
+
+        <section id="chantier">
+            <h2>🗺️ Carte de Chantier (RTK)</h2>
+            <p>Accessible via l'icône 🚜 de la barre d'actions, ou directement sur <code>/chantier</code>. Cette page reconstruit, à partir des positions GPS brutes remontées par Traccar, la surface réellement travaillée par chaque véhicule — avec la largeur exacte de l'outil, et non une simple trace GPS filiforme.</p>
+
+            <h3>Prise en main</h3>
+            <ol>
+                <li>Choisissez une <strong>date</strong> (flèches ◀▶ pour naviguer jour par jour, ou bouton 📅 pour revenir à aujourd'hui).</li>
+                <li>Sélectionnez un ou plusieurs <strong>véhicules</strong> dans le menu déroulant (recherche intégrée, boutons Tout sélectionner/désélectionner).</li>
+                <li>Cliquez sur <strong>🔍 Charger</strong>. Les corridors travaillés, la couverture des parcelles et les alertes s'affichent automatiquement.</li>
+            </ol>
+
+            <h3>Fond de carte</h3>
+            <p>Trois fonds sont disponibles via les boutons segmentés : 🛰️ Satellite, 🌿 NDVI et 🗺️ Plan (OpenStreetMap).</p>
+            <div class="info-box">
+                <p>🌿 <strong>NDVI Sentinel-2 :</strong> affiche l'indice de végétation coloré (rouge = sol nu/stress, vert = végétation dense), calculé côté serveur à partir des bandes Sentinel-2. Nécessite un compte gratuit <strong>Copernicus Data Space Ecosystem</strong> (recommandé) ou <strong>Sentinel Hub classique</strong> : cliquez sur l'icône ⚙️ à côté du sélecteur de fond de carte pour saisir vos identifiants (Client ID / Client Secret), testés et enregistrés automatiquement. Un sélecteur de date avec navigation ◀◀/▶▶ (pas de 14 jours) permet de consulter l'historique NDVI à une date passée plutôt que seulement l'image la plus récente.</p>
+            </div>
+
+            <h3>📊 Historique NDVI par parcelle <em>(nouveauté v15.3)</em></h3>
+            <p>Contrairement au fond de carte NDVI (une image à consulter visuellement), l'onglet <strong>📈 Analyses</strong> permet de transformer le NDVI en une vraie donnée numérique suivie dans le temps. Sur chaque carte de couverture de parcelle, un bloc "📊 NDVI" propose :</p>
+            <ul>
+                <li><strong>Bouton "📸 Capturer"</strong> : calcule le NDVI moyen actuel de la parcelle (moyenne sur tout le contour, via l'API Statistics de Sentinel Hub/Copernicus — pas juste une lecture visuelle) et l'ajoute à l'historique. Capture déclenchée manuellement, sur une image bien dégagée à l'écran, plutôt qu'automatiquement en tâche de fond (évite de capturer une image trop nuageuse sans le savoir).</li>
+                <li><strong>Sparkline</strong> (petite courbe) qui apparaît automatiquement dès qu'il y a au moins un point, avec la date et la valeur au survol de chaque point.</li>
+                <li>Si la parcelle a des <a href="#sous-parcelles">sous-parcelles</a>, un bloc NDVI <strong>distinct</strong> apparaît pour chacune, avec sa propre capture et son propre historique — un contour de sous-parcelle donne un NDVI moyen bien plus représentatif de sa culture que celui de toute la parcelle quand elle est scindée.</li>
+                <li>La sparkline superpose aussi, en traits verticaux violets, les <strong>stades phénologiques déjà atteints</strong> (semis, floraison...) quand la parcelle/sous-parcelle est suivie en phénologie — pratique pour repérer si une baisse de NDVI correspond à une sénescence normale de fin de cycle ou à un décrochage suspect en pleine croissance.</li>
+            </ul>
+            <p>Recherche automatiquement jusqu'à 10 jours en arrière la dernière image exploitable si le jour exact est trop nuageux, et affiche la date réelle de l'image utilisée plutôt que la date demandée.</p>
+
+            <h3>Couches affichables</h3>
+            <table>
+                <thead><tr><th>Couche</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Corridors travaillés</strong></td><td>Surface réellement couverte par l'outil (couleur par véhicule), avec le nom de l'intervention déduit de l'outil affiché au clic sur un passage.</td></tr>
+                    <tr><td><strong>Trace GPS (actif)</strong></td><td>Trajet parcouru pendant que l'outil est engagé.</td></tr>
+                    <tr><td><strong>Déplacements</strong></td><td>Trajets effectués outil relevé (transport entre parcelles, demi-tours, déplacements à vide), distincts de la trace active.</td></tr>
+                    <tr><td><strong>Parcelles</strong></td><td>Périmètres virtuels Traccar superposés à la carte.</td></tr>
+                    <tr><td><strong>Alertes vitesse</strong></td><td>Marqueurs rouges aux points où le véhicule travaillait à une vitesse anormalement élevée.</td></tr>
+                </tbody>
+            </table>
+
+            <h3>⚠️ Alertes automatiques</h3>
+            <p>Une bannière apparaît en haut du panneau Stats dès qu'une anomalie est détectée :</p>
+            <ul>
+                <li><strong>Vitesse anormale pendant le travail</strong> — au-delà du seuil configuré (15 km/h par défaut), signe probable d'une mauvaise application/dose. Marqueurs rouges sur la carte.</li>
+                <li><strong>Arrêt prolongé, outil engagé</strong> <em>(nouveauté v14.2)</em> — le véhicule reste quasi immobile (moins de 1 km/h) pendant plus de 5 minutes (seuil configurable) alors que l'outil est actif : bourrage, panne, ou oubli de relever l'outil pendant une pause. Marqueurs carrés orange sur la carte.</li>
+                <li><strong>Couverture de parcelle insuffisante</strong> — en dessous du seuil configuré (85% par défaut), voir ci-dessous.</li>
+            </ul>
+            <p>Les trois seuils sont modifiables dans <code>config.json</code>, section <code>alerts</code> (voir <a href="#maintenance">Notes techniques</a>).</p>
+
+            <h3>📊 Couverture des parcelles travaillées</h3>
+            <p>Dès qu'un chantier est chargé, l'application détecte automatiquement quelles parcelles ont été travaillées (test géométrique : au moins un point d'un passage à l'intérieur de la géofence), puis affiche pour chacune : le taux de couverture (%), la surface totale, la surface non couverte, et matérialise les zones manquantes en rouge sur la carte.</p>
+            <p>Cette analyse est disponible dans l'onglet <strong>📈 Analyses</strong> du panneau latéral (nouvelle organisation en onglets depuis la v14.2, plus lisible que l'ancien panneau unique) :</p>
+            <ul>
+                <li><strong>Mode journalier</strong> (par défaut) : couverture du seul jour chargé.</li>
+                <li><strong>Mode cumulé</strong> <em>(nouveauté v14.2)</em> — cochez "Cumuler sur une période" pour vérifier qu'une parcelle a été intégralement couverte sur plusieurs jours, voire toute une campagne, plutôt que sur une seule journée.</li>
+            </ul>
+
+            <h3>🔴 Mode suivi live</h3>
+            <p>Le bouton <strong>🔴 Live</strong> de la barre d'outils recharge automatiquement le chantier toutes les 30 secondes — utile pour suivre un chantier en cours. Disponible uniquement pour la date du jour, avec au moins un véhicule sélectionné.</p>
+
+            <h3>🔀 Comparaison de deux dates</h3>
+            <p>Le bouton <strong>🔀 Comparer 2 dates</strong> ouvre deux cartes côte à côte, chacune avec sa propre date, affichant les passages travaillés des mêmes véhicules sélectionnés et un résumé de stats (surface/distance/passages) par côté — pratique pour comparer un avant/après ou deux jours d'une même parcelle.</p>
+
+            <h3>📈 Résumé de période (Excel)</h3>
+            <p>Toujours dans l'onglet Analyses : génère un classeur Excel sur une période (boutons rapides "7 derniers jours / 30 derniers jours / Ce mois-ci" ou dates libres) avec deux feuilles : le détail journalier par véhicule, et un résumé agrégé (jours actifs, surface totale, distance totale, ha/jour actif, vitesse moyenne pondérée).</p>
+
+            <h3>📤 Exports</h3>
+            <table>
+                <thead><tr><th>Format</th><th>Contenu</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>📄 PDF</strong></td><td>Synthèse de chantier : schéma cartographique reconstruit (sans dépendance à une tuile internet), légende véhicules avec intervention déduite, stats globales et par véhicule, couverture par parcelle détectée. Le titre du PDF inclut automatiquement le nom de l'intervention et la date au format JJ-MM-AAAA.</td></tr>
+                    <tr><td><strong>🗺️ GeoJSON</strong></td><td>Polygones des passages avec attributs (véhicule, date, outil, intervention, largeur, surface, distance) — format standard lisible par QGIS.</td></tr>
+                    <tr><td><strong>🗂️ Shapefile</strong></td><td>Format ESRI classique (.shp/.shx/.dbf/.prj zippés), le plus répandu en agriculture de précision.</td></tr>
+                </tbody>
+            </table>
+            <p>Les formats GeoJSON, Shapefile et KML sont regroupés sous un seul bouton <strong>📤 Export</strong> avec choix du format ; le PDF reste séparé car il s'agit d'un rapport de synthèse plutôt que d'un export de données brutes.</p>
+
+            <h3>✍️ Saisie rapide d'intervention <em>(nouveauté v15.0)</em></h3>
+            <p>Depuis l'onglet <strong>📈 Analyses</strong>, chaque carte de parcelle affiche un bouton <strong>"✍️ Saisir"</strong> qui ouvre une fenêtre pré-remplie automatiquement à partir de ce qui a été détecté sur la carte :</p>
+            <ul>
+                <li><strong>Véhicule</strong> : liste des véhicules ayant effectivement travaillé cette parcelle ce jour-là</li>
+                <li><strong>Type d'intervention</strong> : déduit automatiquement de l'outil détecté</li>
+                <li><strong>Surface</strong> : la surface réellement couverte par le GPS (ou celle de la sous-parcelle si l'intervention y est rattachée, voir <a href="#sous-parcelles">Sous-parcelles</a>)</li>
+            </ul>
+            <p>Un avertissement apparaît si une intervention existe déjà pour ce couple véhicule/parcelle/date (mise à jour plutôt que doublon). Pour ajouter des produits phyto/engrais et le détail météo, on utilise ensuite "✏️ Modifier" depuis le Carnet.</p>
+
+            <h3>📍 Points d'observation terrain <em>(nouveauté v15.0)</em></h3>
+            <p>Bouton <strong>"📍 Ajouter un point"</strong> dans la barre d'outils : un clic sur la carte ouvre une fenêtre pour noter une observation géolocalisée (adventices, maladie/ravageur, panne, zone humide, autre), avec une note libre et une date. Les points sont <strong>indépendants de la date chargée</strong> — ce sont des notes de terrain durables, toujours visibles quelle que soit la journée consultée sur la carte.</p>
+            <p>Dans l'onglet Couches, un champ de recherche filtre les points par catégorie, texte ou date, avec une liste de résultats cliquables pour recentrer la carte dessus.</p>
+
+            <h3>🌾 Modèles d'intervention <em>(nouveauté v15.0)</em></h3>
+            <p>Dans les formulaires de saisie (GPS et manuelle), un modèle réutilisable peut être chargé ou enregistré : <strong>"📋 Charger un modèle"</strong> applique instantanément un type d'intervention et une liste de produits/doses déjà configurée (ex: "Fongicide standard maïs"), évitant de ressaisir les mêmes produits à chaque campagne. Un modèle créé depuis la saisie manuelle est aussi disponible depuis la saisie GPS, et inversement.</p>
+        </section>
+
+        <section id="sous-parcelles">
+            <h2>✂️ Sous-parcelles <em>(nouveauté v15.0)</em></h2>
+            <p>Une même parcelle Traccar peut être scindée, pour une campagne donnée, en plusieurs zones cultivées différemment (ex: la moitié en maïs, l'autre en tournesol) — sans jamais toucher à la géofence Traccar elle-même, qui reste la seule référence pour l'historique, la carte de chantier et le calcul de couverture GPS existants.</p>
+
+            <h3>Créer une sous-parcelle</h3>
+            <p>Sur la carte de chantier, bouton <strong>"✂️ Sous-parcelles"</strong> → choisir la parcelle concernée → <strong>"✏️ Dessiner"</strong> pour tracer le contour à la main (clic par clic, 3 points minimum, puis "✓ Terminer"), ou <strong>"📂 Importer un fichier"</strong> pour un contour déjà existant. Un formulaire demande ensuite le nom, la culture et le statut.</p>
+            <div class="info-box">
+                <p>📅 <strong>La campagne se désigne toujours par son année de récolte</strong>, jamais par une plage à cheval sur deux années civiles : un blé semé en octobre 2025 et récolté en juillet 2026 appartient à la <strong>campagne 2026</strong>, exactement comme un maïs semé en mai 2026. Le champ propose une valeur par défaut cohérente selon la date affichée (à partir d'août, l'année suivante est proposée), mais reste modifiable à la main.</p>
+            </div>
+
+            <h3>📂 Import KML / GeoJSON <em>(nouveauté v15.3)</em></h3>
+            <p>Bouton <strong>"📂 Importer un fichier"</strong> dans la fenêtre "✂️ Sous-parcelles" : sélectionnez un fichier <code>.kml</code> ou <code>.geojson</code>/<code>.json</code> exporté depuis QGIS, Google Earth, ou votre logiciel de guidage — le format est détecté automatiquement.</p>
+            <ul>
+                <li><strong>GeoJSON :</strong> <code>FeatureCollection</code>, <code>Feature</code> isolée, <code>Polygon</code> et <code>MultiPolygon</code> (chaque sous-polygone d'un MultiPolygon devient une sous-parcelle distincte). Le nom et la culture sont repris automatiquement si le fichier contient des propriétés <code>nom</code>/<code>name</code> ou <code>culture</code>.</li>
+                <li><strong>KML :</strong> chaque <code>&lt;Placemark&gt;</code> devient une sous-parcelle, avec son nom repris s'il existe.</li>
+            </ul>
+            <p>Une fenêtre d'aperçu liste tous les contours détectés (avec leur surface calculée automatiquement) : décochez ceux à ne pas importer, ajustez le nom ou la culture si besoin, choisissez la parcelle de rattachement et la campagne une seule fois pour tout le lot, puis validez.</p>
+
+            <h3>Visualisation et modification du contour</h3>
+            <p>Les sous-parcelles s'affichent en permanence sur la carte (couche togglable "Sous-parcelles" dans l'onglet Couches), colorées selon leur statut, avec une infobulle au survol. Pour ajuster un contour déjà créé : ouvrir sa fiche → <strong>"✏️ Modifier le contour sur la carte"</strong> → chaque sommet devient déplaçable à la souris, le polygone se redessine en direct. Double-clic sur un sommet pour le supprimer (3 points minimum conservés). "💾 Enregistrer" recalcule la surface automatiquement.</p>
+
+            <div class="info-box">
+                <p>🌽 <strong>La phénologie (maïs et céréales) distingue également les sous-parcelles</strong> : deux sous-parcelles semées avec la même variété à des dates différentes sont désormais suivies séparément, chacune avec sa propre date de semis et ses propres stades. Le calcul météo utilise en priorité les coordonnées exactes de la sous-parcelle plutôt que le centre de toute la parcelle.</p>
+            </div>
+
+            <h3>Utilisation dans la saisie d'intervention</h3>
+            <p>Dès qu'une parcelle a des sous-parcelles définies, un sélecteur <strong>"✂️ Sous-parcelle"</strong> apparaît dans les formulaires de saisie (GPS, manuelle, saisie rapide sur la carte) — invisible sinon, pour ne rien changer aux parcelles non scindées. Choisir une sous-parcelle :</p>
+            <ul>
+                <li>Pré-remplit la surface avec celle de la sous-parcelle (pas la surface cadastrale de toute la parcelle)</li>
+                <li>Rattache l'intervention à cette sous-parcelle pour tous les calculs qui en dépendent (voir ci-dessous)</li>
+            </ul>
+
+            <h3>Statut et avancement automatiques</h3>
+            <p>Comme pour une parcelle classique, le statut d'une sous-parcelle se recalcule automatiquement à partir de sa dernière intervention <strong>qui lui est spécifiquement rattachée</strong> (pas celles de la parcelle entière). La <a href="#synthese">Synthèse de campagne</a> affiche alors une carte Kanban distincte par sous-parcelle plutôt qu'une seule carte ambiguë pour toute la parcelle.</p>
+
+            <h3>Impact sur les calculs (Bilan, Fertilisation, IFT)</h3>
+            <p>Une intervention rattachée à une sous-parcelle voit sa culture et sa campagne résolues <strong>directement depuis la sous-parcelle elle-même</strong> (déjà connues sans ambiguïté), plutôt que par proximité de date avec un semis quelconque sur toute la géofence. Ça évite qu'un apport d'engrais sur une sous-parcelle "maïs" ne se retrouve mélangé, à tort, avec les données d'une sous-parcelle "tournesol" voisine simplement parce que leurs dates sont proches. Le nom de la sous-parcelle apparaît systématiquement dans le Bilan, la Fertilisation, le Carnet et le <a href="#tracabilite">Cahier de traçabilité</a> pour bien distinguer chaque culture.</p>
+        </section>
+
+        <section id="synthese">
+            <h2>📊 Synthèse de campagne</h2>
+            <p>Page dédiée (icône 📊 dans la barre d'action, ou <code>/synthese</code>), pensée comme le tableau de bord du matin : "où en suis-je sur l'ensemble de l'exploitation ?", sans avoir à recouper plusieurs écrans.</p>
+
+            <h3>Météo</h3>
+            <p>Conditions actuelles (température, vent, pluie) à la position du premier véhicule actif, complétées d'une <strong>prévision 3 jours</strong> (icône, températures min/max, vent, pluie) — utile pour anticiper une fenêtre de traitement favorable.</p>
+
+            <h3>Indicateurs clés</h3>
+            <ul>
+                <li><strong>Parcelles suivies</strong> : nombre total</li>
+                <li><strong>Avancement moyen (pondéré surface)</strong> : moyenne du statut de chaque parcelle (⏳ En attente 10% → 🚜 Préparé 30% → 🌱 Semé 55% → 💧 Traité 80% → 🌾 Récolté 100%), <strong>pondérée par la surface</strong> de chaque parcelle — une parcelle de 50 ha pèse plus dans la moyenne qu'une de 2 ha.</li>
+                <li><strong>Alertes actives</strong> : total combiné des alertes DAR, vitesse anormale et arrêts prolongés (ces deux dernières recalculées pour la journée en cours uniquement, sans cumul historique, pour rester rapide même avec beaucoup de véhicules)</li>
+            </ul>
+
+            <h3>Vue Kanban / Liste</h3>
+            <p>Les parcelles s'affichent par défaut en colonnes par statut (vue Kanban), ou en liste triable (recherche, filtre par statut, tri par avancement ou par ancienneté d'intervention). Une parcelle avec une alerte active affiche un badge ⚠️ directement sur sa carte. Chaque parcelle est cliquable et ouvre la carte de chantier sur sa dernière intervention connue.</p>
+
+            <h3>🌽🌾 Phénologie (maïs et céréales à paille)</h3>
+            <p>Deux frises distinctes apparaissent automatiquement dès qu'au moins une parcelle est concernée :</p>
+            <ul>
+                <li><strong>Maïs</strong> : 11 stades (🌰 Semis → 🌱 Émergence → 🌿 3 feuilles → 🍃 5-6 feuilles → 🎋 10-12 feuilles → 🌾 Floraison mâle → 🎀 Floraison femelle → 🥛 Grain laiteux → 💎 Lentille vitreuse → ⚫ Maturité → 🌽 Récolte), calculés en cumul de degrés-jours <strong>base 6°C, plafond 30°C</strong> (méthode française standard) depuis le semis. Ne suit que les parcelles semées avec une variété dont les besoins semis→floraison / semis→maturité sont renseignés dans le catalogue produits (fiche semence).</li>
+                <li><strong>Céréales à paille</strong> (blé, orge, avoine, triticale) : 10 stades communs, calculés en base 0°C sans plafond, sans saisie par variété (détection via le champ "Culture" de la semence). Seul le stade "Épi 1 cm" (~1000°C.j) est solidement sourcé (Arvalis) ; les autres sont des ordres de grandeur usuels.</li>
+            </ul>
+            <p>Chaque stade affiche sa date : <strong>réelle</strong> si déjà atteint (retrouvée dans l'historique météo), ou <strong>estimée</strong> (préfixée <code>~</code>) par extrapolation du rythme récent d'accumulation pour les stades à venir — une estimation, pas une prévision météo fiable.</p>
+
+            <h3>🔍 Anomalies détectées</h3>
+            <p>Section repliable qui signale automatiquement des incohérences de saisie à vérifier : chronologie suspecte (semis moins de 60 jours après une récolte sur la même parcelle), doublon probable (deux interventions identiques à moins de 2h d'écart, même véhicule), surface très différente de la surface cadastrale. Ce sont des signaux, pas des blocages.</p>
+
+            <h3>📄 Export PDF</h3>
+            <p>Bouton "📄 Export PDF" : vue d'ensemble, tableau complet des parcelles (statut, avancement, surface, dernière intervention), tableaux de phénologie (maïs et céréales, stade actuel + prochain stade daté) et liste des anomalies détectées.</p>
+
+            <h3>🔗 Lien de partage en lecture seule</h3>
+            <p>Depuis "⚙️ État système" (dashboard principal), un lien de partage peut être généré (libellé + durée de validité 1 à 90 jours) pour montrer l'état de la campagne à un tiers (conseiller, banquier...) sans lui donner accès au reste du compte. La vue partagée masque l'export PDF et les anomalies (données internes), et ne permet pas de naviguer vers la carte de chantier (réservée aux comptes connectés). Le lien est révocable à tout moment.</p>
+
+            <h3>🔴 Mode Live</h3>
+            <p>Rafraîchit la page automatiquement toutes les 60 secondes — pratique pour une page laissée ouverte en fond toute la journée. Le choix de vue (Kanban/Liste) et les filtres sont conservés d'un rafraîchissement à l'autre.</p>
+        </section>
+
+        <section id="tracabilite">
+            <h2>📔 Cahier de traçabilité</h2>
+            <p>Export PDF simple et lisible, accessible depuis l'en-tête du Carnet (bouton "📔 Cahier de traçabilité"), ou directement sur <code>/export_cahier_tracabilite</code>. Contrairement au registre phyto réglementaire (XML/Excel, qui exclut les engrais), ce cahier couvre <strong>tous les types d'intervention et tous les produits</strong> — c'est un carnet de suivi général, pas un document de substitution réglementaire.</p>
+            <p>Contenu : page de garde (exploitation, période, date de génération), puis une section par parcelle — et par sous-parcelle quand la parcelle est scindée (voir <a href="#sous-parcelles">Sous-parcelles</a>) — avec chaque intervention présentée en fiche lisible (date, type, véhicule/outil, surface, produits avec dose et unité).</p>
+        </section>
+
+        <section id="traccar-import">
+            <h2>🛰️ Import Traccar</h2>
+            <p>Accessible via l'icône 🛰️ de la barre d'actions, ou directement sur <code>/traccar_import</code>. Cet assistant permet de créer/lier en masse des véhicules et des parcelles sur votre serveur Traccar, sans passer par son interface d'administration native.</p>
+
+            <h3>Connexion</h3>
+            <ul>
+                <li>L'URL et les identifiants Traccar déjà configurés dans le dashboard (voir <a href="#configuration">Configuration</a>) sont <strong>pré-remplis automatiquement</strong> à l'ouverture de la page.</li>
+                <li>Deux modes d'authentification : <strong>Token</strong> ou <strong>Email + mot de passe</strong>.</li>
+                <li>Bouton <strong>Tester la connexion</strong> pour vérifier la liaison avant de lancer un import.</li>
+            </ul>
+            <div class="info-box">
+                <p>🔧 <strong>Note technique :</strong> les requêtes vers Traccar transitent par un proxy côté serveur du dashboard plutôt que directement depuis le navigateur, pour contourner les restrictions CORS que la plupart des installations Traccar appliquent par défaut.</p>
+            </div>
+
+            <h3>Import de véhicules</h3>
+            <ul>
+                <li><strong>Saisie manuelle :</strong> ajoutez des lignes nom + plaque directement dans le formulaire.</li>
+                <li><strong>Fichier CSV :</strong> colonnes attendues <code>name</code>/<code>nom</code> et <code>plate</code>/<code>plaque</code> (virgule ou point-virgule accepté). Un aperçu avec case à cocher par véhicule s'affiche avant l'import <em>(nouveauté v14.2)</em> — décochez les lignes à exclure.</li>
+            </ul>
+
+            <h3>Import de parcelles</h3>
+            <ul>
+                <li>Glissez un fichier <strong>GeoJSON ou KML</strong> exporté depuis votre boîtier de guidage (John Deere, Ag Leader...) ou un logiciel SIG.</li>
+                <li>Un aperçu affiche chaque polygone détecté avec case à cocher. Les sous-sections auto-générées par certains boîtiers (motifs du type "Section_12") sont <strong>décochées automatiquement</strong>, l'utilisateur choisit de les inclure ou non.</li>
+            </ul>
+
+            <h3>⚠️ Détection de conflits <em>(nouveauté v14.2)</em></h3>
+            <p>Dès que la connexion est établie, la page compare en arrière-plan les véhicules et parcelles chargés à ce qui existe déjà sur le serveur :</p>
+            <ul>
+                <li><strong>Véhicule :</strong> badge rouge "⚠️ conflit" si un véhicule du même nom existe déjà avec une <strong>plaque différente</strong> — signe possible d'une confusion à vérifier avant import.</li>
+                <li><strong>Parcelle :</strong> badge informatif "ℹ️ déjà existante" si le nom existe déjà côté serveur — elle sera réutilisée, aucun doublon n'est créé, c'est purement informatif.</li>
+            </ul>
+
+            <h3>Liaisons véhicule ↔ parcelle <em>(interactive depuis la v15.4)</em></h3>
+            <p>La case <strong>"Assurer que tous les véhicules sont liés à toutes les parcelles"</strong> complète automatiquement la matrice complète véhicules × parcelles après l'import (dans les deux sens), peu importe ce qui a été ajouté dans la session en cours. Le bouton <strong>🔗 Voir les liaisons actuelles</strong> affiche un tableau croisé de l'état réel sur le serveur.</p>
+            <p><em>(nouveauté v15.4)</em> Ce tableau est désormais interactif : chaque cellule est cliquable pour lier (●) ou délier (✕) un véhicule existant et une parcelle existante, sans repasser par un import complet. La modification est appliquée immédiatement sur le serveur Traccar (création ou suppression de la permission correspondante), avec confirmation visuelle et journalisée dans le panneau de log en bas de page.</p>
+
+            <h3>Gestion des parcelles</h3>
+            <p>Le bouton <strong>🗑️ Gérer les parcelles</strong> liste toutes les parcelles présentes sur le serveur Traccar avec possibilité de suppression directe (confirmation demandée, action irréversible).</p>
+
+            <h3>🕘 Historique des imports <em>(nouveauté v14.2)</em></h3>
+            <p>Chaque import termine par un enregistrement automatique côté serveur (date, URL, nombre de créations/réutilisations/erreurs). Le bouton <strong>🕘 Historique des imports</strong> affiche les 30 derniers imports — persistant côté serveur, donc consultable même en changeant de poste.</p>
+
+            <h3>🌾 Importer des parcelles depuis le RPG (IGN) <em>(nouveauté v15.5)</em></h3>
+            <p>Le bouton <strong>🌾 Importer depuis le RPG (IGN)</strong> ouvre une carte interactive permettant de créer des géofences Traccar directement à partir du <strong>Registre Parcellaire Graphique</strong> (parcelles PAC déclarées, IGN/ASP — Licence Ouverte, gratuit, sans clé), sans avoir à redessiner un contour à la main.</p>
+            <ul>
+                <li><strong>Recherche d'adresse</strong> pour se positionner rapidement sur la carte (service de géocodage de la Géoplateforme IGN).</li>
+                <li>Deux niveaux disponibles : <strong>Parcelles</strong> (une culture homogène, redessinée chaque campagne selon ce qui est semé — millésime au choix, à partir de 2015) ou <strong>Îlots</strong> (contour stable dans le temps, délimité par des éléments physiques — route, chemin, haie —, ne change généralement pas d'une campagne à l'autre, plus adapté à une géofence qui n'a pas vocation à être redessinée chaque année).</li>
+                <li>Après zoom sur le secteur voulu, le bouton <strong>🌾 Afficher sur la carte</strong> dessine toutes les entités (parcelles ou îlots) de la zone visible.</li>
+                <li><strong>Clic direct sur une parcelle/îlot affiché</strong> : une fenêtre s'ouvre avec sa surface, son code culture (pour les parcelles) et son identifiant ; il suffit de saisir un nom et de cliquer sur <strong>➕ Créer la géofence</strong> pour l'ajouter au serveur Traccar.</li>
+            </ul>
+            <div class="info-box">
+                <p>⚠️ Le niveau <strong>Îlots</strong> n'est disponible que pour la dernière édition publiée du RPG (pas de sélection par millésime pour ce niveau) — les données proviennent d'un flux différent de celui des parcelles.</p>
+            </div>
+        </section>
+
+        <section id="ephy">
+            <h2>🌿 Intégration e-phy (ANSES)</h2>
+            <p>Le dashboard est connecté à la base officielle <strong>e-phy de l'ANSES</strong> — le référentiel national des produits phytosanitaires autorisés en France. Les données sont issues du portail <a href="https://www.data.gouv.fr" target="_blank">data.gouv.fr</a> (Licence Ouverte), mises à jour chaque semaine.</p>
+
+            <h3>Synchronisation</h3>
+            <ul>
+                <li><strong>Automatique :</strong> Au démarrage du serveur, si la base locale a plus de 7 jours, une synchronisation est lancée en arrière-plan (~2 minutes, ~4 Mo téléchargés).</li>
+                <li><strong>Manuelle :</strong> Via <strong>⚙️ État système</strong> → bouton <strong>🔄 Mettre à jour</strong> ou <strong>📥 Télécharger</strong>.</li>
+                <li>La base locale contient environ 5 000 produits réellement autorisés (noms commerciaux principaux et secondaires confondus) et ~19 000 usages. La recherche est instantanée, même sans connexion internet.</li>
+                <li><em>(correctif v15.4)</em> Les produits vendus sous plusieurs noms commerciaux pour un même numéro AMM (ex : un produit renommé au fil du temps) remontent désormais tous dans la recherche, y compris les anciens noms — auparavant seul le nom principal était indexé.</li>
+            </ul>
+
+            <h3>Utilisation dans le Catalogue produits</h3>
+            <ol>
+                <li>Ouvrir <strong>⚙️ Catalogue produits</strong></li>
+                <li>Cliquer sur le bouton <strong>🌿 e-phy</strong></li>
+                <li>Taper le nom du produit (ex : Roundup, Amistar, Elumis…)</li>
+                <li>Sélectionner le produit dans les résultats</li>
+                <li>Le formulaire se pré-remplit automatiquement :</li>
+            </ol>
+            <table>
+                <thead><tr><th>Champ</th><th>Source e-phy</th></tr></thead>
+                <tbody>
+                    <tr><td>Nom commercial</td><td>✅ Automatique</td></tr>
+                    <tr><td>Numéro AMM</td><td>✅ Automatique</td></tr>
+                    <tr><td>Fonction (herbicide, fongicide…)</td><td>✅ Automatique</td></tr>
+                    <tr><td>Dose homologuée + unité</td><td>✅ Automatique</td></tr>
+                    <tr><td>DAR (Délai Avant Récolte, en jours)</td><td>✅ Automatique (quand disponible)</td></tr>
+                    <tr><td>DRE (Délai de Rentrée, en heures)</td><td>✅ Automatique</td></tr>
+                    <tr><td>BBCH min/max (stades culturaux)</td><td>✅ Automatique</td></tr>
+                    <tr><td>Culture et cible de traitement</td><td>✅ Automatique</td></tr>
+                    <tr><td>Dose conseillée</td><td>❌ À saisir manuellement</td></tr>
+                </tbody>
+            </table>
+            <p>La recherche est insensible aux accents : taper <code>Karate</code> trouve <code>KARATE K</code>.</p>
+            <div class="info-box">
+                <p>💡 Le produit est d'abord enregistré dans votre catalogue local, puis disponible dans toutes les interventions. Vous ne voyez que vos produits — pas les 15 000 de la base e-phy.</p>
+            </div>
+        </section>
+
+        <section id="alertes">
+            <h2>⚠️ Alertes Réglementaires</h2>
+            <p>Le dashboard intègre trois alertes automatiques pour vous aider à rester en conformité réglementaire.</p>
+
+            <h3>1. Dose vs Dose Homologuée (temps réel)</h3>
+            <p>Dans la saisie d'une intervention, le champ dose change de couleur en fonction de la dose homologuée e-phy :</p>
+            <table>
+                <thead><tr><th>Couleur</th><th>Signification</th></tr></thead>
+                <tbody>
+                    <tr><td>🟢 Vert</td><td>Dose correcte (≤ 90% de la dose max)</td></tr>
+                    <tr><td>🟡 Orange</td><td>Dose élevée (entre 90% et 100% de la dose max)</td></tr>
+                    <tr><td>🔴 Rouge</td><td>Dépassement de la dose homologuée</td></tr>
+                </tbody>
+            </table>
+            <p>Un tooltip au survol indique le pourcentage exact et la dose maximale autorisée.</p>
+
+            <h3>2. AMM Expirée</h3>
+            <p>Au chargement du dashboard, le catalogue est croisé avec la base e-phy :</p>
+            <ul>
+                <li>Un <strong>badge rouge</strong> apparaît sur le bouton Catalogue si des produits ont une AMM retirée.</li>
+                <li>Un <strong>toast d'avertissement</strong> indique le nombre de produits concernés.</li>
+            </ul>
+            <p>Cela permet de détecter si un produit que vous utilisez a été retiré du marché depuis votre dernière utilisation.</p>
+
+            <h3>3. DAR (Délai Avant Récolte)</h3>
+            <p>Après l'enregistrement d'une intervention phytosanitaire, un toast affiche la date limite de récolte pour chaque produit appliqué :</p>
+            <p><em>Exemple : "DAR : Roundup : DAR 7j (récolte après le 11/07/2026)"</em></p>
+            <p>Cette information est calculée automatiquement à partir de la date de l'intervention et du DAR renseigné dans le catalogue.</p>
+        </section>
+
+        <section id="analytique">
+            <h2>📈 Module Analytique</h2>
+            <p>Outil d'audit accessible via l'icône de la barre d'actions ou directement sur <code>/analytique</code>. Il dispose de filtres dynamiques croisés (période, tracteur, outil, type de travaux, parcelle).</p>
+            
+            <h3>Organisation en 3 onglets :</h3>
+            
+            <h4>📊 Général</h4>
+            <ul>
+                <li>Graphiques d'activités par tracteur (surfaces travaillées, débits de chantier en ha/h, nombre de passages), par outil, et par type d'intervention.</li>
+                <li>Graphique d'évolution mensuelle : affiche les surfaces cumulées couplées à la courbe d'ha/h sur un axe secondaire.</li>
+                <li>Tableaux analytiques détaillés par parcelle et par couplage tracteur × outil.</li>
+                <li>Chronologie complète des interventions classée par ordre d'exécution.</li>
+                <li>Calcul automatisé du rendement en <strong>ha/h</strong> dès que le temps de travail en minutes est présent.</li>
+            </ul>
+
+            <h4>🗺️ Suivi parcellaire</h4>
+            <ul>
+                <li><strong>Carte thermique parcelles × mois :</strong> Visualisez d'un coup d'œil l'intensité du travail du sol ou des traitements par un dégradé de couleurs.</li>
+                <li><strong>Historique par parcelle :</strong> Tableau interactif cliquable affichant les détails des opérations de la parcelle.</li>
+                <li>Indicateurs temporels : calcul automatique du délai moyen, minimum et maximum en jours s'étant écoulé entre deux passages.</li>
+            </ul>
+
+            <h4>🌱 Produits & Phyto</h4>
+            <ul>
+                <li>Bilan volumétrique par produit (surface traitée, volume/quantité totale consommée, dose moyenne appliquée).</li>
+                <li><strong>Indicateur de surdosage (Ratio dose appliquée / dose homologuée) :</strong> Représentation visuelle par jauge de couleur sécuritaire (Vert ≤ 100%, Orange ≤ 120%, Rouge > 120% en cas de dépassement de la dose AMM).</li>
+                <li>Listing détaillé et traçabilité des produits épandus par parcelle.</li>
+            </ul>
+            
+            <div class="info-box">
+                <p>📄 <strong>Export PDF Analytique :</strong> Génère à la demande un rapport complet de synthèse au format paysage A4 comprenant l'intégralité des graphiques et des tableaux selon les filtres choisis au préalable.</p>
+            </div>
+        </section>
+
+        <section id="fertilisation">
+            <h2>🌿 Cahier de Fertilisation</h2>
+            <p>Accessible sur <code>/fertilisation</code>. Vous permet de piloter vos apports d'engrais à l'aide de filtres par campagne, culture ou parcelle.</p>
+            <p><strong>⚠️ Prérequis indispensable :</strong> Les fiches produits de vos engrais doivent obligatoirement comporter leurs teneurs en N, P₂O₅, K₂O (%) dans le catalogue sous peine de fausser les indicateurs.</p>
+
+            <h3>Organisation en 5 onglets :</h3>
+
+            <h4>📊 Bilan apports</h4>
+            <ul>
+                <li><strong>Indicateurs clés (KPIs) :</strong> Azote moyen efficace apporté (U/ha), phosphore moyen, potasse moyenne et indicateur de surface totale fertilisée.</li>
+                <li><strong>Graphiques décisionnels :</strong> Comparatif de l'Azote (N) par parcelle face à l'objectif fixé, diagramme en anneau de la balance N/P/K, taux de couverture des besoins et graphique du cumul d'N dans le temps.</li>
+                <li><strong>Tableau de suivi des objectifs :</strong> Progression en temps réel de vos apports d'azote par parcelle vis-vis du plan de fumure (Vert pour une conformité ≥ 90%, Orange si sous-fertilisation < 90%, Rouge si sur-fertilisation risquée > 110%).</li>
+                <li>Lignes de parcelles cliquables pour déplier instantanément le détail complet de chaque apport (date de l'épandage, produit, dose hectare, unités pures d'N, P, K générées).</li>
+            </ul>
+
+            <h4>🎯 Objectifs</h4>
+            <ul>
+                <li>Interface permettant de saisir et de moduler vos objectifs de fumure en unités (U/ha) pour l'Azote, le Phosphore (P₂O₅) et la Potasse (K₂O), et ce, <strong>par type de culture</strong>.</li>
+                <li>Les valeurs saisies sont stockées en base SQLite pour être injectées dans les calculs visuels et les exports d'édition.</li>
+            </ul>
+
+            <h4>📋 Catalogue engrais</h4>
+            <ul>
+                <li>Vue d'ensemble de la liste des engrais référencés affichant leur formule brute NPK ainsi que les unités d'N/ha qui seraient apportées selon la dose conseillée.</li>
+                <li>Formulaire d'édition de fiches intégré directement sur la page (nom de l'engrais, dose de base, unité de mesure, pourcentages N%, P%, K%).</li>
+            </ul>
+
+            <h4>🌾 Prévisionnel N (maïs) <em>(nouveauté v15.5)</em></h4>
+            <h4>🌾 Prévisionnel N (céréales) <em>(nouveauté v15.5)</em></h4>
+            <ul>
+                <li>Calcul du <strong>prévisionnel de fumure azotée</strong> selon la méthode du bilan CAU de l'arrêté référentiel régional GREN Nouvelle-Aquitaine (29 juillet 2025), conforme à la directive nitrates — maïs grain (Annexe 2.2.b) et céréales à paille : blé, orge, avoine, triticale, seigle (Annexe 2.1.b).</li>
+                <li>Pré-remplissage automatique : objectif de rendement (moyenne des 5 dernières récoltes hors valeurs extrêmes), rendement et azote déjà apportés au précédent cultural, type de sol déjà enregistré pour la parcelle.</li>
+                <li><strong>Pluviométrie cumulée calculée automatiquement</strong> (Open-Meteo) sur la période réglementaire exacte, à partir de la géolocalisation de la parcelle (centroïde déduit de la géofence Traccar, aucune saisie manuelle de coordonnées nécessaire).</li>
+                <li>Aide au choix du type de sol : noms vernaculaires locaux, texture, pH, cailloux typiques (Annexe 7 du GREN), affichés directement sous le sélecteur.</li>
+                <li>Support des sous-parcelles (une parcelle scindée en plusieurs cultures pour la campagne).</li>
+                <li>Décomposition complète du calcul affichée à l'écran (Besoins, Fournitures, Numérateur, Dose) en plus du détail terme par terme avec sa référence réglementaire exacte (tableau/annexe) — pensé comme document de traçabilité.</li>
+                <li>Export PDF par parcelle, et export PDF groupé regroupant tous les bilans (maïs + céréales) d'une campagne en un seul document, une page par parcelle.</li>
+                <li><strong>⚠️ Cet outil n'est pas labellisé COMIFER</strong> au sens de l'arrêté — sa recevabilité en cas de contrôle est à vérifier auprès de votre Chambre d'agriculture.</li>
+            </ul>
+
+            <div class="info-box">
+                <p>📄 <strong>Export PDF Fertilisation :</strong> Génère un document officiel au format portrait A4 imprimable, créant automatiquement une feuille par parcelle avec l'historique complet des apports, le cumul global NPK et l'écart visuel face à l'objectif de rendement.</p>
+            </div>
+        </section>
+
+        <section id="IFT">
+            <h2>Bilans IFT et Registre Phyto</h2>
+
+            <h3>Calcul des Bilans IFT</h3>
+            <ul>
+                <li>Sélectionnez simplement une culture ainsi qu'une campagne de travail.</li>
+                <li>Le système gère nativement le chevauchement des cultures d'hiver (ex : blé, triticale, colza) en nommant les campagnes sous la forme <code>2025-2026</code>.</li>
+                <li>Affiche les volumes d'intrants totaux, la surface cadastrale de l'îlot et l'Indicateur de Fréquence de Traitement (IFT) propre à chaque produit appliqué.</li>
+                <li>⚠️ Conformément à la réglementation, la surface exploitée comme base de calcul pour l'IFT est strictement la <strong>surface cadastrale</strong> enregistrée pour la parcelle.</li>
+            </ul>
+
+            <h3>Export Registre Phyto XML</h3>
+            <p>Génère un fichier de données structurées au format <strong>XML</strong>, répondant point par point au cahier des charges officiel du registre phytosanitaire :</p>
+            <ul>
+                <li>Identité administrative et coordonnées de l'exploitation agricole.</li>
+                <li>Historique des interventions phytosanitaires : produit, dose unitaire, surface cadastrale réglementaire (qui prévaut sur la surface calculée par le tracé GPS Traccar), relevés météo certifiés et nom de l'opérateur ayant réalisé le traitement.</li>
+            </ul>
+
+            <h3>Gestion Automatique de la Météo (API Open-Meteo)</h3>
+            <p>Le dashboard intègre l'API publique <strong>Open-Meteo</strong> (solution gratuite, open-source et ne nécessitant aucune clé d'activation API personnelle) :</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date de l'intervention saisie</th>
+                        <th>Source et type de données météo importées</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Moins de 24 heures</strong></td>
+                        <td>Importation immédiate des conditions météo en temps réel.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Plus de 24 heures</strong></td>
+                        <td>Requête automatique dans les archives météo historiques mondiales à l'heure précise où le travail a été enregistré (historique disponible jusqu'en 1940).</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><em>Note : Le serveur hébergeant l'application doit obligatoirement disposer d'un accès à internet pour interroger l'API Open-Meteo et remplir les fiches de carnet.</em></p>
+        </section>
+
+        <section id="partage-alertes">
+            <h2>📤 Partage & Alertes automatiques <em>(nouveauté v15.6)</em></h2>
+
+            <h3>Partage manuel (email / SMS / WhatsApp)</h3>
+            <p>Un bouton <strong>📤 Partager</strong> apparaît sur les points d'observation terrain, les parcelles (carte de chantier) et les fiches d'intervention (Carnet). Au clic, un petit menu propose le canal : <strong>✉️ Email</strong>, <strong>📱 SMS</strong> ou <strong>💬 WhatsApp</strong> — l'application ouverte sur l'appareil se charge de l'envoi, aucune configuration serveur n'est nécessaire pour cette partie.</p>
+            <p>Depuis la liste des points d'observation, une case à cocher par point permet de <strong>sélectionner plusieurs points</strong> et de les envoyer en un seul message groupé.</p>
+            <p>Un <strong>modèle de message</strong> (en-tête et signature) personnalisable dans <strong>⚙️ État système</strong> est automatiquement ajouté autour du contenu de chaque envoi.</p>
+
+            <h3>Alertes email automatiques (SMTP)</h3>
+            <div class="info-box">
+                <p>Contrairement au partage manuel ci-dessus, ces alertes sont envoyées <strong>par le serveur lui-même</strong>, sans aucune action de l'utilisateur — nécessite de configurer un serveur SMTP (identifiants email) dans <strong>⚙️ État système</strong>.</p>
+            </div>
+            <ul>
+                <li><strong>Traccar inaccessible :</strong> vérification automatique toutes les 5 minutes ; un email est envoyé uniquement lors du changement d'état (passage accessible → inaccessible, ou l'inverse), jamais à chaque vérification.</li>
+                <li><strong>Point terrain sensible :</strong> un email est envoyé automatiquement dès qu'un point de catégorie "maladie/ravageur" ou "panne" est enregistré sur la carte de chantier.</li>
+            </ul>
+            <p>Un bouton <strong>✉️ Envoyer un test</strong> permet de vérifier la configuration SMTP avant de compter dessus.</p>
+
+            <h3>🌦️ Prévisions météo</h3>
+            <p>Le tableau de bord affiche désormais les prévisions à <strong>4 jours</strong>, basées sur le modèle officiel <strong>Météo-France ARPEGE Europe</strong> (résolution ~11 km, via Open-Meteo). La position de référence de l'exploitation se configure dans <strong>⚙️ État système</strong>.</p>
+
+            <h3>📥 Export calendrier (.ics)</h3>
+            <p>Le bouton <strong>📥 .ics</strong> dans la modale Calendrier exporte les interventions détectées au format iCalendar standard, importable dans Google Calendar, Outlook ou Apple Calendar — pratique pour partager le planning avec un salarié qui suit son calendrier personnel plutôt que le dashboard directement.</p>
+        </section>
+
+        <section id="maintenance">
+            <h2>Notes techniques & Maintenance</h2>
+            <ul>
+                <li><strong>Migrations de base de données silencieuses :</strong> La structure de la base SQLite <code>database.db</code> s'auto-ajuste de manière transparente en tâche de fond. Aucune exécution de script SQL ou action humaine n'est requise lors du déploiement d'une mise à jour applicative.</li>
+                <li><strong>Sécurité des accès :</strong> Votre mot de passe administrateur est haché avec PBKDF2-HMAC-SHA256 (100 000 itérations, sel aléatoire propre à chaque mot de passe) avant d'être sauvegardé dans le fichier <code>password_override.txt</code> — jamais stocké en clair. Un mot de passe déjà en place avant cette version est migré automatiquement au format haché dès la prochaine connexion réussie, sans action requise. <em>(nouveauté v15.3)</em></li>
+                <li><strong>Mot de passe perdu ou fichier corrompu <em>(nouveauté v15.3)</em> :</strong> supprimez <code>password_override.txt</code> sur le serveur et redémarrez l'application — le mot de passe repasse au mot de passe par défaut d'usine, à changer ensuite depuis "🔑 Mot de passe". Un fichier corrompu (écriture interrompue par une coupure serveur, par exemple) est détecté automatiquement au démarrage et provoque ce même repli, sans verrouiller l'accès administrateur.</li>
+                <li><strong>Alerte mot de passe par défaut <em>(nouveauté v15.3)</em> :</strong> tant que le mot de passe d'installation n'a jamais été changé, un bandeau d'avertissement s'affiche en haut du dashboard, avec un lien direct vers "🔑 Mot de passe" — masquable pour la session en cours, mais réapparaît tant que le changement n'a pas réellement été fait.</li>
+                <li><strong>Protection anti-bruteforce :</strong> 5 tentatives de connexion échouées depuis une même adresse IP déclenchent un blocage de 15 minutes. Le registre des tentatives est nettoyé automatiquement en arrière-plan (au plus une fois toutes les 5 minutes) pour ne pas accumuler indéfiniment les adresses IP inactives en mémoire.</li>
+                <li><strong>Optimisation du réseau (Cache Traccar) :</strong> Le temps de conservation du cache des requêtes API Traccar est modifiable via l'interface afin d'éviter les requêtes superflues vers le serveur GPS et de garantir une fluidité parfaite.</li>
+                <li><strong>Design Mobile-First :</strong> L'ensemble des tableaux, graphes et cartes bénéficie d'une interface responsive design fluide, optimisée pour le travail de terrain sur écrans tactiles de smartphones ou tablettes.</li>
+                <li><strong>Politique de Sauvegarde (Backups) :</strong> Par mesure de sécurité, la base de données <code>database.db</code> est automatiquement dupliquée dans le répertoire <code>backups/</code> lors de chaque démarrage du serveur, toutes les 24 heures à heure fixe via un thread d'arrière-plan, ou instantanément à la demande via l'action manuelle dédiée de l'interface (⚙️ État système → Sauvegarder).</li>
+            </ul>
+
+            <h3>Configuration avancée de la Carte de Chantier (v14.2)</h3>
+            <p>Le fichier <code>config.json</code> accepte deux nouvelles sections optionnelles, propres à la carte de chantier :</p>
+
+            <pre><code>{
+  "alerts": {
+    "max_working_speed_kmh": 15,
+    "min_coverage_pct": 85,
+    "jours_sans_intervention": 21,
+    "arret_prolonge_minutes": 5
+  },
+  "sentinelhub": {
+    "provider": "cdse",
+    "client_id": "xxxx",
+    "client_secret": "xxxx"
+  }
+}</code></pre>
+
+            <table>
+                <thead><tr><th>Clé</th><th>Rôle</th></tr></thead>
+                <tbody>
+                    <tr><td><code>alerts.max_working_speed_kmh</code></td><td>Seuil de vitesse (km/h) au-delà duquel une alerte "vitesse anormale" se déclenche pendant le travail.</td></tr>
+                    <tr><td><code>alerts.min_coverage_pct</code></td><td>Taux de couverture (%) en-dessous duquel une parcelle est signalée comme insuffisamment couverte.</td></tr>
+                    <tr><td><code>alerts.jours_sans_intervention</code></td><td>Nombre de jours sans intervention au-delà duquel une parcelle active est signalée comme potentiellement oubliée.</td></tr>
+                    <tr><td><code>alerts.arret_prolonge_minutes</code></td><td>Durée (minutes) d'immobilisation outil engagé au-delà de laquelle une alerte d'arrêt prolongé se déclenche.</td></tr>
+                    <tr><td><code>sentinelhub.provider</code></td><td><code>cdse</code> (Copernicus Data Space Ecosystem, recommandé) ou <code>shub</code> (Sentinel Hub classique) — ce sont deux fournisseurs distincts avec des serveurs différents, se tromper provoque une erreur 401.</td></tr>
+                    <tr><td><code>sentinelhub.client_id</code> / <code>client_secret</code></td><td>Identifiants OAuth du compte Sentinel Hub / Copernicus, gérables directement depuis l'interface (icône ⚙️ à côté du sélecteur NDVI) sans éditer ce fichier à la main.</td></tr>
+                    <tr><td><code>security.force_https_cookie</code> <em>(v15.3)</em></td><td><code>true</code> ou <code>false</code> (défaut). À activer <strong>uniquement</strong> si l'application est servie derrière un reverse-proxy HTTPS (Nginx, Caddy...) : le cookie de session n'est alors plus jamais envoyé en clair sur le réseau. À laisser sur <code>false</code> pour un accès direct en HTTP sur réseau local, sinon la connexion devient impossible (le navigateur refuse d'envoyer un cookie "Secure" sur une connexion non chiffrée).</td></tr>
+                </tbody>
+            </table>
+            <div class="info-box">
+                <p>💡 Ces sections sont entièrement optionnelles et peuvent aussi être configurées depuis l'interface (boîte de dialogue NDVI pour <code>sentinelhub</code>). Sans configuration NDVI, la couche reste simplement transparente, sans erreur bloquante.</p>
+            </div>
+        </section>
+    </main>
+
+</body>
+</html>

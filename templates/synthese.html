@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Synthèse de campagne — Dashboard Agricole v15.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html, body {
+    margin:0; padding:0; font-family:Arial, sans-serif; background:#f5f7fb; color:#1e293b;
+}
+.header {
+    display:flex; align-items:center; gap:10px; padding:12px 20px;
+    background:#fff; border-bottom:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06);
+}
+.header a { color:#2563eb; text-decoration:none; font-size:13px; font-weight:bold; }
+.header h1 { font-size:18px; margin:0; color:#0f172a; }
+.container { max-width:1200px; margin:0 auto; padding:20px; }
+
+.cards-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+.card {
+    flex:1; min-width:150px; background:#fff; border:1px solid #e2e8f0; border-radius:10px;
+    padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+.card .card-value { font-size:26px; font-weight:bold; color:#0f172a; }
+.card .card-label { font-size:12px; color:#64748b; margin-top:4px; }
+
+#weatherCard { display:flex; align-items:center; gap:16px; flex-wrap:wrap; flex-basis:100%; }
+#weatherCard .weather-icon { font-size:40px; }
+#weatherCard .weather-temp { font-size:26px; font-weight:bold; color:#0f172a; }
+#weatherCard .weather-detail { font-size:12px; color:#64748b; }
+.weather-forecast { display:flex; gap:10px; margin-left:auto; }
+.forecast-day {
+    text-align:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;
+    padding:8px 10px; min-width:78px;
+}
+.forecast-day .fd-label { font-size:10px; color:#64748b; font-weight:bold; text-transform:uppercase; }
+.forecast-day .fd-icon { font-size:20px; margin:2px 0; }
+.forecast-day .fd-temp { font-size:12px; font-weight:bold; color:#0f172a; }
+.forecast-day .fd-detail { font-size:9px; color:#94a3b8; margin-top:2px; }
+
+.section-title {
+    font-size:14px; font-weight:bold; color:#334155; text-transform:uppercase;
+    letter-spacing:0.5px; margin:26px 0 12px 0; display:flex; justify-content:space-between; align-items:center;
+}
+.view-toggle { display:flex; gap:4px; }
+.view-toggle button {
+    padding:6px 12px; border:1px solid #cbd5e1; background:#fff; border-radius:6px; font-size:12px;
+    cursor:pointer; color:#475569;
+}
+.view-toggle button.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+
+/* ── Vue liste ── */
+.progress-row {
+    background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;
+    margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; cursor:pointer;
+}
+.progress-row:hover { border-color:#93c5fd; box-shadow:0 2px 6px rgba(37,99,235,0.08); }
+.progress-row .p-name { flex:1; min-width:160px; font-weight:bold; font-size:13px; color:#0f172a; }
+.progress-row .p-meta { font-size:11px; color:#94a3b8; min-width:150px; }
+.progress-bar-track { flex:2; min-width:180px; height:14px; background:#e2e8f0; border-radius:7px; overflow:hidden; }
+.progress-bar-fill { height:100%; border-radius:7px; transition:width 0.3s ease; }
+.progress-pct { width:42px; text-align:right; font-size:12px; font-weight:bold; color:#334155; }
+.statut-badge { font-size:10px; color:#fff; padding:2px 8px; border-radius:8px; white-space:nowrap; }
+
+/* ── Vue kanban ── */
+.kanban-board { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; }
+.kanban-col { flex:1; min-width:200px; background:#eef2f7; border-radius:10px; padding:10px; }
+.kanban-col-header {
+    font-size:12px; font-weight:bold; color:#fff; padding:6px 10px; border-radius:6px;
+    margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;
+}
+.kanban-card {
+    background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;
+    margin-bottom:8px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.04);
+}
+.kanban-card:hover { border-color:#93c5fd; box-shadow:0 2px 6px rgba(37,99,235,0.1); }
+.kanban-card .k-name { font-weight:bold; font-size:12px; color:#0f172a; margin-bottom:4px; }
+.kanban-card .k-meta { font-size:10px; color:#94a3b8; }
+.kanban-empty { font-size:11px; color:#94a3b8; font-style:italic; padding:8px; text-align:center; }
+
+.filter-bar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+.filter-bar select, .filter-bar input {
+    padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;
+}
+.empty-msg { color:#94a3b8; font-size:13px; font-style:italic; padding:20px; text-align:center; }
+
+.alert-item {
+    background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; padding:8px 12px;
+    margin-bottom:6px; font-size:12px; color:#92400e;
+}
+
+.analysis-section { border:1px solid #e2e8f0; border-radius:10px; background:#fff; overflow:hidden; }
+.analysis-section summary {
+    padding:12px 16px; cursor:pointer; font-size:13px; font-weight:bold; color:#334155;
+    list-style:none; display:flex; align-items:center; gap:10px; -webkit-user-select:none; user-select:none;
+}
+.analysis-section summary::-webkit-details-marker { display:none; }
+.analysis-section summary::before { content:'▸'; color:#94a3b8; transition:transform 0.15s ease; }
+.analysis-section[open] summary::before { transform:rotate(90deg); }
+.analysis-section .analysis-body { padding:0 16px 14px 16px; border-top:1px solid #f1f5f9; padding-top:10px; }
+.incoherence-item {
+    background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:8px 12px;
+    margin-bottom:6px; font-size:12px; color:#991b1b;
+}
+.incoherence-item .ic-type { font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:#dc2626; font-weight:bold; }
+
+.pheno-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:10px; }
+.pheno-card-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px; flex-wrap:wrap; gap:6px; }
+.pheno-card-header .pheno-name { font-weight:bold; font-size:14px; color:#0f172a; }
+.pheno-card-header .pheno-meta { font-size:11px; color:#64748b; }
+.pheno-frieze { display:flex; align-items:flex-start; padding:0 4px; }
+.pheno-step { flex:1; text-align:center; position:relative; min-width:0; }
+.pheno-step:not(:last-child)::after {
+    content:''; position:absolute; top:13px; left:50%; width:100%; height:3px; background:#e2e8f0; z-index:0;
+}
+.pheno-step.done:not(:last-child)::after { background:#16a34a; }
+.pheno-dot {
+    width:26px; height:26px; border-radius:50%; background:#e2e8f0; border:3px solid #fff;
+    margin:0 auto; position:relative; z-index:1; box-shadow:0 0 0 2px #e2e8f0;
+    display:flex; align-items:center; justify-content:center; font-size:13px; line-height:1;
+    filter:grayscale(1) opacity(0.55);
+}
+.pheno-step.done .pheno-dot { background:#dcfce7; box-shadow:0 0 0 2px #16a34a; filter:none; }
+.pheno-step.current .pheno-dot { background:#fef3c7; box-shadow:0 0 0 3px #fed7aa; width:30px; height:30px; filter:none; }
+.pheno-label { font-size:10px; color:#94a3b8; margin-top:6px; line-height:1.3; }
+.pheno-step.done .pheno-label { color:#16a34a; font-weight:bold; }
+.pheno-step.current .pheno-label { color:#92400e; font-weight:bold; }
+.pheno-seuil { font-size:9px; color:#64748b; margin-top:1px; }
+.pheno-date { font-size:9px; color:#94a3b8; margin-top:2px; font-weight:bold; }
+.pheno-step.done .pheno-date { color:#16a34a; }
+.pheno-step.current .pheno-date { color:#92400e; }
+.pheno-date.estimee { color:#64748b; font-weight:normal; font-style:italic; }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .header { padding:10px 14px; }
+    .header h1 { font-size:15px; }
+    .container { padding:12px; }
+    .cards-row { gap:8px; }
+    .card { min-width:calc(50% - 8px); padding:12px; }
+    .card .card-value { font-size:20px; }
+    #weatherCard { flex-basis:100%; }
+    .weather-forecast { margin-left:0; width:100%; justify-content:space-between; }
+    .forecast-day { min-width:0; flex:1; padding:6px 4px; }
+
+    .progress-row { flex-direction:column; align-items:stretch; gap:8px; }
+    .progress-row .p-name { min-width:0; }
+    .progress-bar-track { min-width:0; }
+    .progress-pct { width:auto; text-align:left; }
+
+    .kanban-board { flex-direction:column; overflow-x:visible; }
+    .kanban-col { min-width:0; }
+
+    .pheno-frieze { overflow-x:auto; padding-bottom:4px; }
+    .pheno-step { flex:0 0 78px; }
+
+    .filter-bar { flex-direction:column; align-items:stretch; }
+    .filter-bar select, .filter-bar input { width:100%; box-sizing:border-box; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <a href="/" id="headerDashboardLink">← Dashboard</a>
+    <span id="headerSep" style="color:#cbd5e1;">|</span>
+    <h1>📊 Synthèse de campagne</h1>
+    <span id="sharedBadge" style="display:none;background:#f1f5f9;color:#475569;font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid #cbd5e1;">🔒 Vue partagée en lecture seule</span>
+    <button id="btnLive" onclick="toggleLiveRefresh()" style="margin-left:auto;background:#475569;color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:bold;" title="Rafraîchit automatiquement toutes les 60s">🔴 Live</button>
+    <button id="btnExportPdf" onclick="exportSynthesePDF()" style="background:#0e7490;color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:bold;">📄 Export PDF</button>
+</div>
+
+<div class="container">
+
+    <div class="cards-row">
+        <div class="card" id="weatherCard">
+            <div class="weather-icon" id="weatherIcon">⏳</div>
+            <div>
+                <div class="weather-temp" id="weatherTemp">—</div>
+                <div class="weather-detail" id="weatherDetail">Chargement de la météo…</div>
+            </div>
+            <div id="weatherForecast" class="weather-forecast"></div>
+        </div>
+        <div class="card">
+            <div class="card-value" id="statParcellesTotal">—</div>
+            <div class="card-label">Parcelles suivies</div>
+        </div>
+        <div class="card">
+            <div class="card-value" id="statAvancementMoyen">—</div>
+            <div class="card-label">Avancement moyen (pondéré surface)</div>
+        </div>
+        <div class="card" style="border-color:#fed7aa;">
+            <div class="card-value" id="statAlertesTotal" style="color:#d97706;">—</div>
+            <div class="card-label" id="statAlertesDetail">Alerte(s) active(s)</div>
+        </div>
+    </div>
+
+    <div id="darAlertsContainer"></div>
+
+    <details class="analysis-section" id="incoherencesSection" style="margin-bottom:20px;">
+        <summary>🔍 Anomalies détectées <span id="incoherencesCount" class="statut-badge" style="background:#94a3b8;">—</span></summary>
+        <div class="analysis-body" id="incoherencesBody"></div>
+    </details>
+
+    <div id="phenoSection" style="display:none; margin-bottom:20px;">
+        <div class="section-title"><span>🌽 Stades phénologiques du maïs</span></div>
+        <div style="font-size:11px; color:#94a3b8; margin-bottom:10px;">
+            Cumul de degrés-jours base 6°C (plafond 30°C) depuis le semis, méthode standard française. N'affiche que les parcelles semées avec une variété dont les besoins semis→floraison / semis→maturité sont renseignés dans le catalogue produits.
+        </div>
+        <div id="phenoList"></div>
+    </div>
+
+    <div id="phenoCerealesSection" style="display:none; margin-bottom:20px;">
+        <div class="section-title"><span>🌾 Stades phénologiques des céréales à paille</span></div>
+        <div style="font-size:11px; color:#94a3b8; margin-bottom:10px;">
+            Blé, orge, avoine et triticale — cumul de degrés-jours base 0°C (sans plafond) depuis le semis, échelle BBCH commune aux 4 céréales. Détecté via le champ "Culture" de la semence utilisée au semis.
+        </div>
+        <div id="phenoCerealesList"></div>
+    </div>
+
+    <div class="section-title">
+        <span>Avancement par parcelle</span>
+        <div class="view-toggle">
+            <button id="btnViewKanban" class="active" onclick="setView('kanban')">🗂️ Kanban</button>
+            <button id="btnViewList" onclick="setView('list')">📋 Liste</button>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="🔍 Rechercher une parcelle..." oninput="renderParcelles()" style="flex:1;min-width:180px;">
+        <select id="statutFilter" onchange="renderParcelles()">
+            <option value="">Tous les statuts</option>
+            <option value="attente">⏳ En attente</option>
+            <option value="prepare">🚜 Préparé</option>
+            <option value="semis">🌱 Semé</option>
+            <option value="traite">💧 Traité</option>
+            <option value="recolte">🌾 Récolté</option>
+        </select>
+        <select id="sortOrder" onchange="renderParcelles()">
+            <option value="progress_asc">Avancement croissant</option>
+            <option value="progress_desc">Avancement décroissant</option>
+            <option value="name">Nom (A→Z)</option>
+            <option value="jours_desc">Sans intervention depuis le plus longtemps</option>
+        </select>
+    </div>
+
+    <div id="parcellesList"></div>
+
+</div>
+
+<script>
+// Intercepte TOUS les appels fetch() : redirige automatiquement vers la connexion en cas de
+// 401 -- voir index.html pour le détail. En vue partagée (lien avec token), un 401 signifie
+// que le token est invalide/expiré : rediriger vers la connexion reste le bon comportement
+// (aucun accès valide possible autrement). Un verrou évite les redirections en cascade.
+let _redirectingToLogin = false;
+const _originalFetch = window.fetch;
+window.fetch = function(...args) {
+    return _originalFetch.apply(this, args).then(response => {
+        if (response.status === 401 && !_redirectingToLogin && !window.location.pathname.startsWith('/login')) {
+            _redirectingToLogin = true;
+            window.location.href = '/login';
+        }
+        return response;
+    });
+};
+
+// Échappe tout texte inséré dans du HTML (innerHTML) pour empêcher qu'un nom de parcelle,
+// une culture, etc. saisis librement ne soient interprétés comme du HTML/JavaScript actif
+// (faille XSS stockée) -- utiliser systématiquement sur toute donnée venant de la base
+// plutôt que d'un texte fixe écrit dans le code.
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+const STATUT_INFO = {
+    '':        { label: 'Non renseigné', color: '#94a3b8', pct: 0 },
+    'attente': { label: '⏳ En attente',  color: '#d97706', pct: 10 },
+    'prepare': { label: '🚜 Préparé',     color: '#7c3aed', pct: 30 },
+    'semis':   { label: '🌱 Semé',        color: '#16a34a', pct: 55 },
+    'traite':  { label: '💧 Traité',      color: '#2563eb', pct: 80 },
+    'recolte': { label: '🌾 Récolté',     color: '#dc2626', pct: 100 },
+};
+const STATUT_ORDER = ['attente', 'prepare', 'semis', 'traite', 'recolte'];
+
+let synthData = { parcelles: [] };
+let viewMode = 'kanban';
+
+// ── Mode partagé (lien en lecture seule) ────────────────────────────────────
+const SHARE_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+const IS_SHARED_VIEW = !!SHARE_TOKEN;
+
+function apiUrl(path) {
+    if (!SHARE_TOKEN) return path;
+    const sep = path.includes('?') ? '&' : '?';
+    return `${path}${sep}token=${encodeURIComponent(SHARE_TOKEN)}`;
+}
+
+function setView(mode) {
+    viewMode = mode;
+    document.getElementById('btnViewKanban').classList.toggle('active', mode === 'kanban');
+    document.getElementById('btnViewList').classList.toggle('active', mode === 'list');
+    renderParcelles();
+}
+
+async function loadSynthese() {
+    try {
+        const r = await fetch(apiUrl('/api/synthese_campagne'));
+        const data = await r.json();
+        synthData = data;
+
+        document.getElementById('statParcellesTotal').textContent = data.parcelles.length;
+
+        // Moyenne pondérée par la surface : une parcelle de 50 ha pèse plus dans la moyenne
+        // qu'une de 2 ha, contrairement à une simple moyenne par parcelle. Les parcelles sans
+        // surface cadastrale connue retombent sur une moyenne simple en repli.
+        const surfaceTotale = data.parcelles.reduce((sum, p) => sum + (p.surface_ha || 0), 0);
+        let avg = 0;
+        if (surfaceTotale > 0) {
+            const ponderee = data.parcelles.reduce((sum, p) => {
+                const pct = (STATUT_INFO[p.statut || ''] || STATUT_INFO['']).pct;
+                return sum + pct * (p.surface_ha || 0);
+            }, 0);
+            avg = Math.round(ponderee / surfaceTotale);
+        } else if (data.parcelles.length) {
+            avg = Math.round(data.parcelles.reduce((sum, p) => sum + (STATUT_INFO[p.statut || ''] || STATUT_INFO['']).pct, 0) / data.parcelles.length);
+        }
+        document.getElementById('statAvancementMoyen').textContent = avg + '%';
+
+        // Alertes combinées : DAR + vitesse anormale + arrêts prolongés (calculées côté
+        // serveur pour la journée en cours -- voir /api/synthese_campagne).
+        const total = data.nb_alertes_total ?? (data.nb_alertes_dar || 0);
+        document.getElementById('statAlertesTotal').textContent = total;
+        const detailParts = [];
+        if (data.nb_alertes_dar) detailParts.push(`${data.nb_alertes_dar} DAR`);
+        if (data.nb_alertes_vitesse) detailParts.push(`${data.nb_alertes_vitesse} vitesse`);
+        if (data.nb_alertes_arret) detailParts.push(`${data.nb_alertes_arret} arrêt(s)`);
+        document.getElementById('statAlertesDetail').textContent = detailParts.length
+            ? detailParts.join(' · ') : "Alerte(s) active(s)";
+
+        const darContainer = document.getElementById('darAlertsContainer');
+        if (data.alertes_dar && data.alertes_dar.length) {
+            darContainer.innerHTML = data.alertes_dar.slice(0, 5).map(a =>
+                `<div class="alert-item">⚠️ ${a.message || a.produit || JSON.stringify(a)}</div>`
+            ).join('');
+        } else {
+            darContainer.innerHTML = '';
+        }
+
+        if (data.first_position) loadWeather(data.first_position);
+        else {
+            document.getElementById('weatherDetail').textContent = 'Aucune position GPS disponible pour la météo locale';
+            document.getElementById('weatherIcon').textContent = '❓';
+        }
+
+        renderParcelles();
+        loadIncoherences();
+        loadPhenologie();
+        loadPhenologieCereales();
+    } catch(e) {
+        document.getElementById('parcellesList').innerHTML = '<div class="empty-msg">Erreur de chargement des données.</div>';
+    }
+}
+
+async function loadIncoherences() {
+    // Les anomalies de saisie sont une donnée interne (qualité des données), pas destinée
+    // à être montrée à un tiers via un lien de partage.
+    if (IS_SHARED_VIEW) {
+        document.getElementById('incoherencesSection').style.display = 'none';
+        return;
+    }
+    const countEl = document.getElementById('incoherencesCount');
+    const bodyEl = document.getElementById('incoherencesBody');
+    try {
+        const r = await fetch(apiUrl('/api/incoherences'));
+        const data = await r.json();
+        countEl.textContent = data.nb_anomalies;
+        countEl.style.background = data.nb_anomalies > 0 ? '#dc2626' : '#16a34a';
+
+        if (!data.anomalies || !data.anomalies.length) {
+            bodyEl.innerHTML = '<div class="empty-msg" style="padding:10px;">Aucune anomalie détectée. 👍</div>';
+            return;
+        }
+        const typeLabels = {chronologie:'Chronologie', doublon:'Doublon', surface:'Surface'};
+        bodyEl.innerHTML = data.anomalies.map(a => `
+            <div class="incoherence-item">
+                <div class="ic-type">${escapeHtml(typeLabels[a.type] || a.type)} · ${escapeHtml(a.nom_parcelle)}</div>
+                ${a.message}
+            </div>`).join('');
+    } catch(e) {
+        countEl.textContent = '?';
+        bodyEl.innerHTML = '<div class="empty-msg">Erreur de chargement des anomalies.</div>';
+    }
+}
+
+async function loadPhenologie() {
+    const section = document.getElementById('phenoSection');
+    const list = document.getElementById('phenoList');
+    try {
+        const r = await fetch(apiUrl('/api/phenologie_mais'));
+        const data = await r.json();
+        if (data.message || !data.parcelles || !data.parcelles.length) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+        list.innerHTML = renderPhenoCards(data.parcelles, '🌽');
+    } catch(e) {
+        section.style.display = 'none';
+    }
+}
+
+async function loadPhenologieCereales() {
+    const section = document.getElementById('phenoCerealesSection');
+    const list = document.getElementById('phenoCerealesList');
+    try {
+        const r = await fetch(apiUrl('/api/phenologie_cereales'));
+        const data = await r.json();
+        if (data.message || !data.parcelles || !data.parcelles.length) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+        list.innerHTML = renderPhenoCards(data.parcelles, '🌾');
+    } catch(e) {
+        section.style.display = 'none';
+    }
+}
+
+function renderPhenoCards(parcelles, cropIcon) {
+    return parcelles.map(p => {
+        const stepsHtml = p.stages.map(s => {
+            let cls = '';
+            if (s.key === p.stage_atteint) cls = 'current';
+            else if (p.cumul_dj !== null && s.seuil !== null && p.cumul_dj >= s.seuil) cls = 'done';
+            const seuilTxt = s.seuil !== null ? `${s.seuil}°C.j` : '?';
+            let dateTxt = '';
+            if (s.date) {
+                const dateFr = s.date.split('-').reverse().join('/');
+                dateTxt = s.date_estimee ? `~${dateFr}` : dateFr;
+            }
+            const dateCls = s.date_estimee ? 'pheno-date estimee' : 'pheno-date';
+            return `<div class="pheno-step ${cls}">
+                <div class="pheno-dot">${s.icon || ''}</div>
+                <div class="pheno-label">${s.label}</div>
+                <div class="pheno-seuil">${seuilTxt}</div>
+                ${dateTxt ? `<div class="${dateCls}">${dateTxt}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        const cumulTxt = p.position_connue
+            ? (p.cumul_dj !== null ? `${p.cumul_dj}°C.j cumulés` : 'Calcul météo indisponible')
+            : 'Géométrie de parcelle inconnue (calcul impossible)';
+
+        return `<div class="pheno-card">
+            <div class="pheno-card-header">
+                <span class="pheno-name">${escapeHtml(p.nom_parcelle)}</span>
+                <span class="pheno-meta">${cropIcon} ${escapeHtml(p.semence)} · semé le ${p.date_semis} · ${cumulTxt}</span>
+            </div>
+            <div class="pheno-frieze">${stepsHtml}</div>
+            <div style="font-size:9px; color:#94a3b8; margin-top:8px; text-align:right;">~ = date estimée (extrapolation au rythme récent, pas une prévision météo)</div>
+        </div>`;
+    }).join('');
+}
+
+async function loadWeather(pos) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${pos.lat}&longitude=${pos.lon}&current=temperature_2m,windspeed_10m,precipitation,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode&forecast_days=4&timezone=Europe/Paris`;
+        const r = await fetch(url);
+        const data = await r.json();
+        const cur = data.current;
+        const icons = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',80:'🌦️',95:'⛈️'};
+        document.getElementById('weatherIcon').textContent = icons[cur.weathercode] || '🌡️';
+        document.getElementById('weatherTemp').textContent = Math.round(cur.temperature_2m) + '°C';
+        document.getElementById('weatherDetail').textContent =
+            `💨 ${Math.round(cur.windspeed_10m)} km/h · 🌧️ ${cur.precipitation} mm`;
+
+        // Prévision des 3 prochains jours (index 0 du "daily" = aujourd'hui, on l'ignore ici
+        // puisque le bloc principal montre déjà les conditions actuelles).
+        if (data.daily && data.daily.time && data.daily.time.length > 1) {
+            const dayNames = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+            let html = '';
+            for (let i = 1; i < Math.min(4, data.daily.time.length); i++) {
+                const d = new Date(data.daily.time[i] + 'T00:00:00');
+                const icon = icons[data.daily.weathercode[i]] || '🌡️';
+                const tmax = Math.round(data.daily.temperature_2m_max[i]);
+                const tmin = Math.round(data.daily.temperature_2m_min[i]);
+                const pluie = data.daily.precipitation_sum[i];
+                const vent = Math.round(data.daily.windspeed_10m_max[i]);
+                html += `<div class="forecast-day">
+                    <div class="fd-label">${dayNames[d.getDay()]}</div>
+                    <div class="fd-icon">${icon}</div>
+                    <div class="fd-temp">${tmax}° / ${tmin}°</div>
+                    <div class="fd-detail">💨${vent} · 🌧️${pluie}mm</div>
+                </div>`;
+            }
+            document.getElementById('weatherForecast').innerHTML = html;
+        }
+    } catch(e) {
+        document.getElementById('weatherDetail').textContent = 'Météo indisponible';
+    }
+}
+
+function getFilteredParcelles() {
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    const statutFilter = document.getElementById('statutFilter').value;
+
+    return synthData.parcelles.filter(p => {
+        const name = (p.nom_traccar || p.nom_parcelle || `Parcelle ${p.geofence_id}`).toLowerCase();
+        if (search && !name.includes(search)) return false;
+        if (statutFilter && (p.statut || '') !== statutFilter) return false;
+        return true;
+    }).map(p => ({...p, _pct: (STATUT_INFO[p.statut || ''] || STATUT_INFO['']).pct}));
+}
+
+function parcelleName(p) { return escapeHtml(p.nom_traccar || p.nom_parcelle || `Parcelle ${p.geofence_id}`); }
+function joursLabel(p) {
+    return (p.jours_sans_intervention === null || p.jours_sans_intervention === undefined)
+        ? 'jamais travaillée' : `${p.jours_sans_intervention} j sans interv.`;
+}
+
+function renderParcelles() {
+    const list = getFilteredParcelles();
+    const container = document.getElementById('parcellesList');
+
+    if (!synthData.parcelles.length) {
+        container.innerHTML = '<div class="empty-msg">Aucune parcelle enregistrée.</div>';
+        return;
+    }
+    if (!list.length) {
+        container.innerHTML = '<div class="empty-msg">Aucune parcelle ne correspond à ces critères.</div>';
+        return;
+    }
+
+    if (viewMode === 'kanban') {
+        renderKanban(list, container);
+    } else {
+        renderList(list, container);
+    }
+}
+
+function renderList(list, container) {
+    const sortOrder = document.getElementById('sortOrder').value;
+    list = list.slice();
+    if (sortOrder === 'progress_asc') list.sort((a,b) => a._pct - b._pct);
+    else if (sortOrder === 'progress_desc') list.sort((a,b) => b._pct - a._pct);
+    else if (sortOrder === 'name') list.sort((a,b) => parcelleName(a).localeCompare(parcelleName(b)));
+    else if (sortOrder === 'jours_desc') list.sort((a,b) => (b.jours_sans_intervention ?? 9999) - (a.jours_sans_intervention ?? 9999));
+
+    container.innerHTML = list.map(p => {
+        const info = STATUT_INFO[p.statut || ''] || STATUT_INFO[''];
+        const alertDot = p.a_une_alerte ? '<span title="Alerte active sur cette parcelle" style="color:#dc2626;font-size:14px;">⚠️</span>' : '';
+        return `
+        <div class="progress-row" onclick="openParcelle(${p.geofence_id})">
+            <div class="p-name">${alertDot} ${p.est_sous_parcelle ? '✂️ ' : ''}${parcelleName(p)}</div>
+            <span class="statut-badge" style="background:${info.color};">${info.label}</span>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width:${info.pct}%;background:${info.color};"></div>
+            </div>
+            <div class="progress-pct">${info.pct}%</div>
+            <div class="p-meta">${p.culture ? escapeHtml(p.culture) + ' · ' : ''}${p.surface_ha ? p.surface_ha + ' ha · ' : ''}${joursLabel(p)}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderKanban(list, container) {
+    const cols = STATUT_ORDER.map(statutKey => {
+        const info = STATUT_INFO[statutKey];
+        const items = list.filter(p => (p.statut || '') === statutKey);
+        const cards = items.length
+            ? items.map(p => `
+                <div class="kanban-card" onclick="openParcelle(${p.geofence_id})" style="${p.a_une_alerte ? 'border-left:3px solid #dc2626;' : (p.est_sous_parcelle ? 'border-left:3px solid #7c3aed;' : '')}">
+                    <div class="k-name">${p.a_une_alerte ? '<span title="Alerte active" style="color:#dc2626;">⚠️</span> ' : ''}${p.est_sous_parcelle ? '✂️ ' : ''}${parcelleName(p)}</div>
+                    <div class="k-meta">${p.culture ? escapeHtml(p.culture) + ' · ' : ''}${p.surface_ha ? p.surface_ha + ' ha · ' : ''}${joursLabel(p)}</div>
+                </div>`).join('')
+            : '<div class="kanban-empty">Aucune parcelle</div>';
+        return `
+        <div class="kanban-col">
+            <div class="kanban-col-header" style="background:${info.color};">
+                <span>${info.label}</span><span>${items.length}</span>
+            </div>
+            ${cards}
+        </div>`;
+    }).join('');
+    container.innerHTML = `<div class="kanban-board">${cols}</div>`;
+}
+
+function openParcelle(geofenceId) {
+    // La carte de chantier nécessite une connexion : inutile d'y renvoyer un lien partagé,
+    // le clic n'aurait pour effet que d'afficher un écran de connexion à un tiers externe.
+    if (IS_SHARED_VIEW) return;
+
+    const p = synthData.parcelles.find(pp => pp.geofence_id === geofenceId);
+    // Si on connaît le véhicule et la date de la dernière intervention sur cette parcelle,
+    // on ouvre directement la carte de chantier dessus (chargement automatique). Sinon
+    // (parcelle jamais travaillée, ou seulement en saisie manuelle sans GPS), on ouvre la
+    // carte "à vide" et l'utilisateur choisit lui-même la date/le véhicule.
+    if (p && p.derniere_date && p.derniere_device_id) {
+        window.open(`/chantier?date=${encodeURIComponent(p.derniere_date)}&device_ids=${encodeURIComponent(p.derniere_device_id)}`, '_blank');
+    } else {
+        window.open('/chantier', '_blank');
+    }
+}
+
+let liveInterval = null;
+const LIVE_REFRESH_MS = 60000; // 60s : les données évoluent moins vite ici que sur la carte de chantier
+
+function toggleLiveRefresh() {
+    const btn = document.getElementById('btnLive');
+    if (liveInterval) {
+        clearInterval(liveInterval);
+        liveInterval = null;
+        btn.style.background = '#475569';
+        btn.textContent = '🔴 Live';
+        return;
+    }
+    btn.style.background = '#dc2626';
+    btn.textContent = '⏺ Live (60s)';
+    liveInterval = setInterval(loadSynthese, LIVE_REFRESH_MS);
+}
+
+async function exportSynthesePDF() {
+    showToastLocal('📄 Génération du PDF…');
+    try {
+        const r = await fetch(apiUrl('/api/export_synthese_pdf'));
+        if (!r.ok) {
+            const data = await r.json().catch(() => ({}));
+            showToastLocal('❌ ' + (data.error || 'Erreur génération PDF'));
+            return;
+        }
+        const blob = await r.blob();
+        const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(blob),
+            download: `synthese_campagne_${synthData.date || ''}.pdf`
+        });
+        a.click();
+    } catch(e) {
+        showToastLocal('❌ Erreur réseau lors de la génération du PDF');
+    }
+}
+
+// Petit toast local (cette page n'a pas de système de toast partagé comme les autres pages)
+function showToastLocal(msg) {
+    let el = document.getElementById('localToast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'localToast';
+        el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+        document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+if (IS_SHARED_VIEW) {
+    document.getElementById('headerDashboardLink').style.display = 'none';
+    document.getElementById('headerSep').style.display = 'none';
+    document.getElementById('sharedBadge').style.display = 'inline-block';
+    document.getElementById('btnExportPdf').style.display = 'none';
+}
+
+loadSynthese();
+</script>
+</body>
+</html>

@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import Traccar — Parcelles & Véhicules</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --pine:#16302a;
+    --pine-deep:#0e211c;
+    --sage:#eef1e6;
+    --sage-card:#ffffff;
+    --ink:#1c2620;
+    --ink-soft:#5a6a60;
+    --gold:#c98a2b;
+    --gold-hover:#b47a22;
+    --crop:#4c7a52;
+    --rust:#a8452e;
+    --line:#dde3d5;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', sans-serif;
+    background:var(--sage);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--gold); color:white;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:340px;
+    min-width:340px;
+    background:var(--pine);
+    color:#e8efe9;
+    padding:32px 26px;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+    position:relative;
+    overflow:hidden;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand svg{width:30px; height:30px; flex-shrink:0;}
+  .brand h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    line-height:1.2;
+  }
+  .brand span{
+    display:block;
+    font-size:11.5px;
+    color:#9fb3a8;
+    font-weight:400;
+    margin-top:2px;
+  }
+
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#9fb3a8;
+    font-weight:600;
+  }
+  .field input{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.12);
+    color:#f2f5f0;
+    padding:10px 12px;
+    border-radius:9px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    outline:none;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .field input::placeholder{color:#6b8478;}
+  .field input:focus{
+    border-color:var(--gold);
+    background:rgba(255,255,255,0.09);
+  }
+
+  .status-row{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:12.5px;
+    color:#b7c6bd;
+  }
+  .status-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:#5a6a60;
+    transition:background .2s ease, box-shadow .2s ease;
+  }
+  .status-dot.ok{background:#5fbf74; box-shadow:0 0 0 3px rgba(95,191,116,.2);}
+  .status-dot.bad{background:var(--rust); box-shadow:0 0 0 3px rgba(168,69,46,.2);}
+  .status-dot.pending{background:var(--gold); box-shadow:0 0 0 3px rgba(201,138,43,.2); animation:pulse 1.1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  .btn-ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.18);
+    color:#e8efe9;
+    padding:9px 14px;
+    border-radius:9px;
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+    font-family:'Inter', sans-serif;
+  }
+  .btn-ghost:hover{background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.3);}
+
+  .notif-note{
+    font-size:12.5px;
+    color:#b7c6bd;
+    line-height:1.5;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:9px;
+    padding:12px;
+    display:flex;
+    gap:9px;
+  }
+  .notif-note svg{width:15px; height:15px; flex-shrink:0; margin-top:1px; color:var(--gold);}
+
+  /* Signature: geofence being traced */
+  .signature{
+    margin-top:auto;
+    padding-top:8px;
+  }
+  .signature svg{width:100%; height:auto; display:block;}
+  .geo-path{
+    fill:rgba(201,138,43,0.08);
+    stroke:var(--gold);
+    stroke-width:2;
+    stroke-linejoin:round;
+    stroke-dasharray:520;
+    stroke-dashoffset:520;
+    animation:draw 2.6s ease forwards;
+  }
+  .geo-dot{
+    fill:#f2f5f0;
+    animation:travel 2.6s ease forwards, blink 1s 2.6s infinite;
+  }
+  @keyframes draw{ to{stroke-dashoffset:0;} }
+  @keyframes travel{
+    0%{ offset-distance:0%; }
+    100%{ offset-distance:100%; }
+  }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .signature-caption{
+    font-size:11px;
+    color:#7d9186;
+    margin-top:10px;
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:.02em;
+  }
+
+  /* ---------- MAIN ---------- */
+  .main{
+    flex:1;
+    padding:40px 48px;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+    max-width:1100px;
+  }
+  .main-header h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .main-header p{
+    color:var(--ink-soft);
+    font-size:14.5px;
+    margin-top:4px;
+  }
+
+  .drop-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  .drop-zone{
+    background:var(--sage-card);
+    border:2px dashed var(--line);
+    border-radius:var(--radius);
+    padding:26px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .drop-zone:hover{border-color:var(--gold); background:#fffdf8;}
+  .drop-zone.drag-over{border-color:var(--crop); background:#f3f9f3; transform:scale(1.01);}
+  .drop-zone.filled{border-style:solid; border-color:var(--crop); background:#f3f9f3;}
+  .drop-zone svg{width:34px; height:34px; color:var(--ink-soft);}
+  .drop-zone.filled svg{color:var(--crop);}
+  .drop-zone h3{font-size:15px; font-weight:600;}
+  .drop-zone p{font-size:12.5px; color:var(--ink-soft);}
+  .drop-zone input[type=file]{display:none;}
+  .drop-zone .file-meta{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    color:var(--crop);
+    background:rgba(76,122,82,0.08);
+    padding:4px 10px;
+    border-radius:20px;
+  }
+
+  /* ---------- VEHICLE CARD (tabs + manual form) ---------- */
+  .vehicle-card{
+    background:var(--sage-card);
+    border:2px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .vehicle-card > h3{
+    display:flex; align-items:center; gap:9px;
+    font-size:15px; font-weight:600;
+  }
+  .vehicle-card > h3 svg{width:19px; height:19px; color:var(--ink-soft); flex-shrink:0;}
+
+  .card-tabs{display:flex; gap:6px;}
+  .tab-btn{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    padding:6px 13px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    font-family:'Inter', sans-serif;
+    cursor:pointer;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .tab-btn.active{background:var(--pine); color:#fff; border-color:var(--pine);}
+  .tab-btn:not(.active):hover{border-color:var(--gold); color:var(--ink);}
+  .tab-panel[hidden]{display:none;}
+
+  .vehicle-rows{
+    display:flex; flex-direction:column; gap:8px;
+    max-height:230px; overflow-y:auto; padding-right:4px;
+  }
+  .vehicle-rows::-webkit-scrollbar{width:7px;}
+  .vehicle-rows::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  .vehicle-row{
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    gap:8px;
+    align-items:center;
+  }
+  .vehicle-row input{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 11px;
+    font-size:13px;
+    font-family:'Inter', sans-serif;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s ease;
+    width:100%;
+  }
+  .vehicle-row input:focus{border-color:var(--gold);}
+  .row-remove{
+    width:28px; height:28px;
+    border-radius:50%;
+    border:none;
+    background:transparent;
+    color:var(--ink-soft);
+    font-size:14px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+    flex-shrink:0;
+  }
+  .row-remove:hover{background:rgba(168,69,46,0.1); color:var(--rust);}
+
+  .add-row-btn{
+    align-self:flex-start;
+    background:transparent;
+    border:1px dashed var(--ink-soft);
+    color:var(--crop);
+    padding:8px 14px;
+    border-radius:9px;
+    font-size:12.5px;
+    font-weight:600;
+    font-family:'Inter', sans-serif;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .add-row-btn:hover{border-color:var(--crop); background:rgba(76,122,82,0.06);}
+
+  .tab-hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  #tabFile .drop-zone{padding:20px;}
+
+  .parcel-card{display:flex; flex-direction:column; gap:14px;}
+
+  .parcel-preview{
+    background:var(--sage-card);
+    border:2px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 18px;
+  }
+  .preview-toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .preview-actions{display:flex; gap:12px;}
+  .link-btn{
+    background:none; border:none;
+    color:var(--crop);
+    font-size:12px; font-weight:600;
+    font-family:'Inter', sans-serif;
+    cursor:pointer;
+    padding:0;
+  }
+  .link-btn:hover{text-decoration:underline;}
+  .preview-list{
+    display:flex; flex-direction:column; gap:2px;
+    max-height:220px; overflow-y:auto; padding-right:4px;
+  }
+  .preview-list::-webkit-scrollbar{width:7px;}
+  .preview-list::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  .preview-row{
+    display:flex; align-items:center; gap:10px;
+    padding:6px 8px;
+    border-radius:7px;
+    font-size:13px;
+  }
+  .preview-row:hover{background:rgba(76,122,82,0.06);}
+  .preview-row input[type=checkbox]{accent-color:var(--crop); width:15px; height:15px; flex-shrink:0;}
+  .preview-row .p-name{flex:1;}
+  .preview-row .p-badge{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    background:var(--sage);
+    border:1px solid var(--line);
+    padding:2px 7px;
+    border-radius:20px;
+  }
+
+  #authTabs .tab-btn{ border-color:rgba(255,255,255,0.18); color:#b7c6bd; }
+  #authTabs .tab-btn.active{ background:var(--gold); color:#231604; border-color:var(--gold); }
+  #authTabs .tab-btn:not(.active):hover{ border-color:var(--gold); color:#e8efe9; }
+
+  .link-existing-toggle{
+    display:flex; align-items:center; gap:9px;
+    font-size:13px; color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .link-existing-toggle input{accent-color:var(--gold); width:16px; height:16px;}
+
+  .btn-ghost-light{
+    background:var(--sage-card);
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:12px 18px;
+    border-radius:11px;
+    font-size:13.5px;
+    font-weight:600;
+    font-family:'Inter', sans-serif;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .btn-ghost-light:hover{border-color:var(--gold); background:#fffdf8;}
+
+  .links-panel{
+    background:var(--sage-card);
+    border:2px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .links-header{
+    display:flex; justify-content:space-between; align-items:center;
+    font-weight:600; font-size:14px; margin-bottom:12px;
+  }
+  .links-body{overflow-x:auto;}
+  .links-table{border-collapse:collapse; width:100%; font-size:12.5px;}
+  .links-table th, .links-table td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    text-align:left;
+    white-space:nowrap;
+  }
+  .links-table th{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    color:var(--ink-soft);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .links-table td.center, .links-table th.center{text-align:center;}
+  .link-yes{color:var(--crop); font-weight:700;}
+  .link-no{color:#94a3b8; font-weight:700;}
+  .link-cell{
+    background:none; border:none; padding:6px 10px; margin:0;
+    font-size:15px; cursor:pointer; border-radius:5px; width:100%;
+    transition:background .15s;
+  }
+  .link-cell:hover{background:rgba(0,0,0,0.06);}
+  .link-cell:disabled{cursor:wait; opacity:.5;}
+  .link-cell.link-yes:hover{background:rgba(34,139,34,0.12);}
+  .links-loading{color:var(--ink-soft); font-size:13px; font-style:italic;}
+
+  .rpg-hint{font-size:12.5px; color:var(--ink-soft); margin:0 0 12px;}
+  .rpg-hint a{color:var(--crop);}
+  .rpg-form{display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:14px;}
+  .rpg-form label{display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;}
+  .rpg-form input{
+    background:var(--sage); border:1px solid var(--line); border-radius:6px;
+    padding:7px 9px; font-size:13px; width:140px; color:var(--ink);
+  }
+  .rpg-form label[style*="flex:2"] input{ width:100%; min-width:260px; }
+  .rpg-btn-solid{
+    background:var(--gold); color:#fff; border:none; border-radius:6px;
+    padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer;
+    white-space:nowrap;
+  }
+  .rpg-btn-solid:hover{ background:var(--gold-hover); }
+
+  .rpg-map{
+    width:100%; height:380px; border-radius:10px; border:1px solid var(--line);
+    margin:10px 0; z-index:0;
+  }
+  .rpg-address-results{ margin-bottom:8px; }
+  .rpg-address-result{
+    padding:8px 10px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px;
+    cursor:pointer; font-size:12.5px; background:var(--sage-card);
+  }
+  .rpg-address-result:hover{ border-color:var(--gold); background:var(--sage); }
+
+  .rpg-popup{ font-size:12.5px; min-width:200px; }
+  .rpg-popup b{ display:block; margin-bottom:4px; }
+  .rpg-popup .code{font-family:'JetBrains Mono', monospace; background:var(--sage); padding:1px 6px; border-radius:4px;}
+  .rpg-popup input{ width:100%; margin:8px 0 6px; padding:6px 8px; border:1px solid var(--line); border-radius:5px; font-size:12.5px; box-sizing:border-box; }
+  .rpg-popup button{ width:100%; padding:6px 8px; border:none; border-radius:5px; background:var(--gold); color:#fff; font-weight:600; cursor:pointer; font-size:12.5px; }
+  .rpg-popup button:hover{ background:var(--gold-hover); }
+  .rpg-popup button:disabled{ background:var(--ink-soft); cursor:wait; }
+  .links-hint{color:var(--ink-soft); font-size:12px; font-style:italic; margin-bottom:10px;}
+
+  .manage-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px;
+    padding:9px 4px;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .manage-row:last-child{border-bottom:none;}
+  .manage-row .p-name{font-weight:500;}
+  .delete-btn{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--rust);
+    padding:6px 12px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:600;
+    font-family:'Inter', sans-serif;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .delete-btn:hover{background:rgba(168,69,46,0.08); border-color:var(--rust);}
+  .delete-btn:disabled{opacity:.5; cursor:not-allowed;}
+
+  .run-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .btn-run{
+    background:var(--gold);
+    color:#231604;
+    border:none;
+    padding:13px 26px;
+    border-radius:11px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    transition:background .15s ease, transform .08s ease;
+    box-shadow:0 4px 14px rgba(201,138,43,0.28);
+  }
+  .btn-run:hover{background:var(--gold-hover);}
+  .btn-run:active{transform:scale(.98);}
+  .btn-run:disabled{background:#c9c2ae; box-shadow:none; cursor:not-allowed; color:#7d7563;}
+  .btn-run svg{width:17px; height:17px;}
+
+  .stats{display:flex; gap:10px; flex-wrap:wrap;}
+  .stat-chip{
+    display:flex; align-items:center; gap:7px;
+    background:var(--sage-card);
+    border:1px solid var(--line);
+    padding:7px 13px;
+    border-radius:20px;
+    font-size:12.5px;
+    font-weight:500;
+  }
+  .stat-chip .dot{width:7px; height:7px; border-radius:50%;}
+  .stat-chip.created .dot{background:var(--crop);}
+  .stat-chip.reused .dot{background:#9fb3a8;}
+  .stat-chip.errors .dot{background:var(--rust);}
+  .stat-chip strong{font-family:'JetBrains Mono', monospace;}
+
+  /* ---------- LOG PANEL ---------- */
+  .log-panel{
+    background:var(--pine-deep);
+    border-radius:var(--radius);
+    flex:1;
+    min-height:280px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .log-header{
+    padding:14px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:#9fb3a8;
+    font-size:12px;
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:.04em;
+  }
+  .log-header .traffic{display:flex; gap:6px;}
+  .log-header .traffic span{width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,0.15);}
+  .log-body{
+    flex:1;
+    overflow-y:auto;
+    padding:16px 20px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.8px;
+    line-height:1.7;
+  }
+  .log-body::-webkit-scrollbar{width:8px;}
+  .log-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12); border-radius:8px;}
+  .log-empty{color:#5a7268; font-style:italic;}
+  .log-line{display:flex; gap:9px; align-items:flex-start; margin-bottom:5px;}
+  .log-line .tag{
+    flex-shrink:0;
+    width:15px; text-align:center;
+  }
+  .log-line.info{color:#c7d6cc;}
+  .log-line.ok{color:#8fd39f;}
+  .log-line.warn{color:#f0c674;}
+  .log-line.error{color:#f0968a;}
+  .log-line .msg b{color:#f2f5f0;}
+
+  @media (max-width: 860px){
+    body{flex-direction:column;}
+    .sidebar{width:100%; min-width:0;}
+    .drop-grid{grid-template-columns:1fr;}
+    .main{padding:24px;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 20L4 10L12 4L20 10V20" stroke="#c98a2b" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="12" cy="14" r="2.4" fill="#c98a2b"/>
+      </svg>
+      <div>
+        <h1>Import Traccar</h1>
+        <span>Véhicules · Parcelles · Alertes</span>
+      </div>
+    </div>
+
+    <a href="/" class="btn-ghost" style="text-decoration:none;display:inline-block;text-align:center;">← Retour au dashboard</a>
+
+    <div class="field">
+      <label for="url">URL du serveur</label>
+      <input id="url" type="text" placeholder="https://mon-serveur-traccar.fr">
+    </div>
+
+    <div class="card-tabs" id="authTabs">
+      <button type="button" class="tab-btn active" data-auth="token">Token</button>
+      <button type="button" class="tab-btn" data-auth="basic">Email + mot de passe</button>
+    </div>
+
+    <div id="authToken" class="tab-panel">
+      <div class="field">
+        <label for="token">Jeton (token)</label>
+        <input id="token" type="password" placeholder="••••••••••••••••">
+      </div>
+    </div>
+
+    <div id="authBasic" class="tab-panel" hidden>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="text" placeholder="toi@exemple.fr">
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="password">Mot de passe</label>
+        <input id="password" type="password" placeholder="••••••••••••••••">
+      </div>
+    </div>
+
+    <div class="status-row">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Non connecté</span>
+    </div>
+    <button class="btn-ghost" id="testBtn" type="button">Tester la connexion</button>
+
+    <div class="notif-note">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2">
+        <path d="M12 8v5M12 16h.01" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="9"/>
+      </svg>
+      <span>Alertes d'entrée / sortie de parcelle envoyées via le canal <b style="color:#f2f5f0">Web</b> intégré à Traccar. Aucune config supplémentaire nécessaire.</span>
+    </div>
+
+    <div class="signature">
+      <svg viewBox="0 0 280 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path id="geofence" class="geo-path"
+          d="M40 110 L55 45 L120 30 L200 50 L235 95 L190 128 L95 132 Z"/>
+        <circle class="geo-dot" r="4.5">
+          <animateMotion dur="2.6s" fill="freeze"
+            path="M40 110 L55 45 L120 30 L200 50 L235 95 L190 128 L95 132 Z"/>
+        </circle>
+      </svg>
+      <div class="signature-caption">// géofence — tracé en direct</div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="main-header">
+      <h2>Importer une flotte</h2>
+      <p>Dépose ton fichier véhicules et tes parcelles, puis lance l'import. Rien n'est dupliqué si tu relances.</p>
+    </div>
+
+    <div class="drop-grid">
+      <div class="vehicle-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 14l2-6a2 2 0 012-1h10a2 2 0 012 1l2 6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 14h18v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4z" stroke-linejoin="round"/>
+            <circle cx="7.5" cy="19.5" r="1.5"/><circle cx="16.5" cy="19.5" r="1.5"/>
+          </svg>
+          Véhicules
+        </h3>
+
+        <div class="card-tabs">
+          <button type="button" class="tab-btn active" data-tab="manual">Saisie manuelle</button>
+          <button type="button" class="tab-btn" data-tab="file">Fichier CSV</button>
+        </div>
+
+        <div class="tab-panel" id="tabManual">
+          <div class="vehicle-rows" id="vehicleRows"></div>
+          <button type="button" class="add-row-btn" id="addVehicleRow">+ Ajouter un véhicule</button>
+          <p class="tab-hint" id="manualCount">0 véhicule prêt</p>
+        </div>
+
+        <div class="tab-panel" id="tabFile" hidden>
+          <label class="drop-zone" id="zoneVehicles" for="fileVehicles">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3v12M12 15l-4-4M12 15l4-4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke-linecap="round"/>
+            </svg>
+            <p>Glisse un fichier <b>CSV</b></p>
+            <p style="font-family:'JetBrains Mono',monospace; font-size:11px;">colonnes : name/nom, plate/plaque</p>
+            <span class="file-meta" id="metaVehicles" style="display:none;"></span>
+            <input type="file" id="fileVehicles" accept=".csv">
+          </label>
+
+          <div class="parcel-preview" id="vehiclePreview" hidden>
+            <div class="preview-toolbar">
+              <span id="vehiclePreviewCount" class="tab-hint"></span>
+              <div class="preview-actions">
+                <button type="button" class="link-btn" id="selectAllVehicles">Tout cocher</button>
+                <button type="button" class="link-btn" id="selectNoneVehicles">Tout décocher</button>
+              </div>
+            </div>
+            <div class="preview-list" id="vehiclePreviewList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="parcel-card">
+        <label class="drop-zone" id="zoneParcels" for="fileParcels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 20L4 10L12 4L20 10V20" stroke-linejoin="round"/>
+            <path d="M4 20h16" stroke-linecap="round"/>
+          </svg>
+          <h3>Parcelles</h3>
+          <p>Glisse un fichier GeoJSON ou KML</p>
+          <span class="file-meta" id="metaParcels" style="display:none;"></span>
+          <input type="file" id="fileParcels" accept=".json,.geojson,.kml">
+        </label>
+
+        <div class="parcel-preview" id="parcelPreview" hidden>
+          <div class="preview-toolbar">
+            <span id="previewCount" class="tab-hint"></span>
+            <div class="preview-actions">
+              <button type="button" class="link-btn" id="selectAll">Tout cocher</button>
+              <button type="button" class="link-btn" id="selectNone">Tout décocher</button>
+            </div>
+          </div>
+          <div class="preview-list" id="previewList"></div>
+        </div>
+      </div>
+    </div>
+
+    <label class="link-existing-toggle">
+      <input type="checkbox" id="linkExisting" checked>
+      Assurer que tous les véhicules sont liés à toutes les parcelles du serveur (dans les deux sens)
+    </label>
+
+    <div class="run-row">
+      <button class="btn-run" id="runBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 3l14 9-14 9V3z" stroke-linejoin="round"/>
+        </svg>
+        Lancer l'import
+      </button>
+      <button class="btn-ghost-light" id="showLinksBtn" type="button">🔗 Voir les liaisons actuelles</button>
+      <button class="btn-ghost-light" id="managePlotsBtn" type="button">🗑️ Gérer les parcelles</button>
+      <button class="btn-ghost-light" id="showHistoryBtn" type="button">🕘 Historique des imports</button>
+      <button class="btn-ghost-light" id="showRpgBtn" type="button">🌾 Importer depuis le RPG (IGN)</button>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="links-panel" id="linksPanel" hidden>
+      <div class="links-header">
+        <span>Liaisons véhicule ↔ parcelle sur le serveur</span>
+        <button type="button" class="link-btn" id="closeLinksBtn">Fermer</button>
+      </div>
+      <div id="linksBody" class="links-body"></div>
+    </div>
+
+    <div class="links-panel" id="rpgPanel" hidden>
+      <div class="links-header">
+        <span>🌾 Importer une parcelle depuis le RPG (IGN)</span>
+        <button type="button" class="link-btn" id="closeRpgBtn">Fermer</button>
+      </div>
+      <div class="rpg-body">
+        <p class="rpg-hint">
+          Recherche dans le <strong>Registre Parcellaire Graphique</strong> (IGN/ASP, Licence
+          Ouverte, gratuite et sans clé). Cherchez une adresse pour vous positionner, zoomez
+          sur le secteur voulu, puis affichez les parcelles ou îlots et cliquez directement
+          dessus pour les importer.
+          <br>💡 <strong>Parcelles</strong> : une culture homogène, redessinée chaque campagne
+          selon ce qui est semé. <strong>Îlots</strong> : contour stable dans le temps (route,
+          chemin, haie...), peut contenir plusieurs cultures — plus adapté à une géofence
+          Traccar qui n'a pas vocation à être redessinée chaque année.
+        </p>
+        <div class="rpg-form">
+          <label style="flex:2;">Rechercher une adresse
+            <input type="text" id="rpgAddressInput" placeholder="ex: 12 route de Pau, 64000 Pau">
+          </label>
+          <button type="button" class="link-btn" id="rpgAddressSearchBtn">🔍 Chercher l'adresse</button>
+        </div>
+        <div id="rpgAddressResults" class="rpg-address-results"></div>
+
+        <div class="rpg-form">
+          <label>Niveau
+            <select id="rpgNiveau">
+              <option value="parcelles">Parcelles (par culture)</option>
+              <option value="ilots">Îlots (contour stable)</option>
+            </select>
+          </label>
+          <label id="rpgAnneeWrap">Année (millésime RPG)
+            <input type="number" id="rpgAnnee" min="2015" max="2024" placeholder="ex: 2023">
+          </label>
+          <button type="button" class="rpg-btn-solid" id="rpgLoadParcelsBtn">🌾 Afficher sur la carte</button>
+        </div>
+
+        <div id="rpgMap" class="rpg-map"></div>
+        <p class="rpg-hint" id="rpgStatus">Zoomez sur votre secteur (recommandé : niveau parcelle, pas commune entière), puis cliquez sur "Afficher sur la carte".</p>
+      </div>
+    </div>
+
+    <div class="links-panel" id="managePanel" hidden>
+      <div class="links-header">
+        <span>Parcelles présentes sur le serveur</span>
+        <button type="button" class="link-btn" id="closeManageBtn">Fermer</button>
+      </div>
+      <div id="manageBody" class="links-body"></div>
+    </div>
+
+    <div class="links-panel" id="historyPanel" hidden>
+      <div class="links-header">
+        <span>Historique des imports (30 derniers)</span>
+        <button type="button" class="link-btn" id="closeHistoryPanelBtn">Fermer</button>
+      </div>
+      <div id="historyPanelBody" class="links-body"></div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-header">
+        <div class="traffic"><span></span><span></span><span></span></div>
+        journal d'import
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="log-empty">En attente… configure la connexion puis lance l'import.</div>
+      </div>
+    </div>
+  </main>
+
+<script>
+/* ============================================================
+   Client Traccar minimal — miroir de traccar_api.py / importer.py
+   ============================================================ */
+class TraccarAPIError extends Error {}
+
+// Traduit les erreurs techniques (SQL/serveur) les plus courantes en
+// messages compréhensibles, sans cacher le détail brut pour le débogage.
+function friendlyServerError(rawText){
+  if(/Duplicate entry.*uniqueid/i.test(rawText)){
+    return "un véhicule avec cette plaque existe déjà sur le serveur Traccar, mais ton compte ne le voit pas dans sa liste (créé sous un autre utilisateur, ou permissions restreintes). Vérifie sur Traccar avec un compte administrateur, ou choisis une autre plaque si c'est un doublon involontaire.";
+  }
+  if(/Data truncation.*column ['"]?area['"]?/i.test(rawText)){
+    return "le tracé de cette parcelle est trop volumineux pour la base de données Traccar, même après simplification automatique. Essaie de redessiner un contour avec moins de points source, ou contacte l'administrateur pour vérifier la taille de colonne autorisée côté serveur.";
+  }
+  return null;
+}
+
+class TraccarAPI {
+  constructor(url, auth){
+    this.url = url.replace(/\/+$/, '');
+    // auth = {type:'token', token} ou {type:'basic', username, password}
+    this.authHeader = auth.type === 'basic'
+      ? 'Basic ' + btoa(unescape(encodeURIComponent(`${auth.username}:${auth.password}`)))
+      : 'Bearer ' + auth.token;
+  }
+  async _req(method, path, body){
+    // On passe par le proxy du dashboard (/api/traccar_proxy) plutôt que d'appeler Traccar
+    // directement depuis le navigateur : un appel direct est bloqué par le navigateur si
+    // le serveur Traccar n'envoie pas d'en-têtes CORS (Access-Control-Allow-Origin), ce qui
+    // est le cas par défaut sur la plupart des installations. Le proxy fait la requête
+    // serveur -> serveur (comme le reste du dashboard), donc aucun souci de CORS.
+    let res;
+    try{
+      res = await fetch('/api/traccar_proxy', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ url: this.url + path, method, authHeader: this.authHeader, body })
+      });
+    }catch(e){
+      throw new TraccarAPIError(`Impossible de contacter le dashboard (proxy) : ${e.message}`);
+    }
+    if(!res.ok){
+      const text = await res.text().catch(()=> '');
+      throw new TraccarAPIError(`Proxy → HTTP ${res.status} ${text.slice(0,200)}`);
+    }
+    const wrapper = await res.json();
+    if(wrapper.error){
+      throw new TraccarAPIError(`Impossible de contacter ${this.url} — vérifie l'URL (${wrapper.error})`);
+    }
+    if(wrapper.status < 200 || wrapper.status >= 300){
+      const text = typeof wrapper.body === 'string' ? wrapper.body : JSON.stringify(wrapper.body || '');
+      const friendly = friendlyServerError(text);
+      throw new TraccarAPIError(
+        friendly
+          ? `${method} ${path} : ${friendly}`
+          : `${method} ${path} → HTTP ${wrapper.status} ${text.slice(0,200)}`
+      );
+    }
+    return wrapper.body;
+  }
+
+  listDevices(){ return this._req('GET','/api/devices').then(r=>r||[]); }
+  async getOrCreateDevice(name, uniqueId){
+    const devices = await this.listDevices();
+    const existing = devices.find(d => d.uniqueId === uniqueId);
+    if(existing) return {device:existing, created:false};
+    const created = await this._req('POST','/api/devices',{name, uniqueId});
+    return {device:created, created:true};
+  }
+
+  listGeofences(){ return this._req('GET','/api/geofences').then(r=>r||[]); }
+  listGeofencesForDevice(deviceId){ return this._req('GET', `/api/geofences?deviceId=${deviceId}`).then(r=>r||[]); }
+  deleteGeofence(id){ return this._req('DELETE', `/api/geofences/${id}`); }
+  async getOrCreateGeofence(name, area){
+    const geofences = await this.listGeofences();
+    const existing = geofences.find(g => g.name === name);
+    if(existing) return {geofence:existing, created:false};
+    const created = await this._req('POST','/api/geofences',{name, area});
+    return {geofence:created, created:true};
+  }
+
+  listPermissions(){ return this._req('GET','/api/permissions').then(r=>r||[]); }
+  async ensureLink(deviceId, geofenceId){
+    // Lister TOUTES les permissions du serveur nécessite un compte admin.
+    // Si ce n'est pas le cas, on saute simplement la vérification préalable
+    // et on tente la création directe.
+    try{
+      const perms = await this.listPermissions();
+      const existing = perms.find(p => p.deviceId===deviceId && p.geofenceId===geofenceId);
+      if(existing) return {created:false};
+    }catch(e){
+      // pas admin (ou autre souci de lecture) : on continue sans vérification préalable
+    }
+    try{
+      await this._req('POST','/api/permissions',{deviceId, geofenceId});
+      return {created:true};
+    }catch(e){
+      if(/Duplicate entry/i.test(e.message)){
+        return {created:false}; // déjà liée, rien à faire
+      }
+      throw e;
+    }
+  }
+
+  // Symétrique de ensureLink : supprime la liaison véhicule <-> parcelle (permission
+  // Traccar). Contrairement à /api/geofences/{id} (suppression par l'ID dans l'URL),
+  // l'endpoint /api/permissions de Traccar attend le couple {deviceId, geofenceId}
+  // dans le corps de la requête DELETE (il n'existe pas d'ID de permission exposé
+  // côté client) -- voir POST ci-dessus qui utilise exactement le même corps.
+  async deletePermission(deviceId, geofenceId){
+    try{
+      await this._req('DELETE','/api/permissions',{deviceId, geofenceId});
+    }catch(e){
+      // Si la liaison n'existait déjà plus (ex: supprimée entre-temps ailleurs),
+      // Traccar répond une erreur -- on la considère comme un succès silencieux
+      // plutôt que de bloquer l'utilisateur sur un état déjà atteint.
+      if(!/not found/i.test(e.message)) throw e;
+    }
+  }
+
+  // Vérifie concrètement qu'une géofence est bien rattachée à un véhicule,
+  // en interrogeant Traccar plutôt qu'en supposant que le POST a suffi
+  // (utile quand le compte n'est pas admin et qu'on ne peut pas lister
+  // /api/permissions pour confirmer autrement).
+  async isLinked(deviceId, geofenceId){
+    const geofences = await this.listGeofencesForDevice(deviceId);
+    return geofences.some(g => g.id === geofenceId);
+  }
+
+  listNotifications(){ return this._req('GET','/api/notifications').then(r=>r||[]); }
+  async getOrCreateNotification(type, notificators){
+    const notifs = await this.listNotifications();
+    const existing = notifs.find(n => n.type===type && n.notificators===notificators);
+    if(existing) return {created:false};
+    await this._req('POST','/api/notifications',{
+      type, always:true, notificators, attributes:{}
+    });
+    return {created:true};
+  }
+}
+
+/* ============================================================
+   Conversion géométrie -> WKT (GeoJSON déjà en WGS84 par spec,
+   KML idem — donc pas de souci de reprojection ici)
+   ============================================================ */
+
+// Réduit le nombre de points d'un tracé trop dense (ex: contour GPS
+// enregistré point par point en roulant le tour du champ) pour que le
+// WKT reste sous la taille maximale acceptée par la colonne 'area' de
+// Traccar. Simplification par distance minimale entre points gardés,
+// avec seuil qui augmente automatiquement si ça ne suffit pas.
+function simplifyRing(ring, minDist){
+  if(ring.length <= 6) return ring;
+  const kept = [ring[0]];
+  for(let i=1; i<ring.length; i++){
+    const prev = kept[kept.length-1];
+    const d = Math.hypot(ring[i][0]-prev[0], ring[i][1]-prev[1]);
+    if(d >= minDist || i === ring.length-1) kept.push(ring[i]);
+  }
+  if(kept.length >= 3){
+    const first = kept[0], last = kept[kept.length-1];
+    if(first[0] !== last[0] || first[1] !== last[1]) kept.push(first);
+  }
+  return kept;
+}
+
+function ringToWkt(ring, maxChars = 3500){
+  // Traccar attend l'ordre "latitude longitude" dans son champ WKT 'area',
+  // contrairement à la norme WKT standard (longitude latitude). C'est un
+  // quirk documenté du serveur (cf. issue GitHub traccar/traccar #4554).
+  // Nos rings internes restent en [lon, lat] (GeoJSON/KML standard) ;
+  // on inverse uniquement à l'écriture du texte WKT.
+  let tolerance = 0.00002; // ~2m
+  let candidate = ring;
+  for(let attempt=0; attempt<8; attempt++){
+    const wkt = candidate.map(pt => `${pt[1]} ${pt[0]}`).join(', ');
+    if(wkt.length <= maxChars || candidate.length <= 6) return wkt;
+    tolerance *= 2;
+    candidate = simplifyRing(ring, tolerance);
+  }
+  return candidate.map(pt => `${pt[1]} ${pt[0]}`).join(', ');
+}
+
+function geometryToWkt(geom){
+  if(!geom) throw new Error('géométrie manquante');
+  if(geom.type === 'Polygon'){
+    return `POLYGON(${geom.coordinates.map(r=>'('+ringToWkt(r)+')').join(',')})`;
+  }
+  if(geom.type === 'MultiPolygon'){
+    return `MULTIPOLYGON(${geom.coordinates.map(poly =>
+      '(' + poly.map(r=>'('+ringToWkt(r)+')').join(',') + ')'
+    ).join(',')})`;
+  }
+  throw new Error(`type de géométrie non supporté: ${geom.type}`);
+}
+
+function parseGeoJSON(obj){
+  const parcels = [], errors = [], skipped = [];
+  const features = obj.type === 'FeatureCollection' ? obj.features
+                  : obj.type === 'Feature' ? [obj]
+                  : [{type:'Feature', properties:{}, geometry:obj}];
+  features.forEach((f, i) => {
+    const name = (f.properties && (f.properties.name || f.properties.NAME)) || `Parcelle ${i+1}`;
+    const type = f.geometry && f.geometry.type;
+    if(type && type !== 'Polygon' && type !== 'MultiPolygon'){
+      skipped.push(name); // Point, LineString... pas une parcelle, pas une erreur
+      return;
+    }
+    try{
+      parcels.push({name, wkt: geometryToWkt(f.geometry)});
+    }catch(e){
+      errors.push(`${name}: ${e.message}`);
+    }
+  });
+  return {parcels, errors, skipped};
+}
+
+function parseKML(text){
+  const parcels = [], errors = [], skipped = [];
+  const xml = new DOMParser().parseFromString(text, 'application/xml');
+  if(xml.querySelector('parsererror')){
+    throw new Error('fichier KML invalide ou mal formé (impossible à parser comme XML)');
+  }
+  const placemarks = Array.from(xml.getElementsByTagName('Placemark'));
+  placemarks.forEach((pm, i) => {
+    const nameEl = pm.getElementsByTagName('name')[0];
+    const name = nameEl ? nameEl.textContent.trim() : `Placemark ${i+1}`;
+    const polys = Array.from(pm.getElementsByTagName('Polygon'));
+
+    if(polys.length === 0){
+      // Pas un polygone : très probablement un tracé GPS (LineString) ou
+      // un point de repère présent dans le fichier à côté du contour du
+      // champ. Ce n'est pas une erreur, juste hors-sujet pour une géofence.
+      skipped.push(name);
+      return;
+    }
+
+    try{
+      const ringsOfPolys = polys.map(poly => {
+        const coordEl = poly.getElementsByTagName('coordinates')[0];
+        if(!coordEl) throw new Error('balise <coordinates> manquante');
+        return coordEl.textContent.trim().split(/\s+/).map(tuple => {
+          const [lon, lat] = tuple.split(',').map(Number);
+          return [lon, lat];
+        });
+      });
+      const wkt = polys.length > 1
+        ? `MULTIPOLYGON(${ringsOfPolys.map(r => '((' + ringToWkt(r) + '))').join(',')})`
+        : `POLYGON((${ringToWkt(ringsOfPolys[0])}))`;
+      parcels.push({name, wkt});
+    }catch(e){
+      errors.push(`${name}: ${e.message}`);
+    }
+  });
+  return {parcels, errors, skipped};
+}
+
+/* ============================================================
+   État de l'application
+   ============================================================ */
+const state = { vehiclesFromFile:null, parcels:null, vehicleTab:'manual', serverDevices:null, serverGeofences:null };
+
+/* ---------- Détection de conflits avec l'existant sur le serveur ----------
+   Avant l'import, on compare les véhicules/parcelles chargés à ce qui existe
+   déjà sur le serveur Traccar, pour repérer les cas où un même nom pointe
+   vers des caractéristiques différentes (ex: même nom de véhicule mais
+   plaque différente) -- signe probable d'un doublon involontaire ou d'une
+   confusion, à vérifier avant de lancer l'import plutôt qu'après. */
+async function refreshServerCacheIfPossible(){
+  const url = $('#url').value.trim();
+  const auth = getAuth();
+  if(!url || !auth) return;
+  try{
+    const api = new TraccarAPI(url, auth);
+    const [devices, geofences] = await Promise.all([api.listDevices(), api.listGeofences()]);
+    state.serverDevices = devices;
+    state.serverGeofences = geofences;
+    // Réaffiche les aperçus déjà ouverts pour montrer les conflits détectés
+    if(state.vehiclesFromFile) renderVehiclePreview();
+    if(state.parcels) renderParcelPreview();
+  }catch(e){ /* pas grave : la détection de conflit sera simplement indisponible */ }
+}
+
+function findVehicleConflict(name, plate){
+  if(!state.serverDevices) return null;
+  const match = state.serverDevices.find(d => d.name.trim().toLowerCase() === name.trim().toLowerCase());
+  if(!match) return null;
+  if(match.uniqueId !== plate){
+    return `Un véhicule nommé "${name}" existe déjà sur le serveur avec une plaque différente (${match.uniqueId}) — vérifie qu'il ne s'agit pas d'une confusion.`;
+  }
+  return null; // même nom, même plaque : ce sera simplement réutilisé, pas un conflit
+}
+
+function findParcelConflict(name){
+  if(!state.serverGeofences) return null;
+  const match = state.serverGeofences.find(g => g.name.trim().toLowerCase() === name.trim().toLowerCase());
+  return match ? `Une parcelle nommée "${name}" existe déjà sur le serveur — elle sera réutilisée (aucun doublon créé), vérifie que c'est bien la bonne.` : null;
+}
+
+const $ = sel => document.querySelector(sel);
+const logBody = $('#logBody');
+
+function log(type, msg){
+  if(logBody.querySelector('.log-empty')) logBody.innerHTML = '';
+  const icons = {info:'›', ok:'✓', warn:'!', error:'✕'};
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.innerHTML = `<span class="tag">${icons[type]}</span><span class="msg">${msg}</span>`;
+  logBody.appendChild(line);
+  logBody.scrollTop = logBody.scrollHeight;
+}
+
+function setStats({created=0, reused=0, errors=0}){
+  $('#stats').innerHTML = `
+    <div class="stat-chip created"><span class="dot"></span>Créés <strong>${created}</strong></div>
+    <div class="stat-chip reused"><span class="dot"></span>Déjà présents <strong>${reused}</strong></div>
+    <div class="stat-chip errors"><span class="dot"></span>Erreurs <strong>${errors}</strong></div>
+  `;
+}
+
+/* ---------- Drop zones ---------- */
+function setupDropZone(zoneId, inputId, metaId, onFile){
+  const zone = $(zoneId), input = $(inputId), meta = $(metaId);
+  ['dragenter','dragover'].forEach(evt =>
+    zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(evt =>
+    zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.remove('drag-over'); }));
+  zone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if(file) handleFile(file);
+  });
+  input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(file) handleFile(file);
+  });
+  function handleFile(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const text = reader.result.replace(/^\uFEFF/, ''); // retire le BOM UTF-8 éventuel
+        onFile(file.name, text);
+        zone.classList.add('filled');
+        meta.style.display = 'inline-block';
+        meta.textContent = file.name;
+      }catch(e){
+        log('error', `Lecture de ${file.name} : ${e.message}`);
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+/* ============================================================
+   Parseur CSV véhicules — détecte , ou ; et les en-têtes FR/EN
+   ============================================================ */
+function parseCSVLine(line, delim){
+  const result = [];
+  let cur = '', inQuotes = false;
+  for(let i=0; i<line.length; i++){
+    const ch = line[i];
+    if(inQuotes){
+      if(ch === '"'){
+        if(line[i+1] === '"'){ cur += '"'; i++; }
+        else{ inQuotes = false; }
+      } else cur += ch;
+    } else {
+      if(ch === '"') inQuotes = true;
+      else if(ch === delim){ result.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseVehiclesCSV(text){
+  const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+  if(lines.length === 0) throw new Error('fichier CSV vide');
+
+  const delim = (lines[0].split(';').length > lines[0].split(',').length) ? ';' : ',';
+  const header = parseCSVLine(lines[0], delim).map(h => h.trim().toLowerCase());
+
+  const nameIdx = header.findIndex(h => ['name', 'nom'].includes(h));
+  const plateIdx = header.findIndex(h => ['plate', 'plaque', 'immatriculation', 'uniqueid', 'unique_id'].includes(h));
+
+  if(nameIdx === -1 || plateIdx === -1){
+    throw new Error(`en-têtes attendus introuvables (colonnes trouvées : ${header.join(', ')}). Utilise "name"/"nom" et "plate"/"plaque".`);
+  }
+
+  const vehicles = [], errors = [];
+  for(let i = 1; i < lines.length; i++){
+    const cols = parseCSVLine(lines[i], delim);
+    const name = (cols[nameIdx] || '').trim();
+    const plate = (cols[plateIdx] || '').trim();
+    if(!name || !plate){ errors.push(`Ligne ${i + 1} du CSV : nom ou plaque manquant`); continue; }
+    vehicles.push({name, plate, selected: true});
+  }
+  return {vehicles, errors};
+}
+
+setupDropZone('#zoneVehicles', '#fileVehicles', '#metaVehicles', (name, text) => {
+  if(!name.toLowerCase().endsWith('.csv')){
+    throw new Error('seul le format CSV est accepté ici');
+  }
+  const {vehicles, errors} = parseVehiclesCSV(text);
+  state.vehiclesFromFile = vehicles;
+  log('info', `Véhicules chargés : <b>${vehicles.length}</b> entrée(s) depuis ${name}`);
+  errors.forEach(e => log('warn', e));
+  renderVehiclePreview();
+  refreshServerCacheIfPossible();
+});
+
+function renderVehiclePreview(){
+  const wrap = $('#vehiclePreview');
+  const list = $('#vehiclePreviewList');
+  const vehicles = state.vehiclesFromFile || [];
+
+  if(vehicles.length === 0){ wrap.hidden = true; return; }
+  wrap.hidden = false;
+
+  list.innerHTML = '';
+  vehicles.forEach((v, i) => {
+    const row = document.createElement('label');
+    row.className = 'preview-row';
+    const conflict = findVehicleConflict(v.name, v.plate);
+    row.innerHTML = `
+      <input type="checkbox" ${v.selected ? 'checked' : ''}>
+      <span class="p-name">${v.name} <span style="color:#7d9186;font-weight:400;">(${v.plate})</span></span>
+      ${conflict ? `<span class="p-badge" style="background:rgba(168,69,46,0.12); color:var(--rust);" title="${conflict}">⚠️ conflit</span>` : ''}
+    `;
+    row.querySelector('input').addEventListener('change', e => {
+      vehicles[i].selected = e.target.checked;
+      updateVehiclePreviewCount();
+    });
+    list.appendChild(row);
+  });
+  updateVehiclePreviewCount();
+}
+
+function updateVehiclePreviewCount(){
+  const vehicles = state.vehiclesFromFile || [];
+  const selected = vehicles.filter(v => v.selected).length;
+  $('#vehiclePreviewCount').textContent = `${selected} / ${vehicles.length} sélectionné(s) à importer`;
+}
+
+$('#selectAllVehicles').addEventListener('click', () => {
+  (state.vehiclesFromFile || []).forEach(v => v.selected = true);
+  renderVehiclePreview();
+});
+$('#selectNoneVehicles').addEventListener('click', () => {
+  (state.vehiclesFromFile || []).forEach(v => v.selected = false);
+  renderVehiclePreview();
+});
+
+/* ---------- Onglets Véhicules : saisie manuelle / fichier ---------- */
+state.vehicleTab = 'manual';
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.vehicleTab = btn.dataset.tab;
+    $('#tabManual').hidden = state.vehicleTab !== 'manual';
+    $('#tabFile').hidden = state.vehicleTab !== 'file';
+  });
+});
+
+/* ---------- Onglets d'authentification : Token / Email+mot de passe ---------- */
+state.authTab = 'token';
+document.querySelectorAll('#authTabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#authTabs .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.authTab = btn.dataset.auth;
+    $('#authToken').hidden = state.authTab !== 'token';
+    $('#authBasic').hidden = state.authTab !== 'basic';
+  });
+});
+
+/* ---------- Pré-remplissage depuis la config Traccar déjà enregistrée côté serveur ---------- */
+(async function prefillFromServerConfig(){
+  try{
+    const r = await fetch('/api/traccar_import_config');
+    if(!r.ok) return;
+    const cfg = await r.json();
+    if(cfg.url) $('#url').value = cfg.url;
+    if(cfg.user && cfg.password){
+      $('#email').value = cfg.user;
+      $('#password').value = cfg.password;
+      // Bascule sur l'onglet "Email + mot de passe", seul mode que le dashboard sait pré-remplir
+      document.querySelector('#authTabs .tab-btn[data-auth="basic"]').click();
+      log('info', 'URL et identifiants pré-remplis depuis la configuration du dashboard.');
+      refreshServerCacheIfPossible();
+    }
+  }catch(e){ /* pas de config disponible : champs laissés vides, comportement normal */ }
+})();
+
+function getAuth(){
+  if(state.authTab === 'basic'){
+    const username = $('#email').value.trim();
+    const password = $('#password').value;
+    if(!username || !password) return null;
+    return {type:'basic', username, password};
+  }
+  const token = $('#token').value.trim();
+  if(!token) return null;
+  return {type:'token', token};
+}
+
+/* ---------- Formulaire manuel : lignes dynamiques ---------- */
+const vehicleRows = $('#vehicleRows');
+
+function createVehicleRow(name = '', plate = ''){
+  const row = document.createElement('div');
+  row.className = 'vehicle-row';
+  row.innerHTML = `
+    <input type="text" class="v-name" placeholder="Nom (ex : Tracteur John Deere 6120)" value="${name}">
+    <input type="text" class="v-plate" placeholder="Plaque / identifiant (ex : AB-123-CD)" value="${plate}">
+    <button type="button" class="row-remove" title="Supprimer cette ligne">✕</button>
+  `;
+  row.querySelector('.row-remove').addEventListener('click', () => {
+    row.remove();
+    updateManualCount();
+  });
+  row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateManualCount));
+  return row;
+}
+
+function addVehicleRow(name='', plate='', focus=true){
+  const row = createVehicleRow(name, plate);
+  vehicleRows.appendChild(row);
+  if(focus) row.querySelector('.v-name').focus();
+  updateManualCount();
+  return row;
+}
+
+function collectManualVehicles(){
+  const vehicles = [];
+  let incomplete = 0;
+  vehicleRows.querySelectorAll('.vehicle-row').forEach(row => {
+    const name = row.querySelector('.v-name').value.trim();
+    const plate = row.querySelector('.v-plate').value.trim();
+    if(name && plate) vehicles.push({name, plate});
+    else if(name || plate) incomplete++;
+  });
+  return {vehicles, incomplete};
+}
+
+function updateManualCount(){
+  const {vehicles, incomplete} = collectManualVehicles();
+  let text = `${vehicles.length} véhicule${vehicles.length>1?'s':''} prêt${vehicles.length>1?'s':''}`;
+  if(incomplete>0) text += ` · ${incomplete} ligne(s) incomplète(s) ignorée(s)`;
+  $('#manualCount').textContent = text;
+}
+
+$('#addVehicleRow').addEventListener('click', () => addVehicleRow());
+
+// deux lignes vides pour commencer
+addVehicleRow('', '', false);
+addVehicleRow('', '', false);
+
+setupDropZone('#zoneParcels', '#fileParcels', '#metaParcels', (name, text) => {
+  let result;
+  if(name.toLowerCase().endsWith('.kml')){
+    result = parseKML(text);
+  }else{
+    result = parseGeoJSON(JSON.parse(text));
+  }
+
+  // Présélection intelligente : les boîtiers agricoles (John Deere, Ag Leader...)
+  // exportent souvent le contour du champ + des dizaines de sous-sections
+  // ("Sections_0", "Section 12", ...) qui sont des passages d'outil, pas des
+  // parcelles à surveiller. On les décoche par défaut, l'utilisateur choisit.
+  const SUBSECTION_PATTERN = /^sections?[\s_-]?\d+$/i;
+  result.parcels.forEach(p => { p.selected = !SUBSECTION_PATTERN.test(p.name.trim()); });
+
+  state.parcels = result;
+  log('info', `Parcelles chargées : <b>${result.parcels.length}</b> polygone(s) valide(s) depuis ${name}`);
+
+  if(result.skipped.length > 0){
+    const preview = result.skipped.slice(0, 5).join(', ');
+    const suffix = result.skipped.length > 5 ? ` … et ${result.skipped.length - 5} autre(s)` : '';
+    log('info', `${result.skipped.length} élément(s) ignoré(s) (tracés/points, pas des parcelles) : ${preview}${suffix}`);
+  }
+  result.errors.forEach(e => log('error', e));
+
+  const autoExcluded = result.parcels.filter(p => !p.selected).length;
+  if(autoExcluded > 0){
+    log('warn', `${autoExcluded} sous-section(s) détectée(s) (ex: "Sections_N") décochée(s) par défaut — coche-les dans l'aperçu si tu veux les importer aussi.`);
+  }
+
+  renderParcelPreview();
+  refreshServerCacheIfPossible();
+});
+
+function renderParcelPreview(){
+  const wrap = $('#parcelPreview');
+  const list = $('#previewList');
+  const parcels = state.parcels.parcels;
+
+  if(parcels.length === 0){ wrap.hidden = true; return; }
+  wrap.hidden = false;
+
+  list.innerHTML = '';
+  parcels.forEach((p, i) => {
+    const row = document.createElement('label');
+    row.className = 'preview-row';
+    const isSubsection = /^sections?[\s_-]?\d+$/i.test(p.name.trim());
+    const conflict = findParcelConflict(p.name);
+    row.innerHTML = `
+      <input type="checkbox" ${p.selected ? 'checked' : ''}>
+      <span class="p-name">${p.name}</span>
+      ${isSubsection ? '<span class="p-badge">sous-section</span>' : ''}
+      ${conflict ? `<span class="p-badge" style="background:rgba(90,106,96,0.12); color:var(--ink-soft);" title="${conflict}">ℹ️ déjà existante</span>` : ''}
+    `;
+    row.querySelector('input').addEventListener('change', e => {
+      parcels[i].selected = e.target.checked;
+      updatePreviewCount();
+    });
+    list.appendChild(row);
+  });
+  updatePreviewCount();
+}
+
+function updatePreviewCount(){
+  const parcels = state.parcels.parcels;
+  const selected = parcels.filter(p => p.selected).length;
+  $('#previewCount').textContent = `${selected} / ${parcels.length} sélectionnée(s) à importer`;
+}
+
+$('#selectAll').addEventListener('click', () => {
+  state.parcels.parcels.forEach(p => p.selected = true);
+  renderParcelPreview();
+});
+$('#selectNone').addEventListener('click', () => {
+  state.parcels.parcels.forEach(p => p.selected = false);
+  renderParcelPreview();
+});
+
+/* ---------- Test de connexion ---------- */
+$('#testBtn').addEventListener('click', async () => {
+  const url = $('#url').value.trim();
+  const auth = getAuth();
+  const dot = $('#statusDot'), text = $('#statusText');
+  if(!url || !auth){ log('warn','Renseigne l\'URL et tes identifiants de connexion avant de tester.'); return; }
+  dot.className = 'status-dot pending';
+  text.textContent = 'Connexion en cours…';
+  try{
+    const api = new TraccarAPI(url, auth);
+    const devices = await api.listDevices();
+    dot.className = 'status-dot ok';
+    text.textContent = `Connecté — ${devices.length} appareil(s) existant(s)`;
+    log('ok', `Connexion réussie à <b>${url}</b>`);
+    refreshServerCacheIfPossible();
+  }catch(e){
+    dot.className = 'status-dot bad';
+    text.textContent = 'Échec de connexion';
+    log('error', e.message);
+  }
+});
+
+/* ---------- Lancer l'import ---------- */
+$('#runBtn').addEventListener('click', async () => {
+  const url = $('#url').value.trim();
+  const auth = getAuth();
+  if(!url || !auth){ log('error','URL et identifiants de connexion requis avant de lancer l\'import.'); return; }
+
+  const runBtn = $('#runBtn');
+  runBtn.disabled = true;
+  const before = runBtn.innerHTML;
+  runBtn.innerHTML = 'Import en cours…';
+
+  let created=0, reused=0, errors=0;
+  const api = new TraccarAPI(url, auth);
+
+  try{
+    // 1. Notifications entrée / sortie de géofence, canal Web
+    for(const type of ['geofenceEnter','geofenceExit']){
+      try{
+        const {created:wasCreated} = await api.getOrCreateNotification(type, 'web');
+        wasCreated ? created++ : reused++;
+        log('ok', `Notification <b>${type}</b> ${wasCreated ? 'créée' : 'déjà présente'}`);
+      }catch(e){ errors++; log('error', `Notification ${type} : ${e.message}`); }
+    }
+
+    // 2. Véhicules — source selon l'onglet actif
+    let vehiclesToImport = [];
+    if(state.vehicleTab === 'manual'){
+      const {vehicles, incomplete} = collectManualVehicles();
+      vehiclesToImport = vehicles;
+      if(incomplete>0) log('warn', `${incomplete} ligne(s) du formulaire ignorée(s) (nom ou plaque manquant)`);
+    } else {
+      vehiclesToImport = (state.vehiclesFromFile || []).filter(v => v.selected !== false);
+    }
+    if(vehiclesToImport.length === 0){
+      log('warn', 'Aucun véhicule à importer.');
+    }
+
+    const deviceIds = [];
+    const deviceNames = new Map(); // id -> nom, pour affichage dans le journal
+    for(const v of vehiclesToImport){
+      if(!v.name || !v.plate){ errors++; log('error', `Véhicule invalide (nom/plaque manquant) : ${JSON.stringify(v)}`); continue; }
+      try{
+        const {device, created:wasCreated} = await api.getOrCreateDevice(v.name, v.plate);
+        deviceIds.push(device.id);
+        deviceNames.set(device.id, device.name);
+        wasCreated ? created++ : reused++;
+        log(wasCreated?'ok':'info', `Véhicule <b>${v.name}</b> (${v.plate}) ${wasCreated ? 'créé' : 'déjà existant'} — id ${device.id}`);
+      }catch(e){ errors++; log('error', `${v.name} (${v.plate}) : ${e.message}`); }
+    }
+
+    // Fonction réutilisable : lie une liste de véhicules à une géofence,
+    // en vérifiant réellement le résultat plutôt que de supposer.
+    async function linkDevicesToGeofence(deviceIdList, geofence, parcelLabel){
+      for(const deviceId of deviceIdList){
+        const vehicleLabel = deviceNames.get(deviceId) || `#${deviceId}`;
+        try{
+          const {created:linkCreated} = await api.ensureLink(deviceId, geofence.id);
+          const confirmed = await api.isLinked(deviceId, geofence.id).catch(() => null);
+          if(confirmed === true){
+            if(linkCreated) created++;
+            log('ok', `Liaison confirmée : véhicule <b>${vehicleLabel}</b> ↔ parcelle "${parcelLabel}"`);
+          } else if(confirmed === false){
+            errors++;
+            log('error', `Liaison véhicule <b>${vehicleLabel}</b> ↔ "${parcelLabel}" : la requête a réussi mais la géofence n'apparaît pas sur l'appareil — vérifie les droits de ton compte sur ce véhicule.`);
+          } else {
+            if(linkCreated) created++;
+            log('warn', `Liaison véhicule <b>${vehicleLabel}</b> ↔ "${parcelLabel}" envoyée, mais impossible de la vérifier (droits insuffisants pour relire).`);
+          }
+        }catch(e){ errors++; log('error', `Liaison ${vehicleLabel} ↔ "${parcelLabel}" : ${e.message}`); }
+      }
+    }
+
+    // 3. Parcelles (fichier chargé dans cette session) : création uniquement.
+    // La liaison se fait à l'étape 4, de façon symétrique (voir plus bas).
+    const touchedGeofences = [];
+    if(state.parcels){
+      state.parcels.errors.forEach(msg => { errors++; log('error', msg); });
+      const selectedParcels = state.parcels.parcels.filter(p => p.selected);
+      for(const p of selectedParcels){
+        try{
+          const {geofence, created:wasCreated} = await api.getOrCreateGeofence(p.name, p.wkt);
+          wasCreated ? created++ : reused++;
+          log(wasCreated?'ok':'info', `Parcelle <b>${p.name}</b> ${wasCreated ? 'créée' : 'déjà existante'} — id ${geofence.id}`);
+          touchedGeofences.push(geofence);
+        }catch(e){ errors++; log('error', `Parcelle "${p.name}" : ${e.message}`); }
+      }
+    }
+
+    // 4. Liaisons — symétrique dans les deux sens :
+    //    - les véhicules de cette session (nouveaux/réutilisés) sont liés
+    //      à toutes les parcelles concernées ;
+    //    - si la case est cochée, on complète aussi : véhicules déjà
+    //      existants <-> nouvelles parcelles, et véhicules nouveaux <->
+    //      parcelles déjà existantes. Résultat : la matrice complète
+    //      véhicules × parcelles est assurée, peu importe ce qui a été
+    //      ajouté dans cette session.
+    if($('#linkExisting').checked){
+      let allDevices = [], allGeofences = [];
+      try{
+        allDevices = await api.listDevices();
+        allGeofences = await api.listGeofences();
+      }catch(e){
+        errors++;
+        log('error', `Impossible de lister les véhicules/parcelles existants du serveur : ${e.message}`);
+      }
+      if(allDevices.length > 0 && allGeofences.length > 0){
+        allDevices.forEach(d => deviceNames.set(d.id, d.name));
+        log('info', `Vérification complète : ${allDevices.length} véhicule(s) × ${allGeofences.length} parcelle(s).`);
+        for(const g of allGeofences){
+          await linkDevicesToGeofence(allDevices.map(d => d.id), g, g.name);
+        }
+      }
+    } else {
+      // Case décochée : on ne lie que les véhicules et parcelles de cette session.
+      for(const g of touchedGeofences){
+        await linkDevicesToGeofence(deviceIds, g, g.name);
+      }
+    }
+
+    log(errors ? 'warn' : 'ok', errors
+      ? `Import terminé avec <b>${errors}</b> erreur(s) — voir le détail ci-dessus.`
+      : `Import terminé avec succès 🎉`);
+
+  }finally{
+    setStats({created, reused, errors});
+    saveImportHistory(created, reused, errors);
+    runBtn.disabled = false;
+    runBtn.innerHTML = before;
+  }
+});
+
+/* ---------- Tableau de bord des liaisons actuelles ---------- */
+$('#showLinksBtn').addEventListener('click', async () => {
+  const url = $('#url').value.trim();
+  const auth = getAuth();
+  if(!url || !auth){ log('error', 'URL et identifiants requis pour afficher les liaisons.'); return; }
+
+  const panel = $('#linksPanel'), body = $('#linksBody');
+  panel.hidden = false;
+  body.innerHTML = '<div class="links-loading">Chargement des véhicules et parcelles…</div>';
+
+  try{
+    const api = new TraccarAPI(url, auth);
+    const [devices, geofences] = await Promise.all([api.listDevices(), api.listGeofences()]);
+
+    if(devices.length === 0 || geofences.length === 0){
+      body.innerHTML = `<div class="links-loading">${devices.length === 0 ? 'Aucun véhicule' : 'Aucune parcelle'} trouvé sur le serveur.</div>`;
+      return;
+    }
+
+    body.innerHTML = '<div class="links-loading">Vérification des liaisons pour chaque véhicule…</div>';
+
+    const perDeviceGeofences = await Promise.all(
+      devices.map(d => api.listGeofencesForDevice(d.id).catch(() => []))
+    );
+
+    // hint + tableau : chaque cellule est désormais un bouton cliquable pour
+    // lier/délier le véhicule et la parcelle concernés (POST/DELETE
+    // /api/permissions sur le serveur Traccar), au lieu d'un simple affichage.
+    let html = '<div class="links-hint">Cliquez sur une cellule pour lier (●) ou délier (✕) un véhicule et une parcelle.</div>';
+    html += '<table class="links-table"><thead><tr><th>Véhicule</th>';
+    geofences.forEach(g => { html += `<th class="center">${g.name}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    devices.forEach((d, i) => {
+      const linkedIds = new Set(perDeviceGeofences[i].map(g => g.id));
+      html += `<tr><td>${d.name}</td>`;
+      geofences.forEach(g => {
+        const linked = linkedIds.has(g.id);
+        html += `<td class="center">` +
+          `<button type="button" class="link-cell ${linked ? 'link-yes' : 'link-no'}" ` +
+          `data-device-id="${d.id}" data-geofence-id="${g.id}" data-linked="${linked ? '1' : '0'}" ` +
+          `title="${d.name} ↔ ${g.name}">${linked ? '●' : '✕'}</button>` +
+          `</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    body.innerHTML = html;
+
+    // Un seul écouteur délégué sur le conteneur plutôt qu'un par cellule : plus
+    // léger, et couvre aussi le tableau re-rendu si on l'affiche à nouveau.
+    body.querySelectorAll('.link-cell').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const deviceId = Number(btn.dataset.deviceId);
+        const geofenceId = Number(btn.dataset.geofenceId);
+        const linked = btn.dataset.linked === '1';
+        const label = btn.title;
+
+        btn.disabled = true;
+        const previousText = btn.textContent;
+        btn.textContent = '…';
+
+        try{
+          if(linked){
+            await api.deletePermission(deviceId, geofenceId);
+            btn.classList.remove('link-yes'); btn.classList.add('link-no');
+            btn.dataset.linked = '0';
+            btn.textContent = '✕';
+            log('ok', `Liaison supprimée : ${label}`);
+          }else{
+            await api.ensureLink(deviceId, geofenceId);
+            btn.classList.remove('link-no'); btn.classList.add('link-yes');
+            btn.dataset.linked = '1';
+            btn.textContent = '●';
+            log('ok', `Liaison créée : ${label}`);
+          }
+        }catch(e){
+          btn.textContent = previousText; // on restaure l'état affiché, rien n'a changé côté serveur
+          log('error', `${label} : ${e.message}`);
+        }finally{
+          btn.disabled = false;
+        }
+      });
+    });
+  }catch(e){
+    body.innerHTML = `<div class="links-loading">Erreur : ${e.message}</div>`;
+  }
+});
+
+$('#closeLinksBtn').addEventListener('click', () => { $('#linksPanel').hidden = true; });
+
+/* ---------- Gestion / suppression des parcelles ---------- */
+$('#managePlotsBtn').addEventListener('click', async () => {
+  const url = $('#url').value.trim();
+  const auth = getAuth();
+  if(!url || !auth){ log('error', 'URL et identifiants requis pour gérer les parcelles.'); return; }
+
+  const panel = $('#managePanel'), body = $('#manageBody');
+  panel.hidden = false;
+  body.innerHTML = '<div class="links-loading">Chargement des parcelles…</div>';
+
+  const api = new TraccarAPI(url, auth);
+  try{
+    const geofences = await api.listGeofences();
+    renderManageList(api, geofences);
+  }catch(e){
+    body.innerHTML = `<div class="links-loading">Erreur : ${e.message}</div>`;
+  }
+});
+
+function renderManageList(api, geofences){
+  const body = $('#manageBody');
+  if(geofences.length === 0){
+    body.innerHTML = '<div class="links-loading">Aucune parcelle sur le serveur.</div>';
+    return;
+  }
+  body.innerHTML = '';
+  geofences.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'manage-row';
+    row.innerHTML = `<span class="p-name">${g.name}</span><button type="button" class="delete-btn">🗑️ Supprimer</button>`;
+    const btn = row.querySelector('.delete-btn');
+    btn.addEventListener('click', async () => {
+      const sure = confirm(`Supprimer définitivement la parcelle "${g.name}" de Traccar ?\n\nLes liaisons avec les véhicules seront perdues. Cette action est irréversible.`);
+      if(!sure) return;
+      btn.disabled = true;
+      btn.textContent = 'Suppression…';
+      try{
+        await api.deleteGeofence(g.id);
+        row.remove();
+        log('ok', `Parcelle <b>${g.name}</b> supprimée de Traccar.`);
+        if($('#manageBody').children.length === 0){
+          $('#manageBody').innerHTML = '<div class="links-loading">Aucune parcelle sur le serveur.</div>';
+        }
+      }catch(e){
+        btn.disabled = false;
+        btn.textContent = '🗑️ Supprimer';
+        log('error', `Suppression de "${g.name}" : ${e.message}`);
+      }
+    });
+    body.appendChild(row);
+  });
+}
+
+$('#closeManageBtn').addEventListener('click', () => { $('#managePanel').hidden = true; });
+
+/* ---------- Import de parcelles depuis le RPG (IGN) ---------- */
+let rpgMap = null;
+let rpgParcelLayer = null; // couche affichant les contours des parcelles RPG affichées
+let _rpgParcellesActuelles = []; // parcelles RPG actuellement affichées (indexées pour les popups)
+let _rpgImportEnCours = new Set(); // indices en cours de création, pour éviter les doubles clics
+
+function _rpgInitMap(){
+  if(rpgMap) return; // déjà initialisée
+  rpgMap = L.map('rpgMap').setView([46.6, 2.2], 5); // vue France entière par défaut
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+  }).addTo(rpgMap);
+}
+
+$('#showRpgBtn').addEventListener('click', () => {
+  $('#rpgPanel').hidden = false;
+  _rpgInitMap();
+  // Leaflet a besoin que le conteneur soit visible et de taille stable pour se dimensionner
+  // correctement -- un léger délai après l'affichage du panneau évite une carte tronquée.
+  setTimeout(() => rpgMap.invalidateSize(), 50);
+});
+$('#closeRpgBtn').addEventListener('click', () => { $('#rpgPanel').hidden = true; });
+
+// Recherche d'adresse via le service de géocodage de la Géoplateforme (IGN) -- API publique,
+// gratuite, sans clé, remplaçante de l'ancienne api-adresse.data.gouv.fr (décommissionnée
+// fin janvier 2026). Utilisable directement depuis le navigateur (CORS ouvert).
+$('#rpgAddressSearchBtn').addEventListener('click', async () => {
+  const q = $('#rpgAddressInput').value.trim();
+  const resBox = $('#rpgAddressResults');
+  if(!q){ resBox.innerHTML = ''; return; }
+
+  resBox.innerHTML = '<div class="links-loading">Recherche de l\'adresse…</div>';
+  try{
+    const resp = await fetch(`https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&limit=5`);
+    const data = await resp.json();
+    const features = data.features || [];
+    if(features.length === 0){
+      resBox.innerHTML = '<div class="links-loading">Aucune adresse trouvée.</div>';
+      return;
+    }
+    resBox.innerHTML = '';
+    features.forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'rpg-address-result';
+      div.textContent = f.properties.label;
+      div.addEventListener('click', () => {
+        const [lon, lat] = f.geometry.coordinates;
+        rpgMap.setView([lat, lon], 17);
+        resBox.innerHTML = '';
+        $('#rpgAddressInput').value = f.properties.label;
+      });
+      resBox.appendChild(div);
+    });
+  }catch(e){
+    resBox.innerHTML = `<div class="links-loading">Erreur de recherche d'adresse : ${e.message}</div>`;
+  }
+});
+// Recherche également en appuyant sur Entrée dans le champ adresse
+$('#rpgAddressInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#rpgAddressSearchBtn').click(); }
+});
+
+// Le champ Année n'a de sens que pour les parcelles (les ilots RPG ne sont disponibles
+// que pour la derniere edition, pas de selection par millesime -- voir doc de la route
+// backend /api/rpg_ilots_search).
+function _rpgMajChampAnnee(){
+  const estIlots = $('#rpgNiveau').value === 'ilots';
+  $('#rpgAnneeWrap').style.display = estIlots ? 'none' : '';
+}
+$('#rpgNiveau').addEventListener('change', _rpgMajChampAnnee);
+_rpgMajChampAnnee();
+
+// Charge et affiche TOUTES les parcelles OU tous les ilots RPG intersectant la zone
+// actuellement visible sur la carte -- l'utilisateur clique ensuite directement sur
+// l'entité dessinée pour l'importer, plutôt que de deviner un point à l'intérieur.
+$('#rpgLoadParcelsBtn').addEventListener('click', async () => {
+  const niveau = $('#rpgNiveau').value; // 'parcelles' ou 'ilots'
+  const annee = $('#rpgAnnee').value;
+  const statusBox = $('#rpgStatus');
+  if(niveau === 'parcelles' && !annee){
+    statusBox.textContent = '⚠️ Renseignez l\'année (millésime RPG) avant de charger les parcelles.';
+    return;
+  }
+
+  const bounds = rpgMap.getBounds();
+  const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',');
+
+  // Zone trop large = trop d'entités à charger et à dessiner (et risque de réponse API
+  // très volumineuse) -- on demande de zoomer davantage plutôt que de laisser planter.
+  if(rpgMap.getZoom() < 13){
+    statusBox.textContent = '⚠️ Zoomez davantage sur votre secteur avant de charger (zone actuelle trop large).';
+    return;
+  }
+
+  statusBox.textContent = niveau === 'ilots' ? 'Chargement des îlots RPG…' : 'Chargement des parcelles RPG…';
+  if(rpgParcelLayer){ rpgMap.removeLayer(rpgParcelLayer); rpgParcelLayer = null; }
+  _rpgParcellesActuelles = [];
+
+  const url = niveau === 'ilots'
+    ? `/api/rpg_ilots_search?bbox=${bbox}`
+    : `/api/rpg_search?bbox=${bbox}&annee=${annee}`;
+
+  let resp, data;
+  try{
+    resp = await fetch(url, { credentials: 'same-origin' });
+    data = await resp.json();
+  }catch(e){
+    statusBox.textContent = `Erreur de connexion à l'API RPG : ${e.message}`;
+    return;
+  }
+  if(!resp.ok || data.error){
+    statusBox.textContent = data.error || 'Erreur inconnue.';
+    return;
+  }
+  if(data.nb_resultats === 0){
+    statusBox.textContent = niveau === 'ilots'
+      ? 'Aucun îlot RPG trouvé dans cette zone.'
+      : 'Aucune parcelle RPG trouvée dans cette zone pour ce millésime. Essayez un autre secteur ou une autre année (données disponibles à partir de 2015).';
+    return;
+  }
+
+  _rpgParcellesActuelles = data.resultats;
+  rpgParcelLayer = L.layerGroup().addTo(rpgMap);
+
+  data.resultats.forEach((r, i) => {
+    if(!r.geojson_coords) return; // pas de géométrie exploitable, on ne peut pas la dessiner
+    // geojson_coords est en [lon,lat] (ordre standard GeoJSON), Leaflet attend [lat,lon].
+    const latlngs = r.geojson_coords.map(([lon_, lat_]) => [lat_, lon_]);
+    const couleur = niveau === 'ilots' ? '#4c7a52' : '#c98a2b';
+    const poly = L.polygon(latlngs, { color: couleur, weight: 2, fillOpacity: 0.15 });
+
+    let contenuPopup;
+    if(niveau === 'ilots'){
+      const surface = r.surf_ilot_ha ? `${r.surf_ilot_ha} ha` : 'surface inconnue';
+      contenuPopup = `
+        <b>Îlot RPG — ${surface}</b>
+        Identifiant : <span class="code">${r.id_ilot || '—'}</span>
+        <input type="text" id="rpgPopupName_${i}" placeholder="Nom de la parcelle">
+        <button type="button" id="rpgPopupBtn_${i}" onclick="_rpgCreerDepuisPopup(${i})" ${r.wkt ? '' : 'disabled'}>
+          ${r.wkt ? '➕ Créer la géofence' : 'Géométrie indisponible'}
+        </button>`;
+    } else {
+      const surface = r.surf_parc_ha ? `${r.surf_parc_ha} ha` : 'surface inconnue';
+      contenuPopup = `
+        <b>Parcelle RPG — ${surface}</b>
+        Code culture : <span class="code">${r.code_cultu || '—'}</span>
+          ${r.code_group ? ` (groupe <span class="code">${r.code_group}</span>)` : ''}<br>
+        Identifiant : <span class="code">${r.id_parcel || '—'}</span>
+        <input type="text" id="rpgPopupName_${i}" placeholder="Nom de la parcelle">
+        <button type="button" id="rpgPopupBtn_${i}" onclick="_rpgCreerDepuisPopup(${i})" ${r.wkt ? '' : 'disabled'}>
+          ${r.wkt ? '➕ Créer la géofence' : 'Géométrie indisponible'}
+        </button>`;
+    }
+    poly.bindPopup(`<div class="rpg-popup">${contenuPopup}</div>`);
+    poly.on('mouseover', () => poly.setStyle({ fillOpacity: 0.4 }));
+    poly.on('mouseout', () => poly.setStyle({ fillOpacity: 0.15 }));
+    rpgParcelLayer.addLayer(poly);
+  });
+
+  statusBox.textContent = `${data.nb_resultats} parcelle(s) RPG affichée(s) — cliquez sur une parcelle pour l'importer.`;
+});
+
+// Appelé depuis le bouton généré dynamiquement dans chaque popup Leaflet (le contenu d'un
+// popup est injecté comme HTML brut, un attribut onclick référençant une fonction globale
+// est donc plus simple qu'une gestion d'écouteurs sur un DOM créé dynamiquement).
+async function _rpgCreerDepuisPopup(i){
+  if(_rpgImportEnCours.has(i)) return;
+  const r = _rpgParcellesActuelles[i];
+  if(!r || !r.wkt) return;
+
+  const nameInput = document.getElementById(`rpgPopupName_${i}`);
+  const btn = document.getElementById(`rpgPopupBtn_${i}`);
+  const nom = nameInput.value.trim();
+  if(!nom){ nameInput.focus(); return; }
+
+  const url = $('#url').value.trim();
+  const auth = getAuth();
+  if(!url || !auth){ log('error', 'URL et identifiants Traccar requis pour créer la géofence.'); return; }
+
+  _rpgImportEnCours.add(i);
+  btn.disabled = true;
+  btn.textContent = 'Création…';
+  const surface = r.surf_parc_ha ? `${r.surf_parc_ha} ha` : 'surface inconnue';
+  try{
+    const api = new TraccarAPI(url, auth);
+    const result = await api.getOrCreateGeofence(nom, r.wkt);
+    if(result.created){
+      log('ok', `Parcelle <b>${nom}</b> créée sur Traccar depuis le RPG (${surface}).`);
+      btn.textContent = '✅ Créée';
+    } else {
+      log('error', `Une parcelle nommée "${nom}" existe déjà sur Traccar — choisissez un autre nom.`);
+      btn.disabled = false;
+      btn.textContent = '➕ Créer la géofence';
+      _rpgImportEnCours.delete(i);
+    }
+  }catch(e){
+    log('error', `Création de la géofence RPG : ${e.message}`);
+    btn.disabled = false;
+    btn.textContent = '➕ Créer la géofence';
+    _rpgImportEnCours.delete(i);
+  }
+}
+
+/* ---------- Historique des imports (persisté côté serveur) ---------- */
+async function saveImportHistory(created, reused, errors){
+  try{
+    const url = $('#url').value.trim();
+    const summary = errors
+      ? `${created} créé(s), ${reused} déjà présent(s), ${errors} erreur(s)`
+      : `${created} créé(s), ${reused} déjà présent(s) — sans erreur`;
+    await fetch('/api/traccar_import_history', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url, created, reused, errors, summary})
+    });
+  }catch(e){ /* l'historique est un confort, pas bloquant si indisponible */ }
+}
+
+$('#showHistoryBtn').addEventListener('click', async () => {
+  const panel = $('#historyPanel'), body = $('#historyPanelBody');
+  panel.hidden = false;
+  body.innerHTML = '<div class="links-loading">Chargement de l\'historique…</div>';
+  try{
+    const r = await fetch('/api/traccar_import_history');
+    const rows = await r.json();
+    if(rows.length === 0){
+      body.innerHTML = '<div class="links-loading">Aucun import enregistré pour le moment.</div>';
+      return;
+    }
+    body.innerHTML = rows.map(row => {
+      const d = new Date(row.timestamp);
+      const dateStr = isNaN(d) ? row.timestamp : d.toLocaleString('fr-FR');
+      const color = row.nb_errors > 0 ? 'var(--rust)' : 'var(--crop)';
+      return `<div class="manage-row">
+        <span class="p-name">${dateStr} — ${row.traccar_url || ''}</span>
+        <span style="color:${color}; font-family:'JetBrains Mono',monospace; font-size:12px;">${row.summary || ''}</span>
+      </div>`;
+    }).join('');
+  }catch(e){
+    body.innerHTML = `<div class="links-loading">Erreur : ${e.message}</div>`;
+  }
+});
+$('#closeHistoryPanelBtn').addEventListener('click', () => { $('#historyPanel').hidden = true; });
+</script>
+</body>
+</html>

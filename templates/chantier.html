@@ -1,0 +1,2909 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carte de chantier — Dashboard Agricole v15.4</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#0f172a; color:#e2e8f0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+.header { background:#1e293b; padding:10px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #334155; flex-shrink:0; }
+.header a { color:#94a3b8; text-decoration:none; font-size:13px; }
+.header a:hover { color:#e2e8f0; }
+.header h1 { font-size:15px; font-weight:bold; }
+
+.toolbar { background:#1e293b; padding:8px 14px; display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; border-bottom:1px solid #334155; flex-shrink:0; }
+.toolbar label { display:block; font-size:11px; color:#94a3b8; margin-bottom:3px; }
+.toolbar input, .toolbar select { background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:13px; }
+.toolbar button { background:#16a34a; color:#fff; border:none; border-radius:6px; padding:7px 14px; cursor:pointer; font-size:13px; font-weight:bold; }
+.toolbar button:hover { background:#15803d; }
+.toolbar button.blue { background:#1d4ed8; }
+.toolbar button.blue:hover { background:#1e40af; }
+.toolbar .sep { width:1px; background:#334155; height:32px; }
+
+.device-checklist { max-height:280px; min-width:240px; overflow-y:auto; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:4px 6px; }
+.device-check-item { display:flex; align-items:center; gap:8px; font-size:13px; padding:7px 6px; cursor:pointer; border-radius:5px; }
+.device-check-item:hover { background:#16233a; }
+.device-check-item input { cursor:pointer; width:15px; height:15px; }
+.device-check-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.device-check-item.all-item { border-bottom:1px solid #334155; margin-bottom:4px; padding-bottom:8px; font-weight:bold; color:#94a3b8; }
+.veh-dropdown-wrap { position:relative; }
+.veh-dropdown-btn { background:#0f172a; border:1px solid #334155; color:#e2e8f0; border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+.veh-dropdown-btn:hover { border-color:#16a34a; }
+.veh-dropdown-panel { position:absolute; top:100%; left:0; margin-top:4px; background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; width:270px; z-index:800; box-shadow:0 8px 28px rgba(0,0,0,0.45); }
+.veh-dropdown-panel input[type=text] { width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:7px 9px; border-radius:6px; font-size:12px; margin-bottom:8px; }
+
+.main { display:flex; flex:1; overflow:hidden; min-height:0; }
+#map { flex:1; }
+
+.panel { width:310px; background:#1e293b; border-left:1px solid #334155; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; min-height:0; }
+.panel-tabs { display:flex; border-bottom:1px solid #334155; }
+.tab-btn { flex:1; padding:9px; text-align:center; font-size:12px; cursor:pointer; color:#64748b; border:none; background:none; border-bottom:2px solid transparent; }
+.tab-btn.active { color:#e2e8f0; border-bottom-color:#16a34a; }
+.tab-content { flex:1; overflow-y:auto; min-height:0; }
+.tab-pane { display:none; padding:12px 14px; }
+.tab-pane.active { display:block; }
+
+.analysis-section { border:1px solid #334155; border-radius:8px; margin-bottom:10px; background:#0f172a; overflow:hidden; }
+.analysis-section summary {
+    padding:10px 12px; cursor:pointer; font-size:12px; font-weight:bold; color:#e2e8f0;
+    list-style:none; display:flex; align-items:center; justify-content:space-between;
+    -webkit-user-select:none; user-select:none;
+}
+.analysis-section summary::-webkit-details-marker { display:none; }
+.analysis-section summary::after {
+    content:'▸'; color:#64748b; font-weight:normal; margin-left:8px; transition:transform 0.15s ease;
+}
+.analysis-section[open] summary::after { transform:rotate(90deg); }
+.analysis-section summary:hover { background:#16233a; }
+.analysis-body { padding:0 12px 12px 12px; border-top:1px solid #334155; padding-top:10px; }
+
+.calendar-section { flex-shrink:0; max-height:44vh; overflow-y:auto; padding:12px 14px; border-top:1px solid #334155; background:#1a2436; }
+
+.stat-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.stat-label { font-size:12px; color:#94a3b8; }
+.stat-value { font-size:16px; font-weight:bold; }
+.stat-unit { font-size:11px; color:#64748b; margin-left:2px; }
+
+.layer-btn { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; cursor:pointer; font-size:12px; margin-bottom:5px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; }
+.layer-btn.on { border-color:#16a34a; background:#052e16; color:#4ade80; }
+.layer-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+.passage-item { background:#0f172a; border-radius:6px; padding:8px 10px; margin-bottom:5px; font-size:12px; cursor:pointer; border:1px solid #334155; }
+.passage-item:hover { border-color:#16a34a; }
+.pi-top { display:flex; justify-content:space-between; font-weight:bold; }
+.pi-bot { color:#64748b; margin-top:3px; }
+
+/* Calendrier */
+.cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.cal-nav { background:none; border:1px solid #334155; color:#e2e8f0; border-radius:5px; padding:4px 10px; cursor:pointer; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-day-name { text-align:center; font-size:10px; color:#64748b; padding:4px 0; }
+.cal-cell { text-align:center; padding:5px 2px; border-radius:5px; font-size:12px; cursor:default; min-height:36px; position:relative; }
+.cal-cell.has-work { background:#052e16; border:1px solid #16a34a; cursor:pointer; }
+.cal-cell.has-work:hover { background:#064e3b; }
+.cal-cell.today { font-weight:bold; color:#fbbf24; }
+.cal-cell.other-month { color:#334155; }
+.cal-cell.selected { box-shadow:0 0 0 2px #22c55e; }
+.cal-dots { display:flex; flex-wrap:wrap; gap:2px; justify-content:center; margin-top:2px; }
+.cal-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+.vehicle-pill { display:inline-flex; align-items:center; gap:5px; background:#0f172a; border:1px solid #334155; border-radius:12px; padding:3px 8px; font-size:11px; margin:2px; }
+
+.ndvi-legend { margin-top:10px; }
+.ndvi-bar { display:flex; height:12px; border-radius:4px; overflow:hidden; margin:6px 0; }
+
+.nav-btn { background:#0f172a; border:1px solid #334155; color:#e2e8f0; border-radius:6px; padding:6px 9px; cursor:pointer; font-size:13px; }
+.modal-box select { width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:7px 10px; border-radius:6px; font-size:13px; margin-bottom:10px; }
+.nav-btn:hover { border-color:#16a34a; }
+.mini-btn { background:#0f172a; border:1px solid #334155; color:#94a3b8; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:11px; }
+.mini-btn:hover { border-color:#16a34a; color:#e2e8f0; }
+.basemap-switch { display:flex; gap:4px; align-items:center; }
+.basemap-btn { background:#0f172a; border:1px solid #334155; color:#94a3b8; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:12px; white-space:nowrap; }
+.basemap-btn.on { border-color:#16a34a; background:#052e16; color:#4ade80; }
+.device-toolbar-actions { display:flex; gap:4px; margin-bottom:3px; }
+
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.75); z-index:2000; align-items:center; justify-content:center; }
+.modal-box { background:#1e293b; border:1px solid #334155; border-radius:10px; padding:20px 24px; width:380px; max-width:90vw; }
+.modal-box h2 { font-size:15px; margin-bottom:8px; }
+.modal-box p { font-size:12px; color:#94a3b8; margin-bottom:12px; line-height:1.5; }
+.modal-box label { font-size:11px; color:#94a3b8; display:block; margin-bottom:3px; }
+.modal-box input { width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:7px 10px; border-radius:6px; font-size:13px; margin-bottom:10px; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; }
+.modal-actions button { border:none; border-radius:6px; padding:7px 14px; cursor:pointer; font-size:13px; }
+#ndviConnStatus { font-size:11px; margin-top:8px; padding:6px 8px; border-radius:6px; }
+
+#overlay { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; background:rgba(15,23,42,0.92); padding:20px 28px; border-radius:10px; border:1px solid #334155; font-size:14px; color:#e2e8f0; white-space:nowrap; }
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1e293b; border:1px solid #334155; color:#e2e8f0; padding:10px 20px; border-radius:8px; font-size:13px; z-index:9999; display:none; }
+
+/* ── Mobile (téléphones / petites tablettes) ─────────────────────────────── */
+@media (max-width: 768px) {
+    .header { padding:8px 10px; gap:8px; }
+    .header h1 { font-size:13px; }
+
+    /* Barre d'outils : bandeau scrollable horizontalement sur une seule ligne
+       plutôt qu'empilée sur plusieurs lignes -- laisse un maximum de hauteur
+       verticale à la carte, seul vrai contenu qu'on veut voir en grand sur mobile. */
+    .toolbar { padding:6px 8px; gap:6px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .toolbar > div, .toolbar > button { flex:0 0 auto; }
+    .toolbar button { padding:8px 10px; font-size:12px; white-space:nowrap; }
+    .toolbar .sep { display:none; }
+
+    /* Carte + panneau : empilés verticalement plutôt que côte à côte, panneau
+       plus court et défilable, pour laisser le maximum de place à la carte. */
+    .main { flex-direction:column; overflow-y:auto; }
+    #map { flex:none; height:52vh; min-height:280px; }
+    .panel { width:100%; max-height:44vh; border-left:none; border-top:1px solid #334155; }
+    .calendar-section { max-height:24vh; }
+    #calExpandBtn { display:inline-block !important; margin-left:auto; }
+    .calendar-section.cal-fullscreen {
+        position:fixed; inset:0; z-index:2500; max-height:100vh; width:100vw;
+        padding:16px; display:flex; flex-direction:column;
+    }
+    .calendar-section.cal-fullscreen .cal-grid { flex:1; grid-auto-rows:minmax(44px, 1fr); }
+    .calendar-section.cal-fullscreen .cal-header { flex-shrink:0; }
+
+    .veh-dropdown-panel { width:calc(100vw - 32px); max-width:320px; }
+
+    /* Menu déroulant Export : même traitement */
+    #exportDropdownPanel { width:calc(100vw - 32px) !important; max-width:220px; }
+
+    /* Fenêtres modales : hauteur bornée + défilement interne, pour ne jamais
+       déborder de l'écran sur un téléphone (formulaires à plusieurs champs). */
+    .modal-box { padding:16px 18px; max-height:85vh; overflow-y:auto; }
+    .compare-col { width:100% !important; max-width:100% !important; }
+
+    /* Cibles tactiles plus confortables */
+    .layer-btn, .mini-btn, .nav-btn, .basemap-btn { padding:9px 12px; }
+    .device-check-item { padding:9px 6px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <a href="/">← Dashboard</a>
+    <span style="color:#334155">|</span>
+    <a href="/synthese" style="color:#0e7490;">📊 Synthèse</a>
+    <span style="color:#334155">|</span>
+    <span style="font-size:18px;">🗺️</span>
+    <h1>Carte de chantier</h1>
+</div>
+
+<div class="toolbar">
+    <div>
+        <label>Date</label>
+        <div style="display:flex;gap:4px;align-items:center;">
+            <button class="nav-btn" onclick="shiftDate(-1)" title="Jour précédent">◀</button>
+            <input type="date" id="dateInput">
+            <button class="nav-btn" onclick="shiftDate(1)" title="Jour suivant">▶</button>
+            <button class="nav-btn" onclick="setToday()" title="Aujourd'hui">📅</button>
+        </div>
+    </div>
+    <div class="veh-dropdown-wrap">
+        <label>Véhicules</label>
+        <button type="button" class="veh-dropdown-btn" id="vehDropdownBtn" onclick="toggleVehDropdown()">
+            🚜 <span id="deviceCountBadge">0/0</span> sélectionné(s) <span style="margin-left:2px;">▾</span>
+        </button>
+        <div id="vehDropdownPanel" class="veh-dropdown-panel" style="display:none;">
+            <input type="text" id="vehSearchInput" placeholder="Rechercher un véhicule…" oninput="filterVehicleList()">
+            <div class="device-toolbar-actions">
+                <button class="mini-btn" onclick="toggleAllDevices(true)">Tout sélectionner</button>
+                <button class="mini-btn" onclick="toggleAllDevices(false)">Tout désélectionner</button>
+            </div>
+            <div id="deviceChecklist" class="device-checklist"></div>
+        </div>
+    </div>
+    <div>
+        <label>Fond de carte</label>
+        <div class="basemap-switch">
+            <button class="basemap-btn on" id="bbtn-satellite" onclick="setBaseLayer('satellite')">🛰️ Satellite</button>
+            <button class="basemap-btn" id="bbtn-ndvi" onclick="setBaseLayer('ndvi')">🌿 NDVI</button>
+            <button class="basemap-btn" id="bbtn-osm" onclick="setBaseLayer('osm')">🗺️ Plan</button>
+            <button class="mini-btn" onclick="openNdviConfigModal()" title="Configurer la connexion NDVI">⚙️</button>
+        </div>
+    </div>
+    <button onclick="loadChantier()">🔍 Charger</button>
+    <button id="btnLive" onclick="toggleLiveMode()" style="background:#475569;" title="Rafraîchit automatiquement toutes les 30s (utile en cours de chantier)">🔴 Live</button>
+    <div class="sep"></div>
+    <div class="veh-dropdown-wrap" id="exportDropdownWrap" style="display:none;">
+        <button type="button" class="veh-dropdown-btn" style="background:#1d4ed8;color:#fff;border-color:#1d4ed8;" onclick="toggleExportDropdown()">📤 Export <span style="margin-left:2px;">▾</span></button>
+        <div id="exportDropdownPanel" class="veh-dropdown-panel" style="display:none;width:180px;">
+            <button onclick="exportKML();closeExportDropdown();" style="width:100%;text-align:left;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:8px 10px;cursor:pointer;font-size:12px;margin-bottom:6px;">📥 KML</button>
+            <button onclick="exportGeoJSON();closeExportDropdown();" style="width:100%;text-align:left;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:8px 10px;cursor:pointer;font-size:12px;margin-bottom:6px;">🗺️ GeoJSON</button>
+            <button onclick="exportShapefile();closeExportDropdown();" style="width:100%;text-align:left;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:8px 10px;cursor:pointer;font-size:12px;">🗂️ Shapefile</button>
+        </div>
+    </div>
+    <button class="blue" onclick="exportPDF()" id="btnPDF" style="display:none;">📄 PDF</button>
+    <button onclick="centerMap()" id="btnCenter" style="display:none;background:#475569;">⊙ Centrer</button>
+    <button onclick="openCompareModal()" style="background:#7c3aed;">🔀 Comparer 2 dates</button>
+    <button id="btnAddPoint" onclick="toggleAddPointMode()" style="background:#475569;" title="Cliquez ensuite sur la carte pour ajouter un point d'observation (adventices, maladie, panne...)">📍 Ajouter un point</button>
+    <button id="btnSousParcelles" onclick="openSousParcellesModal()" style="background:#7c3aed;" title="Scinder une parcelle en plusieurs cultures pour cette campagne">✂️ Sous-parcelles</button>
+</div>
+
+<div class="main">
+    <div id="map"></div>
+    <div id="drawSousParcelleControls" style="display:none;position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:900;background:#1e293b;border:1px solid #7c3aed;border-radius:8px;padding:8px 12px;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+        <span style="font-size:12px;color:#e2e8f0;">✂️ Tracé de la sous-parcelle en cours…</span>
+        <button onclick="finishDrawSousParcelle()" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:bold;">✓ Terminer</button>
+        <button onclick="cancelDrawSousParcelle()" style="background:#475569;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;">✕ Annuler</button>
+    </div>
+    <div id="contourEditControls" style="display:none;position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:900;background:#1e293b;border:1px solid #7c3aed;border-radius:8px;padding:8px 12px;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+        <span style="font-size:12px;color:#e2e8f0;">✏️ Glissez les points pour ajuster le contour (double-clic = supprimer un point)</span>
+        <button onclick="saveEditedContour()" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:bold;">💾 Enregistrer</button>
+        <button onclick="cancelEditContour()" style="background:#475569;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;">✕ Annuler</button>
+    </div>
+    <div id="overlay">⏳ Chargement des positions GPS...</div>
+
+    <div class="panel">
+        <div class="panel-tabs">
+            <button class="tab-btn active" onclick="showTab('stats')">📊 Stats</button>
+            <button class="tab-btn" onclick="showTab('analyses')">📈 Analyses</button>
+            <button class="tab-btn" onclick="showTab('layers')">🗂️ Couches</button>
+        </div>
+        <div class="tab-content">
+
+            <!-- Stats -->
+            <div class="tab-pane active" id="tab-stats">
+                <div id="alertsBanner"></div>
+                <div>
+                    <div class="stat-row"><span class="stat-label">Surface travaillée</span><span><span class="stat-value" id="statArea">—</span><span class="stat-unit">ha</span></span></div>
+                    <div class="stat-row"><span class="stat-label">Distance</span><span><span class="stat-value" id="statDist">—</span><span class="stat-unit">km</span></span></div>
+                    <div class="stat-row"><span class="stat-label">Vitesse moy.</span><span><span class="stat-value" id="statSpeed">—</span><span class="stat-unit">km/h</span></span></div>
+                </div>
+            </div>
+
+            <!-- Analyses (couverture + export) -->
+            <div class="tab-pane" id="tab-analyses">
+                <details class="analysis-section" open>
+                    <summary>📊 Couverture des parcelles travaillées <button class="mini-btn" onclick="event.preventDefault();event.stopPropagation();autoAnalyzeCoverage();" title="Réanalyser">🔄</button></summary>
+                    <div class="analysis-body">
+                        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;margin-bottom:8px;cursor:pointer;">
+                            <input type="checkbox" id="coverageCumulCheck" onchange="toggleCoverageCumulMode()">
+                            Cumuler sur une période (ex: campagne complète) au lieu du seul jour chargé
+                        </label>
+                        <div id="coverageCumulDates" style="display:none;gap:6px;margin-bottom:8px;">
+                            <div style="flex:1;">
+                                <label style="font-size:10px;color:#64748b;">Du</label>
+                                <input type="date" id="coverageCumulStart" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 8px;border-radius:6px;font-size:12px;" onchange="autoAnalyzeCoverage()">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:10px;color:#64748b;">Au</label>
+                                <input type="date" id="coverageCumulEnd" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 8px;border-radius:6px;font-size:12px;" onchange="autoAnalyzeCoverage()">
+                            </div>
+                        </div>
+                        <div id="coverageResult" style="font-size:12px;"><div style="color:#475569;font-size:12px;">Chargez un chantier — la couverture des parcelles concernées s'affiche automatiquement.</div></div>
+                    </div>
+                </details>
+
+                <details class="analysis-section">
+                    <summary>📈 Résumé de période (Excel)</summary>
+                    <div class="analysis-body">
+                        <div style="display:flex;gap:4px;margin-bottom:8px;">
+                            <button class="mini-btn" onclick="setSummaryPreset(7)">7 derniers jours</button>
+                            <button class="mini-btn" onclick="setSummaryPreset(30)">30 derniers jours</button>
+                            <button class="mini-btn" onclick="setSummaryPreset('month')">Ce mois-ci</button>
+                        </div>
+                        <div style="display:flex;gap:6px;margin-bottom:8px;">
+                            <div style="flex:1;">
+                                <label style="font-size:10px;color:#64748b;">Du</label>
+                                <input type="date" id="summaryStartDate" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 8px;border-radius:6px;font-size:12px;">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:10px;color:#64748b;">Au</label>
+                                <input type="date" id="summaryEndDate" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 8px;border-radius:6px;font-size:12px;">
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:#64748b;margin-bottom:8px;">Utilise les véhicules actuellement sélectionnés (menu "Véhicules" en haut).</div>
+                        <button onclick="exportSummaryExcel()" style="width:100%;background:#16a34a;color:#fff;border:none;border-radius:6px;padding:8px;cursor:pointer;font-size:12px;font-weight:bold;">📥 Exporter le résumé Excel</button>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Couches -->
+            <div class="tab-pane" id="tab-layers">
+                <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Affichage</div>
+                <div class="layer-btn on" id="lbtn-corridors" onclick="toggleLayer('corridors')">
+                    <div class="layer-dot" style="background:#22c55e;"></div>Corridors travaillés
+                </div>
+                <div class="layer-btn on" id="lbtn-trace" onclick="toggleLayer('trace')">
+                    <div class="layer-dot" style="background:#3b82f6;"></div>Trace GPS (actif)
+                </div>
+                <div class="layer-btn" id="lbtn-inactive" onclick="toggleLayer('inactive')" title="Trajets GPS effectués outil relevé / non engagé : transport entre parcelles, demi-tours, déplacements à vide (distinct de la trace active pendant le travail)">
+                    <div class="layer-dot" style="background:#f97316;"></div>Déplacements
+                </div>
+                <div class="layer-btn" id="lbtn-geofences" onclick="toggleLayer('geofences')">
+                    <div class="layer-dot" style="background:#eab308;"></div>Parcelles
+                </div>
+                <div class="layer-btn on" id="lbtn-alerts" onclick="toggleLayer('alerts')" title="Points où le véhicule travaillait à une vitesse anormalement élevée">
+                    <div class="layer-dot" style="background:#ef4444;"></div>Alertes vitesse
+                </div>
+                <div class="layer-btn on" id="lbtn-points" onclick="toggleLayer('points')" title="Notes de terrain géolocalisées (adventices, maladie, panne, zone humide...)">
+                    <div class="layer-dot" style="background:#a855f7;"></div>Points d'observation
+                </div>
+                <div class="layer-btn on" id="lbtn-sousparcelles" onclick="toggleLayer('sousparcelles')" title="Parcelles scindées en plusieurs cultures pour une campagne (contours dessinés dans l'appli)">
+                    <div class="layer-dot" style="background:#7c3aed;"></div>Sous-parcelles
+                </div>
+                <div style="margin:6px 0 14px 0;">
+                    <input type="text" id="fpSearchInput" class="touch-input" placeholder="🔍 Rechercher (note, catégorie, date...)" oninput="filterFieldPoints()" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:7px 9px;border-radius:6px;font-size:12px;margin-bottom:8px;">
+                    <div id="fpGroupShareBar" style="display:none; gap:6px; margin-bottom:8px; align-items:center; font-size:11px; color:#94a3b8;">
+                        <span id="fpGroupShareCount">0 sélectionné(s)</span>
+                        <button onclick="envoyerPointsSelectionnes(event)" style="margin-left:auto; background:none; border:1px solid #334155; color:#94a3b8; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px;">📤 Partager</button>
+                    </div>
+                    <div id="fpListContainer" style="max-height:220px;overflow-y:auto;"></div>
+                </div>
+
+                <div id="ndviPanel" style="display:none;margin-top:14px;">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🌿 NDVI Sentinel-2</div>
+                    <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Indice de végétation — image récente disponible dans votre zone.</div>
+                    <div class="ndvi-bar">
+                        <div style="flex:1;background:#8B0000;"></div>
+                        <div style="flex:1;background:#FF4500;"></div>
+                        <div style="flex:1;background:#FFA500;"></div>
+                        <div style="flex:1;background:#FFFF00;"></div>
+                        <div style="flex:1;background:#9ACD32;"></div>
+                        <div style="flex:1;background:#228B22;"></div>
+                        <div style="flex:1;background:#006400;"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;">
+                        <span>Sol nu / stress</span><span>Végétation dense</span>
+                    </div>
+                    <div style="font-size:10px;color:#475569;margin-top:8px;">
+                        Source : Sentinel-2 © Copernicus / Sentinel Hub<br>
+                        Image la moins nuageuse dans les 30 jours précédant la date choisie — 10m/pixel<br>
+                        <em>Opacité réglable ci-dessous</em>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label style="font-size:11px;color:#94a3b8;">Opacité NDVI</label>
+                        <input type="range" id="ndviOpacity" min="0" max="100" value="80" style="width:100%;margin-top:4px;" oninput="setNdviOpacity(this.value)">
+                    </div>
+                    <div style="margin-top:12px;border-top:1px solid #334155;padding-top:10px;">
+                        <label style="font-size:11px;color:#94a3b8;">📅 Historique — image à la date de</label>
+                        <div style="display:flex;gap:4px;align-items:center;margin-top:4px;">
+                            <button class="nav-btn" onclick="shiftNdviDate(-14)" title="14 jours plus tôt">◀◀</button>
+                            <input type="date" id="ndviDateInput" style="flex:1;">
+                            <button class="nav-btn" onclick="shiftNdviDate(14)" title="14 jours plus tard">▶▶</button>
+                        </div>
+                        <button onclick="applyNdviDate()" style="width:100%;margin-top:6px;background:#16a34a;color:#fff;border:none;border-radius:6px;padding:6px;cursor:pointer;font-size:11px;font-weight:bold;">Charger cette image</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Calendrier : toujours visible, sous les onglets Stats/Couches -->
+        <div class="calendar-section" id="calendar-section">
+            <div class="cal-header">
+                <button class="cal-nav" onclick="changeMonth(-1)">◀</button>
+                <span id="calMonthLabel" style="font-size:13px;font-weight:bold;"></span>
+                <button class="cal-nav" onclick="changeMonth(1)">▶</button>
+                <button class="cal-nav" id="calExpandBtn" onclick="toggleCalendarExpand()" title="Agrandir le calendrier" style="display:none;">⤢</button>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+            <div id="calDetail" style="margin-top:12px;font-size:12px;color:#94a3b8;">
+                Cliquez sur une date avec chantier pour sélectionner.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="ndviModalOverlay">
+    <div class="modal-box">
+        <h2>🌿 Connexion NDVI (Sentinel Hub)</h2>
+        <p>
+            Le NDVI coloré nécessite un compte gratuit Sentinel Hub. Créez un compte sur
+            <a href="https://www.sentinel-hub.com" target="_blank" style="color:#4ade80;">sentinel-hub.com</a>
+            (ou dataspace.copernicus.eu), puis générez des identifiants "OAuth client" dans
+            votre tableau de bord.
+        </p>
+        <div id="ndviStatusLine" style="font-size:12px;margin-bottom:12px;color:#64748b;">Vérification…</div>
+        <label>Fournisseur</label>
+        <select id="ndviProvider">
+            <option value="cdse">Copernicus Data Space Ecosystem (recommandé)</option>
+            <option value="shub">Sentinel Hub (compte classique)</option>
+        </select>
+        <label>Client ID</label>
+        <input type="text" id="ndviClientId" autocomplete="off">
+        <label>Client Secret</label>
+        <input type="password" id="ndviClientSecret" autocomplete="off">
+        <div class="modal-actions">
+            <button onclick="closeNdviConfigModal()" style="background:#334155;color:#e2e8f0;">Annuler</button>
+            <button onclick="saveNdviConfig()" style="background:#16a34a;color:#fff;font-weight:bold;">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="compareModalOverlay">
+    <div class="modal-box" style="width:auto;max-width:96vw;">
+        <h2>🔀 Comparer deux dates</h2>
+        <p>Compare les passages travaillés pour les véhicules actuellement sélectionnés, sur deux dates différentes.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+            <div class="compare-col" style="width:420px;max-width:44vw;">
+                <label style="font-size:11px;color:#94a3b8;">Date A</label>
+                <input type="date" id="compareDateA" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:7px 10px;border-radius:6px;font-size:13px;margin-bottom:8px;">
+                <div id="mapCompareA" style="width:100%;height:320px;border-radius:8px;border:1px solid #334155;"></div>
+                <div id="compareStatsA" style="font-size:12px;margin-top:8px;"></div>
+            </div>
+            <div class="compare-col" style="width:420px;max-width:44vw;">
+                <label style="font-size:11px;color:#94a3b8;">Date B</label>
+                <input type="date" id="compareDateB" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:7px 10px;border-radius:6px;font-size:13px;margin-bottom:8px;">
+                <div id="mapCompareB" style="width:100%;height:320px;border-radius:8px;border:1px solid #334155;"></div>
+                <div id="compareStatsB" style="font-size:12px;margin-top:8px;"></div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button onclick="closeCompareModal()" style="background:#334155;color:#e2e8f0;">Fermer</button>
+            <button onclick="runCompare()" style="background:#1d4ed8;color:#fff;font-weight:bold;">Comparer</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="quickInterventionModalOverlay">
+    <div class="modal-box">
+        <h2>✍️ Saisir l'intervention</h2>
+        <p id="qiParcelleInfo" style="font-size:13px;color:#94a3b8;margin-bottom:14px;"></p>
+
+        <label>Véhicule</label>
+        <select id="qiVehicleSelect" onchange="onQuickInterventionVehicleChange()"></select>
+
+        <label>Type d'intervention</label>
+        <input type="text" id="qiInterventionType" placeholder="ex: Pulvérisation">
+
+        <label>Outil détecté</label>
+        <input type="text" id="qiToolDetected" disabled style="opacity:0.7;">
+
+        <label>Surface travaillée (ha)</label>
+        <input type="number" id="qiAppliedArea" step="0.01" min="0">
+
+        <div id="qiSousParcelleWrap" style="display:none;">
+            <label>Sous-parcelle (cette parcelle est scindée pour cette campagne)</label>
+            <select id="qiSousParcelleSelect" onchange="onQiSousParcelleChange()">
+                <option value="">— Toute la parcelle —</option>
+            </select>
+        </div>
+
+        <div id="qiExistingWarning" style="display:none;font-size:11px;color:#fbbf24;background:#3f2d0a;border:1px solid #92400e;border-radius:6px;padding:7px 10px;margin-bottom:10px;">
+            ⚠️ Une intervention existe déjà pour ce véhicule sur cette parcelle à cette date — elle sera mise à jour plutôt que dupliquée.
+        </div>
+
+        <p style="font-size:10px;color:#64748b;margin-bottom:10px;">
+            La surface est pré-remplie à partir de la couverture GPS réelle. Pour ajouter des produits (phyto/engrais/semence) et le détail météo, utilisez ensuite "✏️ Modifier" depuis le Carnet du dashboard principal.
+        </p>
+
+        <div class="modal-actions">
+            <button onclick="closeQuickInterventionModal()" style="background:#334155;color:#e2e8f0;">Annuler</button>
+            <button onclick="submitQuickIntervention()" style="background:#16a34a;color:#fff;font-weight:bold;">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fieldPointModalOverlay">
+    <div class="modal-box">
+        <h2 id="fpModalTitle">📍 Nouveau point d'observation</h2>
+        <p id="fpModalCoords" style="font-size:11px;color:#64748b;margin-bottom:14px;"></p>
+
+        <label>Catégorie</label>
+        <select id="fpCategory">
+            <option value="adventices">⚠️ Adventices</option>
+            <option value="maladie">🐛 Maladie/Ravageur</option>
+            <option value="panne">🔧 Panne</option>
+            <option value="humide">💧 Zone humide</option>
+            <option value="autre">📝 Autre</option>
+        </select>
+
+        <label>Date</label>
+        <input type="date" id="fpDate">
+
+        <label>Note</label>
+        <textarea id="fpNote" rows="3" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:7px 10px;border-radius:6px;font-size:13px;margin-bottom:10px;resize:vertical;" placeholder="Description de l'observation..."></textarea>
+
+        <div style="display:flex; gap:6px; justify-content:flex-end; margin-bottom:8px;">
+            <button onclick="envoyerPointCourant(event)" title="Partager" style="background:none; border:1px solid #334155; color:#94a3b8; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:13px;">📤 Partager</button>
+        </div>
+
+        <div class="modal-actions" style="justify-content:space-between;">
+            <button id="fpDeleteBtn" onclick="deleteFieldPoint()" style="background:#7f1d1d;color:#fff;display:none;">🗑️ Supprimer</button>
+            <div style="display:flex;gap:8px;">
+                <button onclick="closeFieldPointModal()" style="background:#334155;color:#e2e8f0;">Annuler</button>
+                <button onclick="submitFieldPoint()" style="background:#16a34a;color:#fff;font-weight:bold;">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="sousParcellesModalOverlay">
+    <div class="modal-box" style="max-width:480px;">
+        <h2>✂️ Sous-parcelles de parcelle</h2>
+        <p style="font-size:11px;color:#64748b;margin-bottom:14px;">
+            Scindez une parcelle en plusieurs cultures pour une campagne donnée, sans jamais toucher à la géofence Traccar. La parcelle physique reste unique ; seul l'affichage et le suivi (statut, couverture) se font par sous-parcelle.
+        </p>
+
+        <label>Parcelle</label>
+        <select id="spGeofenceSelect" onchange="loadSousParcellesForSelection()"></select>
+
+        <label>Campagne (année de récolte)</label>
+        <input type="text" id="spCampagneInput" placeholder="Ex: 2026 (même pour un blé semé en 2025)" onchange="loadSousParcellesForSelection()">
+
+        <div style="display:flex; gap:8px; margin:10px 0;">
+            <button onclick="startDrawSousParcelle()" style="flex:1;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:bold;">✏️ Dessiner</button>
+            <label style="flex:1;background:#0e7490;color:#fff;border:none;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:bold;text-align:center;">
+                📂 Importer un fichier
+                <input type="file" id="spImportFile" accept=".kml,.geojson,.json" style="display:none;" onchange="handleSousParcelleFileImport(this)">
+            </label>
+        </div>
+
+        <div id="spList" style="max-height:280px;overflow-y:auto;"></div>
+
+        <div class="modal-actions">
+            <button onclick="closeSousParcellesModal()" style="background:#334155;color:#e2e8f0;">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="spImportPreviewOverlay">
+    <div class="modal-box" style="max-width:520px;">
+        <h2>📂 Import KML / GeoJSON</h2>
+        <p style="font-size:11px;color:#64748b;margin-bottom:10px;">
+            <span id="spImportCount">0</span> contour(s) détecté(s) dans le fichier. Décochez ceux à ne pas importer, ajustez le nom si besoin, puis validez.
+        </p>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <div style="flex:1;">
+                <label style="font-size:11px;">Parcelle de rattachement</label>
+                <select id="spImportGeofenceSelect"></select>
+            </div>
+            <div style="flex:1;">
+                <label style="font-size:11px;">Campagne (année de récolte)</label>
+                <input type="text" id="spImportCampagneInput" placeholder="Ex: 2026">
+            </div>
+        </div>
+        <div id="spImportList" style="max-height:320px;overflow-y:auto;border:1px solid #334155;border-radius:6px;padding:8px;"></div>
+        <div class="modal-actions">
+            <button onclick="closeSpImportPreview()" style="background:#334155;color:#e2e8f0;">Annuler</button>
+            <button onclick="confirmSousParcelleImport()" style="background:#16a34a;color:#fff;font-weight:bold;">✅ Importer la sélection</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="sousParcelleFormOverlay">
+    <div class="modal-box">
+        <h2 id="spFormTitle">✂️ Nouvelle sous-parcelle</h2>
+        <p id="spFormSurface" style="font-size:11px;color:#64748b;margin-bottom:14px;"></p>
+
+        <label>Nom de la sous-parcelle</label>
+        <input type="text" id="spNom" placeholder="Ex: Zone Nord">
+
+        <label>Culture</label>
+        <select id="spCulture"></select>
+
+        <label>Statut</label>
+        <select id="spStatut">
+            <option value="attente">⏳ En attente</option>
+            <option value="prepare">🚜 Préparé</option>
+            <option value="semis">🌱 Semé</option>
+            <option value="traite">💧 Traité</option>
+            <option value="recolte">🌾 Récolté</option>
+        </select>
+
+        <button type="button" id="spEditContourBtn" onclick="startEditContour(_spCurrentZone)" style="display:none;width:100%;background:#faf5ff;border:1px solid #c4b5fd;color:#7c3aed;border-radius:6px;padding:8px;font-size:12px;font-weight:bold;cursor:pointer;margin-bottom:14px;">✏️ Modifier le contour sur la carte</button>
+
+        <div class="modal-actions" style="justify-content:space-between;">
+            <button id="spDeleteBtn" onclick="deleteSousParcelle()" style="background:#7f1d1d;color:#fff;display:none;">🗑️ Supprimer</button>
+            <div style="display:flex;gap:8px;">
+                <button onclick="cancelSousParcelleForm()" style="background:#334155;color:#e2e8f0;">Annuler</button>
+                <button onclick="submitSousParcelleForm()" style="background:#16a34a;color:#fff;font-weight:bold;">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Intercepte TOUS les appels fetch() : redirige automatiquement vers la connexion en cas de
+// 401 (session expirée ou jamais authentifiée dans cet onglet) -- voir index.html pour le
+// detail. Un verrou évite les redirections en cascade.
+let _redirectingToLogin = false;
+const _originalFetch = window.fetch;
+window.fetch = function(...args) {
+    return _originalFetch.apply(this, args).then(response => {
+        if (response.status === 401 && !_redirectingToLogin && !window.location.pathname.startsWith('/login')) {
+            _redirectingToLogin = true;
+            window.location.href = '/login';
+        }
+        return response;
+    });
+};
+
+// Échappe tout texte inséré dans du HTML (innerHTML) pour empêcher qu'un nom de parcelle,
+// une note, un nom de produit, etc. saisis librement ne soient interprétés comme du
+// HTML/JavaScript actif (faille XSS stockée) -- utiliser systématiquement sur toute donnée
+// venant de la base plutôt que d'un texte fixe écrit dans le code.
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// ── Carte ────────────────────────────────────────────────────────────────
+const map = L.map('map', {zoomControl:true}).setView([46.5, 2.5], 13);
+
+const baseLayers = {
+    satellite: L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {attribution:'Esri Satellite', maxZoom:22, maxNativeZoom:19}
+    ),
+    ndvi: null, // créé dynamiquement
+    osm: L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {attribution:'© OpenStreetMap', maxZoom:19}
+    )
+};
+
+let ndviLayer = null;
+let currentBase = baseLayers.satellite;
+currentBase.addTo(map);
+
+function _ndviTileUrl(dateStr) {
+    return `/api/ndvi_tile/{z}/{x}/{y}.png${dateStr ? '?date=' + dateStr : ''}`;
+}
+
+function setBaseLayer(name) {
+    document.querySelectorAll('.basemap-btn').forEach(b => b.classList.remove('on'));
+    const activeBtn = document.getElementById('bbtn-' + name);
+    if (activeBtn) activeBtn.classList.add('on');
+
+    map.removeLayer(currentBase);
+    if (ndviLayer) { map.removeLayer(ndviLayer); }
+    document.getElementById('ndviPanel').style.display = 'none';
+
+    if (name === 'ndvi') {
+        currentBase = baseLayers.satellite; // satellite en dessous
+        currentBase.addTo(map);
+        // Couche NDVI colorée, calculée côté serveur (proxy Sentinel Hub) : voir
+        // /api/ndvi_tile/<z>/<x>/<y>.png dans dashboard.py. Le token Sentinel Hub
+        // reste côté serveur (jamais exposé au navigateur).
+        const ndviDateEl = document.getElementById('ndviDateInput');
+        if (!ndviDateEl.value) ndviDateEl.value = document.getElementById('dateInput').value || new Date().toISOString().slice(0,10);
+        ndviLayer = L.tileLayer(
+            _ndviTileUrl(ndviDateEl.value),
+            {attribution:'Sentinel-2 © Copernicus / Sentinel Hub', maxZoom:16, opacity:0.8}
+        );
+        ndviLayer.addTo(map);
+        document.getElementById('ndviPanel').style.display = 'block';
+        checkNdviStatus();
+    } else {
+        currentBase = baseLayers[name] || baseLayers.satellite;
+        currentBase.addTo(map);
+    }
+    // Remettre les couches de données au-dessus
+    [corridorLayer, traceLayer, inactiveLayer, geofenceLayer, alertLayer, pointsLayer, sousParcelleLayer].forEach(l => { if(map.hasLayer(l)){l.remove();l.addTo(map);} });
+}
+
+function setNdviOpacity(val) {
+    if (ndviLayer) ndviLayer.setOpacity(val/100);
+}
+
+// ── Historique NDVI ──────────────────────────────────────────────────────
+function shiftNdviDate(deltaDays) {
+    const el = document.getElementById('ndviDateInput');
+    const d = new Date((el.value || new Date().toISOString().slice(0,10)) + 'T00:00:00');
+    d.setDate(d.getDate() + deltaDays);
+    el.value = d.toISOString().slice(0,10);
+}
+
+function applyNdviDate() {
+    const dateStr = document.getElementById('ndviDateInput').value;
+    if (!dateStr) { showToast('Choisissez une date'); return; }
+    if (!ndviLayer) { showToast('Activez d\'abord le fond de carte NDVI'); return; }
+    ndviLayer.setUrl(_ndviTileUrl(dateStr));
+    showToast(`🌿 NDVI rechargé pour le ${dateStr} (image la moins nuageuse des 30 jours précédents)`);
+}
+
+// ── Connexion NDVI (Sentinel Hub) ───────────────────────────────────────────
+async function checkNdviStatus() {
+    const panel = document.getElementById('ndviPanel');
+    let statusEl = document.getElementById('ndviConnStatus');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'ndviConnStatus';
+        panel.appendChild(statusEl);
+    }
+    try {
+        const r = await fetch('/api/ndvi_status');
+        const data = await r.json();
+
+        if (!data.configured) {
+            statusEl.innerHTML = `⚠️ Non connecté — <a href="#" onclick="openNdviConfigModal();return false;" style="color:#fbbf24;">configurer la connexion</a>`;
+            statusEl.style.background = '#3f2d0a'; statusEl.style.color = '#fbbf24';
+            openNdviConfigModal();
+            return;
+        }
+
+        // Identifiants présents : on vérifie qu'une vraie tuile passe (détecte un 401/403 réel,
+        // par ex. mauvais fournisseur choisi — Sentinel Hub classique vs Copernicus Data Space).
+        statusEl.textContent = '⏳ Vérification de la connexion…';
+        statusEl.style.background = '#1e293b'; statusEl.style.color = '#94a3b8';
+        const testUrl = '/api/ndvi_tile/6/32/22.png?_t=' + Date.now();
+        const testR = await fetch(testUrl);
+        if (testR.status === 401 || testR.status === 403) {
+            let msg = `Erreur ${testR.status}`;
+            try { const body = await testR.json(); if(body.error) msg = body.error; } catch(e) {}
+            statusEl.innerHTML = `❌ ${msg} — <a href="#" onclick="openNdviConfigModal();return false;" style="color:#f87171;">vérifier la connexion</a>`;
+            statusEl.style.background = '#3f0a0a'; statusEl.style.color = '#f87171';
+            openNdviConfigModal();
+            return;
+        }
+        statusEl.textContent = `✅ Connecté (${data.client_id_masked} · ${data.provider_label})`;
+        statusEl.style.background = '#052e16'; statusEl.style.color = '#4ade80';
+    } catch(e) {
+        statusEl.textContent = '⚠️ Impossible de vérifier la connexion NDVI';
+        statusEl.style.background = '#3f2d0a'; statusEl.style.color = '#fbbf24';
+    }
+}
+
+function openNdviConfigModal() {
+    document.getElementById('ndviModalOverlay').style.display = 'flex';
+    fetch('/api/ndvi_status').then(r => r.json()).then(data => {
+        document.getElementById('ndviStatusLine').textContent = data.configured
+            ? `✅ Actuellement connecté (${data.client_id_masked} · ${data.provider_label})`
+            : '⚠️ Aucun identifiant enregistré pour le moment.';
+        if (data.provider) document.getElementById('ndviProvider').value = data.provider;
+        // Pré-remplit avec les identifiants déjà enregistrés côté serveur, pour ne pas avoir
+        // à les rechercher à nouveau à chaque ouverture de la boîte de dialogue.
+        if (data.client_id) document.getElementById('ndviClientId').value = data.client_id;
+        if (data.client_secret) document.getElementById('ndviClientSecret').value = data.client_secret;
+    }).catch(() => {});
+}
+
+function closeNdviConfigModal() {
+    document.getElementById('ndviModalOverlay').style.display = 'none';
+}
+
+async function saveNdviConfig() {
+    const provider      = document.getElementById('ndviProvider').value;
+    const client_id     = document.getElementById('ndviClientId').value.trim();
+    const client_secret = document.getElementById('ndviClientSecret').value.trim();
+    if (!client_id || !client_secret) { showToast('Renseignez le Client ID et le Client Secret'); return; }
+    try {
+        const r = await fetch('/api/ndvi_config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({provider, client_id, client_secret})
+        });
+        const data = await r.json();
+        if (r.ok && data.success) {
+            showToast('✅ Connexion NDVI enregistrée');
+            closeNdviConfigModal();
+            checkNdviStatus();
+            if (ndviLayer) { map.removeLayer(ndviLayer); ndviLayer.addTo(map); }
+        } else {
+            showToast('❌ ' + (data.error || 'Erreur inconnue'));
+        }
+    } catch(e) {
+        showToast('❌ Erreur réseau');
+    }
+}
+
+// ── Couches données ──────────────────────────────────────────────────────
+let corridorLayer = L.layerGroup().addTo(map);
+let traceLayer    = L.layerGroup().addTo(map);
+let inactiveLayer = L.layerGroup();
+let geofenceLayer = L.layerGroup();
+let alertLayer = L.layerGroup().addTo(map);
+let pointsLayer = L.layerGroup().addTo(map);
+let coverageGapLayer = L.layerGroup(); // zones non couvertes (rouge), ajoutée à la carte à la demande dans autoAnalyzeCoverage()
+let sousParcellesLayer = L.layerGroup().addTo(map);
+let layerOn = {corridors:true, trace:true, inactive:false, geofences:false, alerts:true, points:true, sousparcelles:true};
+let currentAlerts = {speedCount: 0, stopCount: 0, lowCoverageParcels: []};
+
+function renderAlertsBanner() {
+    const el = document.getElementById('alertsBanner');
+    const parts = [];
+    if (currentAlerts.speedCount > 0) {
+        parts.push(`<div style="background:#3f0a0a;color:#f87171;border:1px solid #7f1d1d;border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:6px;">⚠️ ${currentAlerts.speedCount} point(s) à vitesse anormale pendant le travail</div>`);
+    }
+    if (currentAlerts.stopCount > 0) {
+        parts.push(`<div style="background:#3f2d0a;color:#fbbf24;border:1px solid #92400e;border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:6px;">⏸️ ${currentAlerts.stopCount} arrêt(s) prolongé(s) outil engagé (bourrage/panne possible)</div>`);
+    }
+    currentAlerts.lowCoverageParcels.forEach(p => {
+        parts.push(`<div style="background:#3f2d0a;color:#fbbf24;border:1px solid #92400e;border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:6px;">⚠️ ${p.name} couverte à seulement ${p.pct}% (seuil ${p.threshold}%)</div>`);
+    });
+    el.innerHTML = parts.join('');
+}
+let currentBounds = null;
+
+function toggleLayer(name) {
+    layerOn[name] = !layerOn[name];
+    const btn = document.getElementById('lbtn-'+name);
+    if(btn) btn.classList.toggle('on', layerOn[name]);
+    const lmap = {corridors:corridorLayer, trace:traceLayer, inactive:inactiveLayer, geofences:geofenceLayer, alerts:alertLayer, points:pointsLayer, sousparcelles:sousParcelleLayer};
+    const layer = lmap[name];
+    if(layerOn[name]) {
+        layer.addTo(map);
+        // Diagnostic : si la couche est activée mais ne contient aucun élément, on le signale
+        // explicitement (au lieu de laisser croire à un bug d'affichage silencieux). Ça permet
+        // de distinguer "la couche ne s'affiche pas" (bug) de "il n'y a simplement aucune donnée
+        // de ce type pour la sélection actuelle" (normal, ex : aucun déplacement hors-travail
+        // enregistré ce jour-là pour ces véhicules).
+        let count = 0;
+        layer.eachLayer(() => count++);
+        if(count === 0 && Object.keys(devicesData).length) {
+            const labels = {corridors:'passage travaillé', trace:'trace GPS active', inactive:'déplacement', geofences:'parcelle'};
+            showToast(`ℹ️ Aucun(e) ${labels[name] || 'élément'} à afficher pour cette sélection`);
+        }
+    } else {
+        map.removeLayer(layer);
+    }
+}
+
+// ── Parcelles (géofences) ───────────────────────────────────────────────
+let geofencesList = [];
+
+async function loadGeofences() {
+    try {
+        const r = await fetch('/api/geofences');
+        if(!r.ok) return;
+        const geofences = await r.json();
+        geofencesList = geofences;
+        geofenceLayer.clearLayers();
+        geofences.forEach(g => {
+            let shape;
+            if(g.type === 'polygon' && g.coords?.length >= 3) {
+                shape = L.polygon(g.coords, {color:'#eab308', weight:2, fillColor:'#eab308', fillOpacity:0.08, dashArray:'5,4'});
+            } else if(g.type === 'circle' && g.center) {
+                shape = L.circle(g.center, {radius: g.radius, color:'#eab308', weight:2, fillColor:'#eab308', fillOpacity:0.08, dashArray:'5,4'});
+            }
+            if(shape) {
+                shape.bindTooltip(escapeHtml(g.name), {sticky:true});
+                // Centroïde approximatif (moyenne des sommets pour un polygone, centre pour
+                // un cercle) -- suffisant pour un lien de partage, précision au sol non requise.
+                let centre;
+                if (g.type === 'polygon') {
+                    const n = g.coords.length;
+                    const sLat = g.coords.reduce((s,c) => s + c[0], 0) / n;
+                    const sLon = g.coords.reduce((s,c) => s + c[1], 0) / n;
+                    centre = [sLat, sLon];
+                } else {
+                    centre = g.center;
+                }
+                shape.bindPopup(() => {
+                    const idxPartage = window._envoiPayloads.push({
+                        titre: g.name,
+                        texte: construireTexteCoordonnees(centre[0], centre[1], g.name)
+                    }) - 1;
+                    return `
+                    <div style="font-size:12.5px;">
+                        <b>${escapeHtml(g.name)}</b><br>
+                        <div style="margin-top:6px;">
+                            <button onclick="ouvrirChoixEnvoiIdx(event, ${idxPartage})" style="background:#0e7490;color:#fff;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px;">📤 Partager</button>
+                        </div>
+                    </div>
+                `;
+                });
+                geofenceLayer.addLayer(shape);
+            }
+        });
+    } catch(e) {}
+}
+
+// ── Points d'observation terrain (adventices, maladie, panne, zone humide...) ──
+const FIELD_POINT_CATEGORIES = {
+    adventices: {label:"Adventices",       emoji:"⚠️", color:"#eab308"},
+    maladie:    {label:"Maladie/Ravageur", emoji:"🐛", color:"#dc2626"},
+    panne:      {label:"Panne",            emoji:"🔧", color:"#64748b"},
+    humide:     {label:"Zone humide",      emoji:"💧", color:"#0ea5e9"},
+    autre:      {label:"Autre",            emoji:"📝", color:"#a855f7"},
+};
+
+let addPointMode = false;
+let fieldPoints = [];
+let _fpPendingCoords = null;   // coordonnées en attente pour un nouveau point
+let _fpEditingId = null;       // id du point en cours d'édition (null = création)
+
+function toggleAddPointMode() {
+    addPointMode = !addPointMode;
+    const btn = document.getElementById('btnAddPoint');
+    btn.style.background = addPointMode ? '#a855f7' : '#475569';
+    btn.textContent = addPointMode ? '📍 Cliquez sur la carte…' : '📍 Ajouter un point';
+    map.getContainer().style.cursor = addPointMode ? 'crosshair' : '';
+}
+
+map.on('click', (e) => {
+    if (!addPointMode) return;
+    _fpPendingCoords = {lat: e.latlng.lat, lon: e.latlng.lng};
+    _fpEditingId = null;
+    document.getElementById('fpModalTitle').textContent = "📍 Nouveau point d'observation";
+    document.getElementById('fpModalCoords').textContent = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+    document.getElementById('fpCategory').value = 'autre';
+    document.getElementById('fpDate').value = document.getElementById('dateInput').value || new Date().toISOString().slice(0,10);
+    document.getElementById('fpNote').value = '';
+    document.getElementById('fpDeleteBtn').style.display = 'none';
+    document.getElementById('fieldPointModalOverlay').style.display = 'flex';
+    toggleAddPointMode(); // désactive le mode ajout après le premier clic
+});
+
+async function loadFieldPoints() {
+    try {
+        const r = await fetch('/api/field_points');
+        if (!r.ok) return;
+        fieldPoints = await r.json();
+        renderFieldPoints();
+    } catch(e) {}
+}
+
+function renderFieldPoints() {
+    pointsLayer.clearLayers();
+    const term = (document.getElementById('fpSearchInput')?.value || '').trim().toLowerCase();
+
+    const filtered = fieldPoints.filter(p => {
+        if (!term) return true;
+        const cat = FIELD_POINT_CATEGORIES[p.category] || FIELD_POINT_CATEGORIES.autre;
+        const haystack = `${cat.label} ${p.note || ''} ${p.date}`.toLowerCase();
+        return haystack.includes(term);
+    });
+
+    filtered.forEach(p => {
+        const cat = FIELD_POINT_CATEGORIES[p.category] || FIELD_POINT_CATEGORIES.autre;
+        const marker = L.circleMarker([p.lat, p.lon], {
+            radius: 8, color: cat.color, weight:2, fillColor: cat.color, fillOpacity:0.85
+        });
+        const noteShort = (p.note || '').slice(0, 80);
+        marker.bindTooltip(`${cat.emoji} ${cat.label}${noteShort ? ' — ' + noteShort : ''} (${p.date})`);
+        marker.on('click', () => openFieldPointModal(p));
+        pointsLayer.addLayer(marker);
+    });
+
+    renderFieldPointsList(filtered);
+}
+
+function renderFieldPointsList(list) {
+    const container = document.getElementById('fpListContainer');
+    if (!container) return;
+    if (!fieldPoints.length) {
+        container.innerHTML = '<div style="color:#475569;font-size:11px;padding:6px 0;">Aucun point d\'observation enregistré.</div>';
+        return;
+    }
+    if (!list.length) {
+        container.innerHTML = '<div style="color:#64748b;font-size:11px;padding:6px 0;">Aucun résultat pour cette recherche.</div>';
+        return;
+    }
+    container.innerHTML = list
+        .slice() // copie avant tri, pour ne pas modifier fieldPoints
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+        .map(p => {
+            const cat = FIELD_POINT_CATEGORIES[p.category] || FIELD_POINT_CATEGORIES.autre;
+            const noteShort = escapeHtml((p.note || '').slice(0, 60) + ((p.note || '').length > 60 ? '…' : ''));
+            return `<div class="passage-item" style="border-left:3px solid ${cat.color}; display:flex; align-items:flex-start; gap:6px;">
+                <input type="checkbox" class="fp-select-checkbox" data-fp-id="${p.id}" onclick="event.stopPropagation(); majBarrePartageGroupe();" style="margin-top:4px; flex-shrink:0;">
+                <div style="flex:1; cursor:pointer;" onclick="flyToFieldPoint(${p.id})">
+                    <div class="pi-top"><span>${cat.emoji} ${cat.label}</span><span style="color:#64748b;font-weight:normal;">${p.date}</span></div>
+                    ${noteShort ? `<div class="pi-bot">${noteShort}</div>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    majBarrePartageGroupe();
+}
+
+// Affiche/masque la barre de partage groupé selon le nombre de points cochés dans la liste.
+function majBarrePartageGroupe() {
+    const cases = document.querySelectorAll('.fp-select-checkbox:checked');
+    const bar = document.getElementById('fpGroupShareBar');
+    document.getElementById('fpGroupShareCount').textContent = `${cases.length} sélectionné(s)`;
+    bar.style.display = cases.length > 0 ? 'flex' : 'none';
+}
+
+// Partage groupé : construit un seul message listant tous les points cochés, avec leur
+// catégorie, la date et un lien Google Maps chacun -- un seul email/SMS au lieu d'un envoi
+// par point.
+function filterFieldPoints() {
+    renderFieldPoints();
+}
+
+function flyToFieldPoint(id) {
+    const p = fieldPoints.find(fp => fp.id === id);
+    if (!p) return;
+    if (!layerOn.points) toggleLayer('points');
+    map.setView([p.lat, p.lon], 17, {animate: true});
+    setTimeout(() => openFieldPointModal(p), 300);
+}
+
+function openFieldPointModal(p) {
+    _fpEditingId = p.id;
+    _fpPendingCoords = {lat: p.lat, lon: p.lon};
+    document.getElementById('fpModalTitle').textContent = "📍 Modifier le point d'observation";
+    document.getElementById('fpModalCoords').textContent = `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`;
+    document.getElementById('fpCategory').value = p.category || 'autre';
+    document.getElementById('fpDate').value = p.date;
+    document.getElementById('fpNote').value = p.note || '';
+    document.getElementById('fpDeleteBtn').style.display = 'inline-block';
+    document.getElementById('fieldPointModalOverlay').style.display = 'flex';
+}
+
+function closeFieldPointModal() {
+    document.getElementById('fieldPointModalOverlay').style.display = 'none';
+    if (addPointMode) toggleAddPointMode();
+}
+
+// ═══════ Partage consolidé (email / SMS / WhatsApp) ═══════
+// Un seul bouton "📤" ouvre un petit menu de choix du canal, plutôt que de multiplier les
+// boutons ✉️/📱 partout. Le modèle de message (préfixe/suffixe, réglable dans ⚙️ État
+// système côté index.html) est appliqué automatiquement autour du contenu généré.
+window._partageTemplate = window._partageTemplate || { prefix: '', suffix: '' };
+window._envoiPayloads = window._envoiPayloads || [];
+
+async function chargerMessageTemplate() {
+    try {
+        const r = await fetch('/api/config_partage', { credentials: 'same-origin' });
+        if (r.ok) window._partageTemplate = await r.json();
+    } catch(e) {}
+}
+// On conserve la PROMESSE (pas seulement l'appel) : _appliquerModeleMessage l'attend
+// explicitement avant de composer le message, pour ne jamais envoyer un message sans le
+// modele si le clic sur "Partager" survient tres vite apres le chargement de la page
+// (le fetch peut ne pas encore etre termine).
+window._partageTemplatePromise = chargerMessageTemplate();
+
+async function _appliquerModeleMessage(texte) {
+    await window._partageTemplatePromise;
+    const parts = [];
+    if (window._partageTemplate.prefix) parts.push(window._partageTemplate.prefix);
+    parts.push(texte);
+    if (window._partageTemplate.suffix) parts.push(window._partageTemplate.suffix);
+    return parts.join('\n\n');
+}
+
+async function envoyerMessage(canal, titre, texte) {
+    const contenu = await _appliquerModeleMessage(texte);
+    if (canal === 'email') {
+        window.location.href = `mailto:?subject=${encodeURIComponent(titre)}&body=${encodeURIComponent(contenu)}`;
+    } else if (canal === 'sms') {
+        window.location.href = `sms:?body=${encodeURIComponent(contenu)}`;
+    } else if (canal === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(contenu)}`, '_blank');
+    }
+}
+
+let _envoiPopoverEl = null;
+function _fermerChoixEnvoi() {
+    if (_envoiPopoverEl) { _envoiPopoverEl.remove(); _envoiPopoverEl = null; }
+}
+function ouvrirChoixEnvoi(event, titre, texte) {
+    event.stopPropagation();
+    _fermerChoixEnvoi();
+    const btn = event.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const pop = document.createElement('div');
+    pop.style.cssText = `position:fixed; top:${rect.bottom+4}px; left:${rect.left}px; z-index:99999; background:#1e293b; border:1px solid #334155; border-radius:8px; padding:6px; display:flex; flex-direction:column; gap:2px; box-shadow:0 4px 14px rgba(0,0,0,0.45);`;
+    [['✉️ Email','email'], ['📱 SMS','sms'], ['💬 WhatsApp','whatsapp']].forEach(([label, canal]) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.textContent = label;
+        item.style.cssText = 'background:none;border:none;color:#e2e8f0;text-align:left;padding:7px 12px;cursor:pointer;font-size:12.5px;border-radius:5px;white-space:nowrap;';
+        item.onmouseenter = () => item.style.background = '#334155';
+        item.onmouseleave = () => item.style.background = 'none';
+        item.onclick = (e) => { e.stopPropagation(); envoyerMessage(canal, titre, texte); _fermerChoixEnvoi(); };
+        pop.appendChild(item);
+    });
+    document.body.appendChild(pop);
+    _envoiPopoverEl = pop;
+    setTimeout(() => document.addEventListener('click', _fermerChoixEnvoi, {once:true}), 0);
+}
+// Variante par index, pour les boutons générés au rendu (contenu figé, ex: popup parcelle) --
+// évite d'avoir à ré-échapper des guillemets dans un attribut onclick dynamique.
+function ouvrirChoixEnvoiIdx(event, idx) {
+    const p = window._envoiPayloads[idx];
+    if (!p) return;
+    ouvrirChoixEnvoi(event, p.titre, p.texte);
+}
+
+function construireTexteCoordonnees(lat, lon, titre) {
+    const lienCarte = `https://www.google.com/maps?q=${lat},${lon}`;
+    return `${titre} — ${lat.toFixed(5)}, ${lon.toFixed(5)}\n${lienCarte}`;
+}
+
+// Partage du point d'observation actuellement ouvert dans la modale (contenu recalculé au
+// clic, puisque la catégorie peut avoir été changée juste avant sans avoir encore enregistré).
+function envoyerPointCourant(event) {
+    if (!_fpPendingCoords) return;
+    const categorie = FIELD_POINT_CATEGORIES[document.getElementById('fpCategory').value] || FIELD_POINT_CATEGORIES.autre;
+    const titre = `${categorie.emoji} ${categorie.label} — point d'observation terrain`;
+    ouvrirChoixEnvoi(event, titre, construireTexteCoordonnees(_fpPendingCoords.lat, _fpPendingCoords.lon, titre));
+}
+
+// Partage groupé : construit un seul message listant tous les points cochés dans la liste,
+// recalculé au clic (la sélection peut changer entre deux ouvertures du menu).
+function envoyerPointsSelectionnes(event) {
+    const idsSelectionnes = [...document.querySelectorAll('.fp-select-checkbox:checked')].map(c => Number(c.dataset.fpId));
+    const points = fieldPoints.filter(p => idsSelectionnes.includes(p.id));
+    if (!points.length) return;
+
+    const lignes = points.map(p => {
+        const cat = FIELD_POINT_CATEGORIES[p.category] || FIELD_POINT_CATEGORIES.autre;
+        const lien = `https://www.google.com/maps?q=${p.lat},${p.lon}`;
+        return `${cat.emoji} ${cat.label} (${p.date}) — ${lien}`;
+    });
+    const titre = `${points.length} point(s) d'observation terrain`;
+    ouvrirChoixEnvoi(event, titre, `${titre}\n\n${lignes.join('\n')}`);
+}
+
+async function submitFieldPoint() {
+    const category = document.getElementById('fpCategory').value;
+    const date = document.getElementById('fpDate').value;
+    const note = document.getElementById('fpNote').value.trim();
+
+    const payload = {
+        lat: _fpPendingCoords.lat, lon: _fpPendingCoords.lon,
+        date, category, note
+    };
+
+    try {
+        const url = _fpEditingId ? `/api/field_points/${_fpEditingId}` : '/api/field_points';
+        const method = _fpEditingId ? 'PUT' : 'POST';
+        const r = await fetch(url, {
+            method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+        });
+        if (r.ok) {
+            showToast('📍 Point enregistré');
+            closeFieldPointModal();
+            loadFieldPoints();
+        } else {
+            showToast('❌ Erreur lors de l\'enregistrement du point');
+        }
+    } catch(e) {
+        showToast('❌ Erreur réseau');
+    }
+}
+
+async function deleteFieldPoint() {
+    if (!_fpEditingId) return;
+    if (!confirm('Supprimer ce point d\'observation ?')) return;
+    try {
+        const r = await fetch(`/api/field_points/${_fpEditingId}`, {method: 'DELETE'});
+        if (r.ok) {
+            showToast('🗑️ Point supprimé');
+            closeFieldPointModal();
+            loadFieldPoints();
+        } else {
+            showToast('❌ Erreur lors de la suppression');
+        }
+    } catch(e) {
+        showToast('❌ Erreur réseau');
+    }
+}
+
+// ── Sous-parcelles (scinder une parcelle en plusieurs cultures pour une campagne) ──
+const SOUSZONE_STATUT_COLOR = {attente:'#d97706', prepare:'#7c3aed', semis:'#16a34a', traite:'#2563eb', recolte:'#dc2626'};
+let CULTURES_LIST = [];
+let drawingSousParcelle = false;
+let drawingPoints = [];
+let drawingPolyline = null;
+let drawingMarkers = [];
+let _szEditingId = null;
+let _szPendingPolygon = null;
+let _spCurrentZone = null;
+
+// Affichage permanent des sous-parcelles sur la carte (indépendant de la modale de gestion)
+let sousParcelleLayer = L.layerGroup().addTo(map);
+let ALL_SOUS_PARCELLES = [];
+
+// Édition du contour par glisser des sommets (sur une sous-parcelle déjà créée)
+let editingContourId = null;
+let editingContourZone = null;    // la sous-parcelle en cours d'édition, conservée directement
+let editingContourMarkers = [];   // marqueurs draggables, un par sommet
+let editingContourPolygon = null; // aperçu live du polygone en cours d'édition
+
+async function loadCulturesList() {
+    if (CULTURES_LIST.length) return;
+    try {
+        const r = await fetch('/api/cultures');
+        if (r.ok) CULTURES_LIST = await r.json();
+    } catch(e) { CULTURES_LIST = []; }
+}
+
+// Affiche en permanence toutes les sous-parcelles sur la carte (pas seulement dans la
+// modale de gestion), avec une couleur par statut et une étiquette nom+culture au survol.
+async function loadAndRenderSousParcelles() {
+    try {
+        const r = await fetch('/api/sous_parcelles');
+        ALL_SOUS_PARCELLES = r.ok ? await r.json() : [];
+    } catch(e) { ALL_SOUS_PARCELLES = []; }
+    renderSousParcellesLayer();
+}
+
+function renderSousParcellesLayer() {
+    sousParcelleLayer.clearLayers();
+    ALL_SOUS_PARCELLES.forEach(z => {
+        if (!z.polygon || z.polygon.length < 3) return;
+        const color = SOUSZONE_STATUT_COLOR[z.statut] || '#7c3aed';
+        const poly = L.polygon(z.polygon, {color, weight:2, fillColor:color, fillOpacity:0.18, dashArray: (z.id === editingContourId ? '6,4' : null)});
+        poly.bindTooltip(`✂️ ${escapeHtml(z.nom)}${z.culture ? ' — ' + escapeHtml(z.culture) : ''} (${escapeHtml(z.campagne) || '?'})`, {sticky:true});
+        poly.on('click', () => openSousParcelleForm(z));
+        sousParcelleLayer.addLayer(poly);
+    });
+}
+
+// ── Édition du contour par glisser des sommets ──────────────────────────────
+function startEditContour(zone) {
+    document.getElementById('sousParcelleFormOverlay').style.display = 'none';
+    closeSousParcellesModal();
+    editingContourId = zone.id;
+    editingContourZone = zone;  // conservé tel quel : évite toute re-recherche fragile plus tard
+    _clearContourEditMarkers(false);  // false : ne pas effacer editingContourId/Zone qu'on vient de définir
+
+    const points = (zone.polygon || []).map(p => [...p]); // copie, pour ne pas modifier l'original avant sauvegarde
+    editingContourPolygon = L.polygon(points, {color:'#7c3aed', weight:3, fillColor:'#7c3aed', fillOpacity:0.15});
+    editingContourPolygon.addTo(map);
+
+    points.forEach((pt, idx) => {
+        const marker = L.marker(pt, {
+            draggable: true,
+            icon: L.divIcon({className:'', html:'<div style="width:14px;height:14px;border-radius:50%;background:#7c3aed;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>', iconSize:[14,14], iconAnchor:[7,7]})
+        }).addTo(map);
+        marker.on('drag', () => {
+            const ll = marker.getLatLng();
+            points[idx] = [ll.lat, ll.lng];
+            editingContourPolygon.setLatLngs(points);
+        });
+        marker.on('dblclick', () => {
+            // Supprime ce sommet (double-clic), à condition de garder au moins 3 points
+            if (points.length <= 3) { showToast('❌ Un contour doit garder au moins 3 sommets'); return; }
+            points.splice(idx, 1);
+            editingContourPolygon.setLatLngs(points);
+            startEditContourRefresh(zone, points);
+        });
+        editingContourMarkers.push(marker);
+    });
+
+    map.fitBounds(editingContourPolygon.getBounds(), {padding:[40,40]});
+    document.getElementById('contourEditControls').style.display = 'flex';
+    document.getElementById('contourEditControls').dataset.zoneId = zone.id;
+    showToast('✂️ Glissez les points pour ajuster le contour. Double-clic sur un point pour le supprimer.');
+    renderSousParcellesLayer(); // fait apparaître le contour d'origine en pointillés pendant l'édition
+}
+
+// Reconstruit les marqueurs après suppression d'un sommet (les index changent)
+function startEditContourRefresh(zone, newPoints) {
+    _clearContourEditMarkers(false);
+    const zoneCopy = {...zone, polygon: newPoints};
+    editingContourId = null; // évite un clearContourEditMarkers en cascade
+    startEditContour(zoneCopy);
+}
+
+function _clearContourEditMarkers(resetId = true) {
+    editingContourMarkers.forEach(m => map.removeLayer(m));
+    editingContourMarkers = [];
+    if (editingContourPolygon) { map.removeLayer(editingContourPolygon); editingContourPolygon = null; }
+    if (resetId) { editingContourId = null; editingContourZone = null; }
+    document.getElementById('contourEditControls').style.display = 'none';
+    map.getContainer().style.cursor = '';
+}
+
+async function saveEditedContour() {
+    if (!editingContourPolygon) return;
+    const newPoints = editingContourPolygon.getLatLngs()[0].map(ll => [ll.lat, ll.lng]);
+    if (newPoints.length < 3) { showToast('❌ Il faut au moins 3 sommets'); return; }
+    const surf = _polygonSurfaceHa(newPoints);
+    const zone = editingContourZone;
+    if (!zone) { showToast('❌ Sous-parcelle introuvable'); return; }
+    try {
+        const r = await fetch('/api/sous_parcelles', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ id: editingContourId, nom: zone.nom, geofence_id: zone.geofence_id, campagne: zone.campagne, culture: zone.culture, statut: zone.statut, surface_ha: surf, polygon: newPoints })
+        });
+        if (!r.ok) { showToast('❌ Erreur lors de l\'enregistrement du contour'); return; }
+        showToast('✅ Contour mis à jour (' + surf + ' ha)');
+        _clearContourEditMarkers();
+        await loadAndRenderSousParcelles();
+    } catch(e) {
+        showToast('❌ Erreur lors de l\'enregistrement du contour');
+    }
+}
+
+function cancelEditContour() {
+    _clearContourEditMarkers();
+    renderSousParcellesLayer();
+}
+
+async function openSousParcellesModal() {
+    await loadCulturesList();
+    const sel = document.getElementById('spGeofenceSelect');
+    sel.innerHTML = geofencesList.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    const dateVal = document.getElementById('dateInput')?.value;
+    const dRef = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
+    // La campagne se désigne toujours par son année de RÉCOLTE, pas l'année civile de la date
+    // affichée : un semis d'automne (à partir d'août/septembre) appartient à la campagne de
+    // l'année SUIVANTE (ex: semis en octobre 2025 -> campagne 2026, récolte l'été suivant).
+    // Simple heuristique de repli, modifiable à la main si besoin (le champ reste éditable).
+    const annee = (dRef.getMonth() + 1 >= 8) ? (dRef.getFullYear() + 1).toString() : dRef.getFullYear().toString();
+    document.getElementById('spCampagneInput').value = annee;
+    document.getElementById('sousParcellesModalOverlay').style.display = 'flex';
+    loadSousParcellesForSelection();
+}
+
+function closeSousParcellesModal() {
+    document.getElementById('sousParcellesModalOverlay').style.display = 'none';
+}
+
+async function analyzeSousParcelleCoverage(sousParcelleId, geofenceId) {
+    const target = document.getElementById(`spCoverage-${sousParcelleId}`);
+    const deviceIds = getSelectedDeviceIds();
+    const date = document.getElementById('dateInput')?.value;
+    if (!deviceIds.length || !date) {
+        target.innerHTML = '<span style="color:#f59e0b;">⚠️ Chargez d\'abord un chantier (date + véhicules) sur la carte</span>';
+        return;
+    }
+    target.innerHTML = '<span style="color:#64748b;">Calcul en cours…</span>';
+    try {
+        const params = new URLSearchParams({geofence_id: geofenceId, sous_parcelle_id: sousParcelleId, date, device_ids: deviceIds.join(',')});
+        const r = await fetch(`/api/coverage?${params}`);
+        const data = await r.json();
+        if (!r.ok) { target.innerHTML = `<span style="color:#dc2626;">❌ ${data.error || 'Erreur'}</span>`; return; }
+        if (data.message) { target.innerHTML = `<span style="color:#f59e0b;">⚠️ ${data.message}</span>`; return; }
+        const color = data.coverage_pct >= 95 ? '#4ade80' : (data.coverage_pct >= 80 ? '#fbbf24' : '#f87171');
+        target.innerHTML = `<span style="color:${color};font-weight:bold;">📊 ${data.coverage_pct}% couvert</span> <span style="color:#64748b;">(${data.uncovered_area_ha} ha non couverts sur ${data.geofence_area_ha ?? '?'} ha)</span>`;
+    } catch(e) {
+        target.innerHTML = '<span style="color:#dc2626;">❌ Erreur réseau</span>';
+    }
+}
+
+async function loadSousParcellesForSelection() {
+    const geoId = document.getElementById('spGeofenceSelect').value;
+    const campagne = document.getElementById('spCampagneInput').value.trim();
+    const listEl = document.getElementById('spList');
+    if (!geoId) { listEl.innerHTML = ''; return; }
+
+    sousParcellesLayer.clearLayers();
+    try {
+        const params = new URLSearchParams({geofence_id: geoId});
+        if (campagne) params.set('campagne', campagne);
+        const r = await fetch(`/api/sous_parcelles?${params}`);
+        const zones = await r.json();
+
+        if (!zones.length) {
+            listEl.innerHTML = '<div style="color:#64748b;font-size:12px;padding:8px 0;">Aucune sous-parcelle pour cette parcelle/campagne. Cette parcelle est suivie normalement dans son ensemble.</div>';
+        } else {
+            listEl.innerHTML = zones.map(z => {
+                const color = SOUSZONE_STATUT_COLOR[z.statut] || '#94a3b8';
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border:1px solid #334155;border-radius:6px;margin-bottom:6px;border-left:4px solid ${color};">
+                    <div>
+                        <div style="font-weight:bold;font-size:13px;">${escapeHtml(z.nom)}</div>
+                        <div style="font-size:11px;color:#94a3b8;">${escapeHtml(z.culture) || 'Culture non renseignée'} · ${z.surface_ha ? z.surface_ha + ' ha' : 'surface inconnue'} · ${escapeHtml(z.statut)}</div>
+                        <div id="spCoverage-${z.id}" style="font-size:11px;margin-top:4px;"></div>
+                    </div>
+                    <div style="display:flex;gap:4px;">
+                        <button class="mini-btn" onclick="analyzeSousParcelleCoverage(${z.id}, '${z.geofence_id}')" title="Couverture GPS de cette sous-parcelle (date/véhicules actuellement chargés)">📊</button>
+                        <button class="mini-btn" onclick='editSousParcelle(${JSON.stringify(z).replace(/'/g,"&apos;")})'>✏️</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Affiche chaque sous-parcelle sur la carte, coloree selon son statut
+        zones.forEach(z => {
+            if (!z.polygon || z.polygon.length < 3) return;
+            const color = SOUSZONE_STATUT_COLOR[z.statut] || '#94a3b8';
+            const poly = L.polygon(z.polygon, {color, weight:2, fillColor:color, fillOpacity:0.2});
+            poly.bindTooltip(`${escapeHtml(z.nom)} — ${escapeHtml(z.culture) || '?'} (${escapeHtml(z.statut)})`);
+            sousParcellesLayer.addLayer(poly);
+        });
+    } catch(e) {
+        listEl.innerHTML = '<div style="color:#dc2626;font-size:12px;">Erreur de chargement des sous-parcelles.</div>';
+    }
+}
+
+function startDrawSousParcelle() {
+    closeSousParcellesModal();
+    drawingSousParcelle = true;
+    drawingPoints = [];
+    if (drawingPolyline) { map.removeLayer(drawingPolyline); drawingPolyline = null; }
+    drawingMarkers.forEach(m => map.removeLayer(m));
+    drawingMarkers = [];
+    map.getContainer().style.cursor = 'crosshair';
+    showToast('✂️ Cliquez pour tracer le contour de la sous-parcelle, puis "Terminer"');
+    document.getElementById('drawSousParcelleControls').style.display = 'flex';
+}
+
+map.on('click', (e) => {
+    if (!drawingSousParcelle) return;
+    drawingPoints.push([e.latlng.lat, e.latlng.lng]);
+    const marker = L.circleMarker(e.latlng, {radius:4, color:'#7c3aed', fillColor:'#7c3aed', fillOpacity:1});
+    marker.addTo(map);
+    drawingMarkers.push(marker);
+    if (drawingPolyline) map.removeLayer(drawingPolyline);
+    if (drawingPoints.length >= 2) {
+        drawingPolyline = L.polygon(drawingPoints, {color:'#7c3aed', weight:2, fillColor:'#7c3aed', fillOpacity:0.15, dashArray:'6,4'});
+        drawingPolyline.addTo(map);
+    }
+});
+
+function cancelDrawSousParcelle() {
+    drawingSousParcelle = false;
+    map.getContainer().style.cursor = '';
+    if (drawingPolyline) { map.removeLayer(drawingPolyline); drawingPolyline = null; }
+    drawingMarkers.forEach(m => map.removeLayer(m));
+    drawingMarkers = [];
+    drawingPoints = [];
+    document.getElementById('drawSousParcelleControls').style.display = 'none';
+}
+
+// ── Import de fichiers KML/GeoJSON pour créer des sous-parcelles ────────────
+let _spImportCandidates = [];  // [{nom, culture, coords: [[lat,lon],...], selected}]
+
+function handleSousParcelleFileImport(inputEl) {
+    const file = inputEl.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target.result;
+            const isKml = file.name.toLowerCase().endsWith('.kml') || text.trim().startsWith('<?xml') || text.includes('<kml');
+            const features = isKml ? parseKmlPolygons(text) : parseGeoJsonPolygons(text);
+            if (!features.length) {
+                showToast('❌ Aucun contour polygonal trouvé dans ce fichier');
+                return;
+            }
+            openSpImportPreview(features);
+        } catch(err) {
+            console.error(err);
+            showToast('❌ Fichier illisible : ' + err.message);
+        } finally {
+            inputEl.value = ''; // permet de réimporter le même fichier si besoin
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Extrait les polygones d'un fichier KML : un <Placemark> par zone, avec son <name> si présent.
+// Coordonnées KML : "lon,lat[,alt] lon,lat[,alt] ..." -> converties en [[lat,lon],...].
+function parseKmlPolygons(xmlText) {
+    const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    if (doc.querySelector('parsererror')) throw new Error('XML KML invalide');
+    const placemarks = Array.from(doc.getElementsByTagName('Placemark'));
+    const results = [];
+    placemarks.forEach((pm, idx) => {
+        const nameEl = pm.getElementsByTagName('name')[0];
+        const nom = nameEl ? nameEl.textContent.trim() : `Import ${idx + 1}`;
+        const coordsEl = pm.getElementsByTagName('coordinates')[0];
+        if (!coordsEl) return;
+        const coords = coordsEl.textContent.trim().split(/\s+/).map(triplet => {
+            const [lon, lat] = triplet.split(',').map(Number);
+            return [lat, lon];
+        }).filter(c => Number.isFinite(c[0]) && Number.isFinite(c[1]));
+        if (coords.length >= 3) results.push({ nom, culture: '', coords });
+    });
+    return results;
+}
+
+// Extrait les polygones d'un fichier GeoJSON (Polygon ou MultiPolygon, FeatureCollection ou
+// Feature isolée). Coordonnées GeoJSON : [lon, lat] -> converties en [lat, lon].
+function parseGeoJsonPolygons(jsonText) {
+    const data = JSON.parse(jsonText);
+    const features = data.type === 'FeatureCollection' ? data.features
+        : data.type === 'Feature' ? [data]
+        : [{ type: 'Feature', geometry: data, properties: {} }];
+    const results = [];
+    features.forEach((f, idx) => {
+        const geom = f.geometry;
+        if (!geom) return;
+        const props = f.properties || {};
+        const nomBase = props.nom || props.name || props.Nom || props.NAME || `Import ${idx + 1}`;
+        const cultureBase = props.culture || props.Culture || props.CULTURE || '';
+        const polygons = geom.type === 'Polygon' ? [geom.coordinates]
+            : geom.type === 'MultiPolygon' ? geom.coordinates
+            : [];
+        polygons.forEach((poly, pIdx) => {
+            const ring = poly[0]; // anneau extérieur uniquement (les trous éventuels sont ignorés)
+            const coords = ring.map(([lon, lat]) => [lat, lon]).filter(c => Number.isFinite(c[0]) && Number.isFinite(c[1]));
+            if (coords.length >= 3) {
+                const nom = polygons.length > 1 ? `${nomBase} (${pIdx + 1})` : nomBase;
+                results.push({ nom, culture: cultureBase, coords });
+            }
+        });
+    });
+    return results;
+}
+
+function openSpImportPreview(features) {
+    _spImportCandidates = features.map(f => ({ ...f, selected: true }));
+    document.getElementById('spImportGeofenceSelect').innerHTML =
+        geofencesList.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    // Reprend la parcelle/campagne déjà choisies dans la fenêtre de gestion, si renseignées
+    const geoSelInModal = document.getElementById('spGeofenceSelect');
+    if (geoSelInModal && geoSelInModal.value) document.getElementById('spImportGeofenceSelect').value = geoSelInModal.value;
+    document.getElementById('spImportCampagneInput').value = document.getElementById('spCampagneInput').value || new Date().getFullYear();
+    renderSpImportList();
+    document.getElementById('spImportPreviewOverlay').style.display = 'flex';
+}
+
+function renderSpImportList() {
+    document.getElementById('spImportCount').textContent = _spImportCandidates.length;
+    document.getElementById('spImportList').innerHTML = _spImportCandidates.map((f, i) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #1e293b;">
+            <input type="checkbox" ${f.selected ? 'checked' : ''} onchange="_spImportCandidates[${i}].selected = this.checked">
+            <input type="text" value="${escapeHtml(f.nom)}" oninput="_spImportCandidates[${i}].nom = this.value" style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:4px;font-size:12px;">
+            <input type="text" value="${escapeHtml(f.culture||'')}" placeholder="Culture" oninput="_spImportCandidates[${i}].culture = this.value" style="width:100px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:4px;font-size:12px;">
+            <span style="font-size:10px;color:#64748b;">${_polygonSurfaceHa(f.coords)} ha</span>
+        </div>
+    `).join('');
+}
+
+function closeSpImportPreview() {
+    document.getElementById('spImportPreviewOverlay').style.display = 'none';
+    _spImportCandidates = [];
+}
+
+async function confirmSousParcelleImport() {
+    const geofenceId = document.getElementById('spImportGeofenceSelect').value;
+    const campagne = document.getElementById('spImportCampagneInput').value.trim();
+    const aImporter = _spImportCandidates.filter(f => f.selected);
+    if (!geofenceId) { showToast('❌ Choisissez la parcelle de rattachement'); return; }
+    if (!campagne) { showToast('❌ Renseignez la campagne'); return; }
+    if (!aImporter.length) { showToast('❌ Aucun contour sélectionné'); return; }
+
+    let ok = 0, ko = 0;
+    for (const f of aImporter) {
+        try {
+            const r = await fetch('/api/sous_parcelles', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    nom: f.nom, geofence_id: geofenceId, campagne, culture: f.culture || '',
+                    statut: 'attente', surface_ha: _polygonSurfaceHa(f.coords), polygon: f.coords
+                })
+            });
+            if (r.ok) ok++; else ko++;
+        } catch(e) { ko++; }
+    }
+    showToast(`✅ ${ok} sous-parcelle(s) importée(s)` + (ko ? ` (${ko} échec(s))` : ''));
+    closeSpImportPreview();
+    document.getElementById('spGeofenceSelect').value = geofenceId;
+    document.getElementById('spCampagneInput').value = campagne;
+    loadSousParcellesForSelection();
+    loadAndRenderSousParcelles();
+}
+
+function finishDrawSousParcelle() {
+    if (drawingPoints.length < 3) {
+        showToast('❌ Il faut au moins 3 points pour former une zone');
+        return;
+    }
+    _szPendingPolygon = drawingPoints.slice();
+    cancelDrawSousParcelle();
+    openSousParcelleForm(null);
+}
+
+// Surface approximative d'un polygone (formule de l'aire sphérique simplifiée, correcte
+// pour de petites surfaces agricoles -- même ordre de grandeur que le reste de l'appli).
+// ── Historique NDVI par parcelle ────────────────────────────────────────────
+// Ajoute, sous le NDVI "parcelle entière", un bloc de capture/historique NDVI dédié à
+// chaque sous-parcelle de cette géofence (si elle en a) -- une sous-parcelle a un contour
+// plus précis, donc un NDVI moyen plus représentatif de SA culture que celui de toute la
+// parcelle quand celle-ci est scindée en plusieurs cultures.
+async function loadNdviSousParcellesBlocks(geofenceId) {
+    const container = document.getElementById(`ndvi-souszones-${geofenceId}`);
+    if (!container) return;
+    try {
+        const r = await fetch(`/api/sous_parcelles?geofence_id=${encodeURIComponent(geofenceId)}`);
+        const zones = r.ok ? await r.json() : [];
+        if (!zones.length) { container.innerHTML = ''; return; }
+        container.innerHTML = zones.map(z => `
+            <div style="border-top:1px dashed #334155;margin-top:6px;padding-top:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:10px;color:#a78bfa;">✂️ ${escapeHtml(z.nom)}${z.culture ? ' (' + escapeHtml(z.culture) + ')' : ''}</span>
+                    <button class="mini-btn" onclick="captureNdviPoint('${geofenceId}', this, ${z.id})" title="Enregistre le NDVI moyen actuel de cette sous-parcelle">📸 Capturer</button>
+                </div>
+                <div id="ndvi-spark-${geofenceId}-sp${z.id}" style="margin-top:4px;">
+                    <span style="color:#475569;font-size:10px;">Chargement…</span>
+                </div>
+            </div>
+        `).join('');
+        zones.forEach(z => loadNdviHistory(geofenceId, z.id));
+    } catch(e) {
+        container.innerHTML = '';
+    }
+}
+
+async function captureNdviPoint(geofenceId, btnEl, sousParcelleId) {
+    const original = btnEl.textContent;
+    btnEl.textContent = '⏳...'; btnEl.disabled = true;
+    try {
+        const body = {geofence_id: geofenceId, date: document.getElementById('dateInput').value};
+        if (sousParcelleId) body.sous_parcelle_id = sousParcelleId;
+        const r = await fetch('/api/ndvi_capture', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (r.ok) {
+            showToast(`📊 NDVI enregistré : ${d.ndvi_moyen} (image du ${d.date.split('-').reverse().join('/')})`);
+            loadNdviHistory(geofenceId, sousParcelleId);
+        } else {
+            showToast('❌ ' + (d.error || 'Erreur lors de la capture NDVI'));
+        }
+    } catch(e) {
+        showToast('❌ Erreur réseau lors de la capture NDVI');
+    } finally {
+        btnEl.textContent = original; btnEl.disabled = false;
+    }
+}
+
+async function loadNdviHistory(geofenceId, sousParcelleId) {
+    const containerId = sousParcelleId ? `ndvi-spark-${geofenceId}-sp${sousParcelleId}` : `ndvi-spark-${geofenceId}`;
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    try {
+        let url = `/api/ndvi_history?geofence_id=${encodeURIComponent(geofenceId)}`;
+        if (sousParcelleId) url += `&sous_parcelle_id=${encodeURIComponent(sousParcelleId)}`;
+        const [r, phenoStages] = await Promise.all([
+            fetch(url),
+            fetchPhenologyForGeofence(geofenceId, sousParcelleId)
+        ]);
+        const points = r.ok ? await r.json() : [];
+        renderNdviSparkline(container, points, phenoStages);
+    } catch(e) {
+        container.innerHTML = '<span style="color:#64748b;font-size:10px;">Historique indisponible</span>';
+    }
+}
+
+// Retrouve les stades phénologiques déjà calculés (maïs ou céréales à paille) pour une
+// géofence (et sa sous-parcelle le cas échéant), afin de les superposer à la courbe NDVI.
+async function fetchPhenologyForGeofence(geofenceId, sousParcelleId) {
+    try {
+        const [rMais, rCereales] = await Promise.all([
+            fetch('/api/phenologie_mais'), fetch('/api/phenologie_cereales')
+        ]);
+        const dMais = rMais.ok ? await rMais.json() : {parcelles: []};
+        const dCereales = rCereales.ok ? await rCereales.json() : {parcelles: []};
+        const all = [...(dMais.parcelles || []), ...(dCereales.parcelles || [])];
+        // Priorité à une correspondance exacte géofence + sous-parcelle ; à défaut, repli
+        // sur la 1ère entrée de cette géofence trouvée (comportement précédent).
+        const exact = all.find(p => String(p.geofence_id) === String(geofenceId) && String(p.sous_parcelle_id || '') === String(sousParcelleId || ''));
+        const fallback = all.find(p => String(p.geofence_id) === String(geofenceId));
+        const match = exact || fallback;
+        return match ? match.stages : null;
+    } catch(e) {
+        return null;
+    }
+}
+
+function renderNdviSparkline(container, points, phenoStages) {
+    if (!points.length) {
+        container.innerHTML = '<span style="color:#475569;font-size:10px;">Aucun point capturé pour le moment.</span>';
+        return;
+    }
+    const w = 260, h = 56, pad = 6, padBottom = 14;
+    const values = points.map(p => p.ndvi_moyen);
+    const min = Math.min(...values, 0.2), max = Math.max(...values, 0.8);
+    const range = (max - min) || 1;
+
+    // Seuls les stades déjà ATTEINTS (date réelle, pas une estimation) ont une date fiable
+    // à positionner sur une courbe historique -- les stades à venir sont ignorés ici.
+    const stagesReels = (phenoStages || []).filter(s => s.date && !s.date_estimee);
+
+    // Axe des X en VRAIES dates (pas en index de point) : indispensable pour que les
+    // repères de stade se placent au bon endroit par rapport aux captures NDVI, qui ne
+    // sont pas forcément régulièrement espacées dans le temps.
+    const toTime = (dstr) => new Date(dstr + 'T00:00:00').getTime();
+    const ndviTimes = points.map(p => toTime(p.date));
+    const stageTimes = stagesReels.map(s => toTime(s.date));
+    const allTimes = ndviTimes.concat(stageTimes);
+    const minT = Math.min(...allTimes), maxT = Math.max(...allTimes);
+    const spanT = (maxT - minT) || 1;
+    const x = (t) => pad + ((t - minT) / spanT) * (w - pad*2);
+    const yTop = 4, yBottom = h - padBottom;
+    const y = (v) => yBottom - ((v - min) / range) * (yBottom - yTop);
+
+    const coords = points.map(p => [x(toTime(p.date)), y(p.ndvi_moyen)]);
+    const pathD = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
+    const dots = coords.map((c, i) => `<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="2.5" fill="#16a34a">
+        <title>${points[i].date} — NDVI ${points[i].ndvi_moyen}</title>
+    </circle>`).join('');
+
+    // Repère vertical (pointillé violet) + icône du stade, pour chaque stade phénologique
+    // déjà atteint dans la période couverte par l'historique NDVI.
+    const stageMarks = stagesReels.map(s => {
+        const sx = x(toTime(s.date));
+        return `<line x1="${sx.toFixed(1)}" y1="${yTop}" x2="${sx.toFixed(1)}" y2="${yBottom}" stroke="#a78bfa" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"><title>${s.label} — ${s.date}</title></line>
+                <text x="${sx.toFixed(1)}" y="${h - 2}" font-size="8" text-anchor="middle"><title>${s.label} — ${s.date}</title>${s.icon || '•'}</text>`;
+    }).join('');
+
+    const dernier = points[points.length - 1];
+    container.innerHTML = `
+        <svg width="${w}" height="${h}" style="display:block;">
+            ${stageMarks}
+            <path d="${pathD}" fill="none" stroke="#16a34a" stroke-width="1.5"/>
+            ${dots}
+        </svg>
+        <div style="font-size:9px;color:#94a3b8;margin-top:2px;">
+            Dernier point : ${dernier.date.split('-').reverse().join('/')} — NDVI ${dernier.ndvi_moyen} (${points.length} point${points.length>1?'s':''} au total)
+            ${stagesReels.length ? ` · ${stagesReels.length} stade${stagesReels.length>1?'s':''} phénologique${stagesReels.length>1?'s':''} repéré${stagesReels.length>1?'s':''} (traits violets)` : ''}
+        </div>
+    `;
+}
+
+function _polygonSurfaceHa(coords) {
+    if (coords.length < 3) return 0;
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    let area = 0;
+    for (let i = 0; i < coords.length; i++) {
+        const [lat1, lon1] = coords[i];
+        const [lat2, lon2] = coords[(i+1) % coords.length];
+        area += toRad(lon2 - lon1) * (2 + Math.sin(toRad(lat1)) + Math.sin(toRad(lat2)));
+    }
+    area = Math.abs(area * R * R / 2);
+    return Math.round((area / 10000) * 100) / 100; // m² -> ha
+}
+
+function openSousParcelleForm(zone) {
+    _spCurrentZone = zone;
+    document.getElementById('spCulture').innerHTML = CULTURES_LIST.map(c => `<option value="${escapeHtml(c.nom)}">${escapeHtml(c.nom)}</option>`).join('');
+    if (zone) {
+        _szEditingId = zone.id;
+        _szPendingPolygon = zone.polygon;
+        document.getElementById('spFormTitle').textContent = '✂️ Modifier la sous-parcelle';
+        document.getElementById('spNom').value = zone.nom;
+        document.getElementById('spCulture').value = zone.culture || '';
+        document.getElementById('spStatut').value = zone.statut || 'attente';
+        document.getElementById('spDeleteBtn').style.display = 'inline-block';
+        document.getElementById('spEditContourBtn').style.display = 'block';
+        document.getElementById('spFormSurface').textContent = zone.surface_ha ? `Surface : ${zone.surface_ha} ha` : '';
+    } else {
+        _szEditingId = null;
+        document.getElementById('spFormTitle').textContent = '✂️ Nouvelle sous-parcelle';
+        document.getElementById('spNom').value = '';
+        document.getElementById('spStatut').value = 'attente';
+        document.getElementById('spDeleteBtn').style.display = 'none';
+        document.getElementById('spEditContourBtn').style.display = 'none';
+        const surf = _polygonSurfaceHa(_szPendingPolygon || []);
+        document.getElementById('spFormSurface').textContent = `Surface calculée : ${surf} ha`;
+    }
+    document.getElementById('sousParcelleFormOverlay').style.display = 'flex';
+}
+
+function editSousParcelle(zone) {
+    openSousParcelleForm(zone);
+}
+
+function cancelSousParcelleForm() {
+    document.getElementById('sousParcelleFormOverlay').style.display = 'none';
+    openSousParcellesModal();
+}
+
+async function submitSousParcelleForm() {
+    const nom = document.getElementById('spNom').value.trim();
+    if (!nom) { showToast('❌ Le nom de la sous-parcelle est obligatoire'); return; }
+    const geoId = document.getElementById('spGeofenceSelect').value;
+    const campagne = document.getElementById('spCampagneInput').value.trim();
+    const culture = document.getElementById('spCulture').value;
+    const statut = document.getElementById('spStatut').value;
+    const surface_ha = _polygonSurfaceHa(_szPendingPolygon || []);
+
+    const payload = {
+        id: _szEditingId, geofence_id: geoId, campagne, nom, culture, statut,
+        surface_ha, polygon: _szPendingPolygon
+    };
+    try {
+        const r = await fetch('/api/sous_parcelles', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+        });
+        if (r.ok) {
+            showToast('💾 Sous-parcelle enregistrée');
+            document.getElementById('sousParcelleFormOverlay').style.display = 'none';
+            openSousParcellesModal();
+            loadAndRenderSousParcelles();
+        } else {
+            const d = await r.json().catch(() => ({}));
+            showToast('❌ ' + (d.message || 'Erreur enregistrement'));
+        }
+    } catch(e) {
+        showToast('❌ Erreur réseau');
+    }
+}
+
+async function deleteSousParcelle() {
+    if (!_szEditingId) return;
+    if (!confirm('Supprimer cette sous-parcelle ? Les interventions déjà liées redeviendront rattachées à la parcelle entière.')) return;
+    try {
+        const r = await fetch(`/api/sous_parcelles/${_szEditingId}`, {method: 'DELETE'});
+        if (r.ok) {
+            showToast('🗑️ Sous-parcelle supprimée');
+            document.getElementById('sousParcelleFormOverlay').style.display = 'none';
+            openSousParcellesModal();
+            loadAndRenderSousParcelles();
+        } else {
+            showToast('❌ Erreur lors de la suppression');
+        }
+    } catch(e) {
+        showToast('❌ Erreur réseau');
+    }
+}
+
+
+let lastDetectedGeofenceIds = [];  // utilisé par exportPDF pour inclure les mêmes parcelles
+let coverageAreaByGeofence = {};   // { geofenceId: covered_area_ha } -- pré-remplit la saisie rapide d'intervention
+
+function _pointInPolygonJS(lat, lon, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [xi, yi] = poly[i], [xj, yj] = poly[j];
+        if (((yi > lon) !== (yj > lon)) && (lat < (xj - xi) * (lon - yi) / ((yj - yi) || 1e-15) + xi)) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+function _haversineMJS(lat1, lon1, lat2, lon2) {
+    const R = 6371000, toRad = x => x * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Détecte automatiquement quelles parcelles (géofences) ont été travaillées, en testant
+// si au moins un point d'un passage tombe à l'intérieur de chacune d'elles.
+function detectWorkedGeofences() {
+    const detected = [];
+    geofencesList.forEach(g => {
+        let found = false;
+        outer:
+        for (const devId in devicesData) {
+            for (const c of (devicesData[devId].corridors || [])) {
+                for (const [lat, lon] of c.polygon) {
+                    if (g.type === 'polygon' && g.coords?.length >= 3) {
+                        if (_pointInPolygonJS(lat, lon, g.coords)) { found = true; break outer; }
+                    } else if (g.type === 'circle' && g.center) {
+                        if (_haversineMJS(lat, lon, g.center[0], g.center[1]) <= g.radius) { found = true; break outer; }
+                    }
+                }
+            }
+        }
+        if (found) detected.push(g);
+    });
+    return detected;
+}
+
+// ── Saisie rapide d'intervention depuis une carte de couverture ─────────────
+// Pour chaque véhicule sélectionné, détecte s'il a au moins un passage à l'intérieur
+// de la géofence donnée, et renvoie son outil dominant sur les passages concernés.
+function _devicesTouchingGeofence(g) {
+    const result = [];
+    Object.entries(devicesData).forEach(([devId, d]) => {
+        const tools = [];
+        let touches = false;
+        (d.corridors || []).forEach(c => {
+            let corridorTouches = false;
+            for (const [lat, lon] of c.polygon) {
+                if (g.type === 'polygon' && g.coords?.length >= 3) {
+                    if (_pointInPolygonJS(lat, lon, g.coords)) { corridorTouches = true; break; }
+                } else if (g.type === 'circle' && g.center) {
+                    if (_haversineMJS(lat, lon, g.center[0], g.center[1]) <= g.radius) { corridorTouches = true; break; }
+                }
+            }
+            if (corridorTouches) { touches = true; if (c.tool) tools.push(c.tool); }
+        });
+        if (touches) {
+            const dominantTool = tools.length
+                ? tools.sort((a,b) => tools.filter(t=>t===a).length - tools.filter(t=>t===b).length).pop()
+                : '';
+            result.push({ devId, name: d.name, tool: dominantTool });
+        }
+    });
+    return result;
+}
+
+let _qiCandidates = [];
+let _qiGeofenceId = null;
+let _qiGeofenceName = '';
+
+async function openQuickInterventionModal(geofenceId) {
+    const g = geofencesList.find(gf => String(gf.id) === String(geofenceId));
+    if (!g) { showToast('Parcelle introuvable'); return; }
+    const geofenceName = g.name;
+
+    _qiCandidates = _devicesTouchingGeofence(g);
+    _qiGeofenceId = geofenceId;
+    _qiGeofenceName = geofenceName;
+
+    if (!_qiCandidates.length) { showToast('Aucun véhicule détecté sur cette parcelle'); return; }
+
+    const date = document.getElementById('dateInput').value;
+    document.getElementById('qiParcelleInfo').textContent = `${geofenceName} — ${date}`;
+
+    const sel = document.getElementById('qiVehicleSelect');
+    sel.innerHTML = _qiCandidates.map(c => `<option value="${c.devId}">${c.name}</option>`).join('');
+
+    document.getElementById('quickInterventionModalOverlay').style.display = 'flex';
+    onQuickInterventionVehicleChange();
+
+    // Si cette parcelle est scindée en sous-parcelles pour l'année de la date chargée, propose
+    // de rattacher l'intervention à l'une d'elles plutôt qu'à la parcelle entière.
+    try {
+        const annee = date.slice(0, 4);
+        const rSz = await fetch(`/api/sous_parcelles?geofence_id=${geofenceId}&campagne=${annee}`);
+        const zones = rSz.ok ? await rSz.json() : [];
+        const wrap = document.getElementById('qiSousParcelleWrap');
+        const sel2 = document.getElementById('qiSousParcelleSelect');
+        if (zones.length) {
+            sel2.innerHTML = '<option value="">— Toute la parcelle —</option>'
+                + zones.map(z => `<option value="${z.id}" data-surface="${z.surface_ha ?? ''}">${escapeHtml(z.nom)} (${escapeHtml(z.culture) || '?'})</option>`).join('');
+            wrap.style.display = 'block';
+        } else {
+            wrap.style.display = 'none';
+            sel2.innerHTML = '<option value="">— Toute la parcelle —</option>';
+        }
+    } catch(e) { document.getElementById('qiSousParcelleWrap').style.display = 'none'; }
+
+    // Vérifie si une intervention existe déjà pour ce couple véhicule/parcelle/date
+    // (on la mettra à jour plutôt que d'en créer une seconde).
+    try {
+        const r = await fetch('/api/interventions');
+        const all = await r.json();
+        _qiExisting = all.filter(iv =>
+            String(iv.geofence_id) === String(geofenceId) &&
+            String(iv.exit_time || '').slice(0,10) === date
+        );
+    } catch(e) { _qiExisting = []; }
+    updateQiExistingWarning();
+}
+
+let _qiExisting = [];
+function updateQiExistingWarning() {
+    const devId = document.getElementById('qiVehicleSelect').value;
+    const match = _qiExisting.find(iv => String(iv.device_id) === String(devId));
+    document.getElementById('qiExistingWarning').style.display = match ? 'block' : 'none';
+}
+
+function onQuickInterventionVehicleChange() {
+    const devId = document.getElementById('qiVehicleSelect').value;
+    const candidate = _qiCandidates.find(c => c.devId === devId);
+    const tool = candidate?.tool || '';
+    document.getElementById('qiToolDetected').value = tool || '(non détecté)';
+    document.getElementById('qiInterventionType').value = deduceInterventionTypeFromTool(tool) || '';
+    document.getElementById('qiAppliedArea').value = coverageAreaByGeofence[_qiGeofenceId] ?? '';
+    updateQiExistingWarning();
+}
+
+function closeQuickInterventionModal() {
+    document.getElementById('quickInterventionModalOverlay').style.display = 'none';
+}
+
+// Quand une sous-parcelle est choisie ici, la surface proposée doit être la sienne
+// (dessinée sur la carte), pas la surface couverte GPS de toute la parcelle.
+function onQiSousParcelleChange() {
+    const sel = document.getElementById('qiSousParcelleSelect');
+    const opt = sel.options[sel.selectedIndex];
+    const surface = opt ? opt.dataset.surface : '';
+    if (sel.value && surface) {
+        document.getElementById('qiAppliedArea').value = surface;
+    } else if (!sel.value) {
+        // Retour à "Toute la parcelle" : on rétablit la surface couverte GPS habituelle
+        document.getElementById('qiAppliedArea').value = coverageAreaByGeofence[_qiGeofenceId] ?? '';
+    }
+}
+
+async function submitQuickIntervention() {
+    const devId = document.getElementById('qiVehicleSelect').value;
+    const candidate = _qiCandidates.find(c => c.devId === devId);
+    const interventionType = document.getElementById('qiInterventionType').value.trim();
+    const appliedArea = parseFloat(document.getElementById('qiAppliedArea').value) || null;
+    const date = document.getElementById('dateInput').value;
+
+    if (!interventionType) { showToast('Renseignez le type d\'intervention'); return; }
+
+    // Heure de fin approximative : dernière position GPS du véhicule ce jour-là,
+    // à défaut midi par défaut (cohérent avec la convention "exit_time" du carnet).
+    const positions = devicesData[devId]?.positions || [];
+    const lastTime = positions.length ? positions[positions.length - 1].time : null;
+    const exit_time = lastTime || `${date}T12:00:00`;
+
+    const payload = {
+        device_id: parseInt(devId),
+        geofence_id: parseInt(_qiGeofenceId),
+        exit_time,
+        tool_detected: candidate?.tool || '',
+        vehicle_name: candidate?.name || '',
+        intervention_type: interventionType,
+        products: [],
+        appliedArea: appliedArea,
+        applied_area: appliedArea,
+        sous_parcelle_id: document.getElementById('qiSousParcelleSelect').value || null,
+        meteo: {}
+    };
+
+    try {
+        const r = await fetch('/api/interventions', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+        });
+        if (r.ok) {
+            showToast(`✅ Intervention "${escapeHtml(interventionType)}" enregistrée sur ${escapeHtml(_qiGeofenceName)}`);
+            closeQuickInterventionModal();
+            fetch('/api/parcelles/refresh_statuts', { method: 'POST' }).catch(e => console.error(e));
+        } else {
+            const data = await r.json().catch(() => ({}));
+            showToast('❌ ' + (data.error || 'Erreur enregistrement'));
+        }
+    } catch(e) {
+        showToast('❌ Erreur réseau lors de l\'enregistrement');
+    }
+}
+
+function toggleCoverageCumulMode() {
+    const checked = document.getElementById('coverageCumulCheck').checked;
+    document.getElementById('coverageCumulDates').style.display = checked ? 'flex' : 'none';
+    if (checked) {
+        const startEl = document.getElementById('coverageCumulStart');
+        const endEl = document.getElementById('coverageCumulEnd');
+        if (!endEl.value) endEl.value = document.getElementById('dateInput').value || new Date().toISOString().slice(0,10);
+        if (!startEl.value) {
+            const d = new Date(endEl.value + 'T00:00:00');
+            d.setMonth(d.getMonth() - 3); // par défaut : les 3 derniers mois
+            startEl.value = d.toISOString().slice(0,10);
+        }
+    }
+    autoAnalyzeCoverage();
+}
+
+async function autoAnalyzeCoverage() {
+    const resultEl  = document.getElementById('coverageResult');
+    const deviceIds = getSelectedDeviceIds();
+    const date      = document.getElementById('dateInput').value;
+
+    coverageGapLayer.clearLayers();
+    lastDetectedGeofenceIds = [];
+    coverageAreaByGeofence = {};
+
+    if (!deviceIds.length || !Object.keys(devicesData).length) {
+        resultEl.innerHTML = '<div style="color:#475569;font-size:12px;">Chargez un chantier — la couverture des parcelles concernées s\'affiche automatiquement.</div>';
+        return;
+    }
+
+    const detected = detectWorkedGeofences();
+    if (!detected.length) {
+        resultEl.innerHTML = '<div style="color:#64748b;font-size:12px;">Aucune parcelle détectée sous les passages travaillés (géofences non définies ou hors zone).</div>';
+        return;
+    }
+    if (!map.hasLayer(coverageGapLayer)) coverageGapLayer.addTo(map);
+    lastDetectedGeofenceIds = detected.map(g => g.id);
+
+    resultEl.innerHTML = detected.map(g =>
+        `<div id="cov-${g.id}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #334155;"><span style="color:#94a3b8;">⏳ Analyse de ${escapeHtml(g.name)}…</span></div>`
+    ).join('');
+
+    for (const g of detected) {
+        const card = document.getElementById(`cov-${g.id}`);
+        try {
+            const cumul = document.getElementById('coverageCumulCheck')?.checked;
+            const params = cumul
+                ? new URLSearchParams({
+                    geofence_id: g.id, device_ids: deviceIds.join(','),
+                    start_date: document.getElementById('coverageCumulStart').value || date,
+                    end_date: document.getElementById('coverageCumulEnd').value || date
+                  })
+                : new URLSearchParams({geofence_id: g.id, date, device_ids: deviceIds.join(',')});
+            const r = await fetch(`/api/coverage?${params}`);
+            const data = await r.json();
+
+            if (!r.ok) { card.innerHTML = `<div style="font-weight:bold;font-size:12px;margin-bottom:3px;">🗺️ ${escapeHtml(g.name)}</div><span style="color:#f87171;font-size:11px;">❌ ${escapeHtml(data.error) || 'Erreur'}</span>`; continue; }
+            if (data.message) { card.innerHTML = `<div style="font-weight:bold;font-size:12px;margin-bottom:3px;">🗺️ ${escapeHtml(g.name)}</div><span style="color:#fbbf24;font-size:11px;">⚠️ ${escapeHtml(data.message)}</span>`; continue; }
+
+            const threshold = data.alert_threshold_pct ?? 85;
+            const pctColor = data.coverage_pct >= 95 ? '#4ade80' : (data.coverage_pct >= 80 ? '#fbbf24' : '#f87171');
+            card.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                    <div style="font-weight:bold;font-size:12px;">🗺️ ${escapeHtml(g.name)}${cumul ? ' <span style="font-weight:normal;color:#94a3b8;font-size:10px;">(cumulé sur la période)</span>' : ''}</div>
+                    ${cumul ? '' : `<button class="mini-btn" onclick="openQuickInterventionModal('${g.id}')">✍️ Saisir</button>`}
+                </div>
+                <div class="stat-row"><span class="stat-label">Couverture</span><span class="stat-value" style="color:${pctColor};">${data.coverage_pct}%</span></div>
+                <div class="stat-row"><span class="stat-label">Surface parcelle</span><span class="stat-value">${data.geofence_area_ha ?? '—'} <span class="stat-unit">ha</span></span></div>
+                <div class="stat-row"><span class="stat-label">Non couvert</span><span class="stat-value" style="color:#f87171;">${data.uncovered_area_ha} <span class="stat-unit">ha</span></span></div>
+                ${data.truncated ? '<div style="color:#64748b;font-size:10px;margin-top:2px;">(affichage des manques limité, grande parcelle)</div>' : ''}
+                <div style="border-top:1px solid #334155;margin-top:6px;padding-top:6px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:10px;color:#94a3b8;">📊 NDVI</span>
+                        <button class="mini-btn" onclick="captureNdviPoint('${g.id}', this)" title="Enregistre le NDVI moyen actuel de cette parcelle (visible en mode carte NDVI, sur une image bien dégagée)">📸 Capturer</button>
+                    </div>
+                    <div id="ndvi-spark-${g.id}" style="margin-top:4px;">
+                        <span style="color:#475569;font-size:10px;">Chargement…</span>
+                    </div>
+                    <div id="ndvi-souszones-${g.id}" style="margin-top:4px;"></div>
+                </div>
+            `;
+            loadNdviHistory(g.id);
+            loadNdviSousParcellesBlocks(g.id);
+            if (!cumul) coverageAreaByGeofence[g.id] = data.covered_area_ha;
+            if (data.coverage_pct < threshold) {
+                currentAlerts.lowCoverageParcels.push({name: g.name, pct: data.coverage_pct, threshold});
+                renderAlertsBanner();
+            }
+
+            const half = (data.resolution_m || 8) / 2;
+            (data.uncovered_points || []).forEach(([lat, lon]) => {
+                const sq = L.rectangle(
+                    [[lat - half/111320, lon - half/(111320*Math.cos(lat*Math.PI/180))],
+                     [lat + half/111320, lon + half/(111320*Math.cos(lat*Math.PI/180))]],
+                    {color:'#f87171', weight:0, stroke:false, fillColor:'#f87171', fillOpacity:0.55}
+                );
+                coverageGapLayer.addLayer(sq);
+            });
+        } catch(e) {
+            card.innerHTML = `<div style="font-weight:bold;font-size:12px;margin-bottom:3px;">🗺️ ${escapeHtml(g.name)}</div><span style="color:#f87171;font-size:11px;">❌ Erreur réseau</span>`;
+        }
+    }
+}
+
+// ── Devices ──────────────────────────────────────────────────────────────
+const VEHICLE_COLORS = ['#22c55e','#3b82f6','#f59e0b','#e11d48','#a855f7','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6'];
+let devicesList = [];
+
+// ── Catalogue outil → intervention (même source que la page principale index.html) ──
+let CATALOGUE_OUTILS = [];
+async function loadCatalogueOutils() {
+    try {
+        const r = await fetch('/api/catalog_tools');
+        if (r.ok) CATALOGUE_OUTILS = await r.json();
+    } catch(e) { CATALOGUE_OUTILS = []; }
+}
+function deduceInterventionTypeFromTool(tool) {
+    if (!tool) return null;
+    const tUpper = String(tool).toUpperCase().trim();
+    for (let i = 0; i < CATALOGUE_OUTILS.length; i++) {
+        const kw = (CATALOGUE_OUTILS[i].keyword || "").toUpperCase();
+        if (kw && tUpper.includes(kw)) return CATALOGUE_OUTILS[i].intervention;
+    }
+    return null;
+}
+let deviceColors = {}; // id -> color
+
+function colorForDevice(id) {
+    if(!deviceColors[id]) {
+        const idx = Object.keys(deviceColors).length % VEHICLE_COLORS.length;
+        deviceColors[id] = VEHICLE_COLORS[idx];
+    }
+    return deviceColors[id];
+}
+
+async function loadDevices() {
+    const box = document.getElementById('deviceChecklist');
+    try {
+        const r = await fetch('/api/devices');
+        if (!r.ok) throw new Error();
+        devicesList = await r.json();
+        devicesList.forEach(d => colorForDevice(d.id));
+
+        if(!devicesList.length) {
+            box.innerHTML = '<div style="color:#64748b;font-size:12px;">Aucun véhicule trouvé</div>';
+            return;
+        }
+
+        box.innerHTML =
+            `<label class="device-check-item all-item">
+<input type="checkbox" id="deviceCheckAll" onchange="toggleAllDevices(this.checked)">
+                Tous
+            </label>` +
+            devicesList.map(d => `
+                <label class="device-check-item">
+                    <input type="checkbox" class="device-check" value="${d.id}" onchange="updateDeviceCountBadge()">
+                    <span class="device-check-dot" style="background:${colorForDevice(d.id)};"></span>
+                    ${d.name}
+                </label>`).join('');
+        updateDeviceCountBadge();
+    } catch(e) {
+        box.innerHTML = '<div style="color:#f87171;font-size:12px;">Erreur connexion Traccar</div>';
+    }
+}
+
+function toggleAllDevices(checked) {
+    document.querySelectorAll('.device-check').forEach(cb => cb.checked = checked);
+    const all = document.getElementById('deviceCheckAll');
+    if(all) all.checked = checked;
+    updateDeviceCountBadge();
+}
+
+function getSelectedDeviceIds() {
+    return Array.from(document.querySelectorAll('.device-check:checked')).map(cb => cb.value);
+}
+
+function setSelectedDeviceIds(ids) {
+    document.querySelectorAll('.device-check').forEach(cb => { cb.checked = ids.includes(cb.value); });
+    updateDeviceCountBadge();
+}
+
+function updateDeviceCountBadge() {
+    const total = document.querySelectorAll('.device-check').length;
+    const sel   = document.querySelectorAll('.device-check:checked').length;
+    const badge = document.getElementById('deviceCountBadge');
+    if(badge) badge.textContent = `${sel}/${total}`;
+}
+
+function toggleVehDropdown() {
+    const p = document.getElementById('vehDropdownPanel');
+    p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none';
+}
+document.addEventListener('click', e => {
+    const panel = document.getElementById('vehDropdownPanel');
+    const btn   = document.getElementById('vehDropdownBtn');
+    if(panel && panel.style.display === 'block' && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+        panel.style.display = 'none';
+    }
+});
+
+// ── Menu déroulant Export (KML / GeoJSON / Shapefile) ───────────────────────
+function toggleExportDropdown() {
+    const p = document.getElementById('exportDropdownPanel');
+    p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none';
+}
+function closeExportDropdown() {
+    document.getElementById('exportDropdownPanel').style.display = 'none';
+}
+document.addEventListener('click', e => {
+    const panel = document.getElementById('exportDropdownPanel');
+    const wrap  = document.getElementById('exportDropdownWrap');
+    if(panel && panel.style.display === 'block' && wrap && !wrap.contains(e.target)) {
+        panel.style.display = 'none';
+    }
+});
+function filterVehicleList() {
+    const q = document.getElementById('vehSearchInput').value.toLowerCase();
+    document.querySelectorAll('#deviceChecklist .device-check-item:not(.all-item)').forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function showTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-'+name).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// ── Chantier ──────────────────────────────────────────────────────────────
+let devicesData = {}; // { deviceId: { name, color, corridors:[], positions:[], stats:{} } }
+
+async function loadChantier() {
+    const deviceIds = getSelectedDeviceIds();
+    const date = document.getElementById('dateInput').value;
+    if(!deviceIds.length || !date) { showToast('Sélectionnez au moins un véhicule et une date'); return; }
+
+    document.getElementById('overlay').style.display = 'block';
+    devicesData = {};
+    try {
+        await Promise.all(deviceIds.map(async devId => {
+            // Comparaison normalisée en chaîne : devicesList vient de l'API Traccar (id
+            // numérique), alors que devId vient des cases à cocher (toujours une chaîne) --
+            // une comparaison stricte (===) entre les deux échouait systématiquement,
+            // empêchant de jamais retrouver le vrai nom du véhicule.
+            const info = devicesList.find(d => String(d.id) === String(devId));
+            try {
+                const r = await fetch(`/api/corridors?device_id=${encodeURIComponent(devId)}&date=${date}`);
+                if(!r.ok) throw new Error('Erreur serveur');
+                const data = await r.json();
+                devicesData[devId] = {
+                    name: info?.name || `Véhicule ${devId}`,
+                    color: colorForDevice(devId),
+                    corridors: data.corridors || [],
+                    positions: data.positions || [],
+                    stats: data.stats || {},
+                    alerts: data.alerts || {vitesse:[], seuil_vitesse_kmh:15, arrets_prolonges:[], seuil_arret_minutes:5}
+                };
+            } catch(e) {
+                devicesData[devId] = { name: info?.name || `Véhicule ${devId}`, color: colorForDevice(devId), corridors:[], positions:[], stats:{}, alerts:{vitesse:[], seuil_vitesse_kmh:15, arrets_prolonges:[], seuil_arret_minutes:5}, error: e.message };
+            }
+        }));
+
+        // Agrégation des stats
+        let totArea=0, totDist=0, totPassages=0, speedSum=0, speedWeight=0, totSpeedAlerts=0, totStopAlerts=0;
+        Object.values(devicesData).forEach(d => {
+            totArea += d.stats.area_ha || 0;
+            totDist += d.stats.dist_km || 0;
+            totPassages += d.stats.nb_passages || 0;
+            totSpeedAlerts += (d.alerts?.vitesse || []).length;
+            totStopAlerts += (d.alerts?.arrets_prolonges || []).length;
+            if(d.stats.avg_speed && d.stats.dist_km) { speedSum += d.stats.avg_speed * d.stats.dist_km; speedWeight += d.stats.dist_km; }
+        });
+        document.getElementById('statArea').textContent     = totArea ? totArea.toFixed(2) : '—';
+        document.getElementById('statDist').textContent     = totDist ? totDist.toFixed(2) : '—';
+        document.getElementById('statSpeed').textContent    = speedWeight ? (speedSum/speedWeight).toFixed(1) : '—';
+
+        currentAlerts.speedCount = totSpeedAlerts;
+        currentAlerts.stopCount = totStopAlerts;
+        currentAlerts.lowCoverageParcels = [];  // recalculées par autoAnalyzeCoverage
+        renderAlertsBanner();
+
+        drawAll();
+        autoAnalyzeCoverage();
+
+        const hasDat = totPassages > 0 || Object.values(devicesData).some(d => d.positions.length);
+        document.getElementById('btnPDF').style.display    = hasDat ? '' : 'none';
+        document.getElementById('exportDropdownWrap').style.display = hasDat ? '' : 'none';
+        document.getElementById('btnCenter').style.display = hasDat ? '' : 'none';
+
+        const nbErr = Object.values(devicesData).filter(d => d.error).length;
+        if(!hasDat) showToast('⚠️ Aucune donnée pour ce jour / ces véhicules');
+        else showToast(`✅ ${totPassages} passage(s) · ${totArea.toFixed(2)} ha` + (nbErr ? ` · ⚠️ ${nbErr} erreur(s)` : ''));
+    } catch(e) {
+        showToast('❌ ' + e.message);
+    } finally {
+        document.getElementById('overlay').style.display = 'none';
+    }
+}
+
+function drawAll() {
+    corridorLayer.clearLayers();
+    traceLayer.clearLayers();
+    inactiveLayer.clearLayers();
+    alertLayer.clearLayers();
+    const allBounds = [];
+    corridorRefs = [];
+
+    Object.entries(devicesData).forEach(([devId, d]) => {
+        d.corridors.forEach((c, idx) => {
+            const refIdx = corridorRefs.length;
+            const interventionLabel = deduceInterventionTypeFromTool(c.tool);
+            const tooltipText = `${d.name} — Passage ${idx+1}${interventionLabel ? ' — ' + interventionLabel : ''} — ${c.area_ha} ha — larg. ${c.width} m`;
+            const group = L.layerGroup();
+
+            // Chaque quadrilatère (toujours un simple rectangle, cf. calcul serveur avec
+            // cap unique par segment) est dessiné comme un polygone Leaflet indépendant.
+            // Contour ET remplissage utilisent la MÊME couleur et une opacité proche :
+            // ça comble les micro-jointures d'anti-aliasing entre quadrilatères adjacents
+            // sans dépendre d'une règle de remplissage (nonzero/evenodd) qui pourrait
+            // annuler le remplissage aux zones de recroisement.
+            const quads = (c.quads && c.quads.length) ? c.quads : [c.polygon];
+            quads.forEach(q => {
+                const poly = L.polygon(q, {
+                    color: d.color, weight:1, opacity:0.55, lineJoin:'round',
+                    fillColor: d.color, fillOpacity:0.55
+                });
+                poly.on('click', () => highlightPassage(refIdx));
+                group.addLayer(poly);
+            });
+
+            // Jointures : à chaque virage, les deux quadrilatères voisins laissent un petit vide
+            // triangulaire côté extérieur (jointure "en biseau" non couverte). Un disque plein de
+            // rayon = demi-largeur outil, centré sur le point GPS, referme ce vide quel que soit
+            // l'angle du virage — sans lui, certains recroisements en épingle restaient non coloriés.
+            if (c.joints && c.joints.length && c.joint_radius_m) {
+                c.joints.forEach(pt => {
+                    const disc = L.circle(pt, {
+                        radius: c.joint_radius_m, color: d.color, weight:0, stroke:false,
+                        fillColor: d.color, fillOpacity:0.55
+                    });
+                    disc.on('click', () => highlightPassage(refIdx));
+                    group.addLayer(disc);
+                });
+            }
+
+            group.eachLayer(l => l.bindTooltip(tooltipText));
+
+            corridorLayer.addLayer(group);
+            corridorRefs.push({ layer: group, deviceId: devId, corridor: c });
+            c.polygon.forEach(pt => allBounds.push(pt));
+        });
+
+        if(d.positions.length > 1) {
+            // On relie les segments actif/inactif au point de transition (au lieu de les couper
+            // net) pour que les traces "Trace GPS (actif)" et "Déplacements (inactif)" soient
+            // continues sur la carte plutôt que de laisser des trous à chaque changement d'état.
+            let actSegs = [], inactSegs = [], curA = [], curI = [];
+            let prevWorking = null;
+            d.positions.forEach(p => {
+                const pt = [p.lat, p.lon];
+                if(p.isWorking) {
+                    if(prevWorking === false) {
+                        curI.push(pt);
+                        if(curI.length > 1) inactSegs.push([...curI]);
+                        curI = [];
+                        curA = [pt];
+                    } else {
+                        curA.push(pt);
+                    }
+                } else {
+                    if(prevWorking === true) {
+                        curA.push(pt);
+                        if(curA.length > 1) actSegs.push([...curA]);
+                        curA = [];
+                        curI = [pt];
+                    } else {
+                        curI.push(pt);
+                    }
+                }
+                prevWorking = p.isWorking;
+                allBounds.push(pt);
+            });
+            if(curA.length > 1) actSegs.push(curA);
+            if(curI.length > 1) inactSegs.push(curI);
+            actSegs.forEach(s => traceLayer.addLayer(L.polyline(s, {color: d.color, weight:2, opacity:0.85})));
+            inactSegs.forEach(s => inactiveLayer.addLayer(L.polyline(s, {color:'#f97316', weight:2, opacity:0.8, dashArray:'6,5'})));
+        }
+
+        // Alertes vitesse : petit marqueur d'avertissement à chaque point où le véhicule
+        // travaillait (outil engagé) au-delà du seuil configuré (mauvaise application probable).
+        (d.alerts?.vitesse || []).forEach(a => {
+            const marker = L.circleMarker([a.lat, a.lon], {
+                radius: 6, color:'#ef4444', weight:2, fillColor:'#ef4444', fillOpacity:0.9
+            });
+            marker.bindTooltip(`⚠️ ${d.name} — ${a.speed} km/h (seuil ${d.alerts.seuil_vitesse_kmh} km/h)`);
+            alertLayer.addLayer(marker);
+        });
+
+        // Alertes arrêt prolongé, outil engagé : marqueur distinct (carré orange) au point
+        // de début de l'arrêt, avec la durée en tooltip.
+        (d.alerts?.arrets_prolonges || []).forEach(a => {
+            const half = 0.00004; // ~4-5m, juste pour dessiner un petit carré visible
+            const marker = L.rectangle(
+                [[a.lat - half, a.lon - half], [a.lat + half, a.lon + half]],
+                {color:'#f59e0b', weight:2, fillColor:'#f59e0b', fillOpacity:0.85}
+            );
+            marker.bindTooltip(`⏸️ ${d.name} — arrêt de ${a.duree_minutes} min, outil engagé (seuil ${d.alerts.seuil_arret_minutes} min)`);
+            alertLayer.addLayer(marker);
+        });
+    });
+
+    if(allBounds.length) {
+        currentBounds = L.latLngBounds(allBounds);
+        map.fitBounds(currentBounds, {padding:[30,30]});
+    }
+
+    // Sécurité : on réapplique l'état on/off de chaque couche après un (re)chargement,
+    // pour que le bouton "Déplacements (inactif)" etc. reflète toujours la carte.
+    const lmap = {corridors:corridorLayer, trace:traceLayer, inactive:inactiveLayer, geofences:geofenceLayer, alerts:alertLayer, points:pointsLayer, sousparcelles:sousParcelleLayer};
+    Object.keys(layerOn).forEach(name => {
+        const layer = lmap[name];
+        if(!layer) return;
+        if(layerOn[name] && !map.hasLayer(layer)) layer.addTo(map);
+        if(!layerOn[name] && map.hasLayer(layer)) map.removeLayer(layer);
+    });
+}
+
+let corridorRefs = []; // [{layer, deviceId, corridor}] dans l'ordre d'affichage, pour lier clic carte ↔ zoom
+
+function highlightPassage(idx) {
+    document.querySelectorAll('.passage-item').forEach(el => el.style.borderColor='#334155');
+    const el = document.getElementById('pi-'+idx);
+    if(el) { el.style.borderColor='#22c55e'; el.scrollIntoView({block:'nearest'}); }
+    const ref = corridorRefs[idx];
+    if(ref?.corridor.polygon.length)
+        map.fitBounds(L.latLngBounds(ref.corridor.polygon), {padding:[40,40]});
+}
+
+function centerMap() { if(currentBounds) map.fitBounds(currentBounds, {padding:[30,30]}); }
+
+// ── Mode suivi live ──────────────────────────────────────────────────────
+let liveInterval = null;
+const LIVE_REFRESH_MS = 30000;
+
+function toggleLiveMode() {
+    const btn = document.getElementById('btnLive');
+    if (liveInterval) {
+        clearInterval(liveInterval);
+        liveInterval = null;
+        btn.style.background = '#475569';
+        btn.textContent = '🔴 Live';
+        showToast('Mode live désactivé');
+        return;
+    }
+    const today = new Date().toISOString().slice(0,10);
+    if (document.getElementById('dateInput').value !== today) {
+        showToast('⚠️ Le mode live ne fonctionne que pour la date du jour');
+        return;
+    }
+    if (!getSelectedDeviceIds().length) {
+        showToast('Sélectionnez au moins un véhicule avant d\'activer le mode live');
+        return;
+    }
+    btn.style.background = '#dc2626';
+    btn.textContent = '⏺ Live (30s)';
+    showToast('🔴 Mode live activé — rafraîchissement toutes les 30s');
+    loadChantier();
+    liveInterval = setInterval(() => {
+        if (document.getElementById('dateInput').value === new Date().toISOString().slice(0,10)) {
+            loadChantier();
+        }
+    }, LIVE_REFRESH_MS);
+}
+
+// ── Comparaison de deux dates côte à côte ───────────────────────────────────
+let mapCompareA = null, mapCompareB = null;
+
+function openCompareModal() {
+    if (!getSelectedDeviceIds().length) { showToast('Sélectionnez au moins un véhicule avant de comparer'); return; }
+    document.getElementById('compareModalOverlay').style.display = 'flex';
+
+    const today = new Date().toISOString().slice(0,10);
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    if (!document.getElementById('compareDateA').value) document.getElementById('compareDateA').value = weekAgo.toISOString().slice(0,10);
+    if (!document.getElementById('compareDateB').value) document.getElementById('compareDateB').value = document.getElementById('dateInput').value || today;
+
+    // Initialisation différée (une seule fois) : Leaflet a besoin que le conteneur soit visible
+    setTimeout(() => {
+        if (!mapCompareA) {
+            mapCompareA = L.map('mapCompareA', {zoomControl:true}).setView(map.getCenter(), map.getZoom());
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:20}).addTo(mapCompareA);
+        }
+        if (!mapCompareB) {
+            mapCompareB = L.map('mapCompareB', {zoomControl:true}).setView(map.getCenter(), map.getZoom());
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:20}).addTo(mapCompareB);
+        }
+        mapCompareA.invalidateSize(); mapCompareB.invalidateSize();
+        runCompare();
+    }, 50);
+}
+
+function closeCompareModal() {
+    document.getElementById('compareModalOverlay').style.display = 'none';
+}
+
+async function _loadCompareSide(mapInstance, dateStr, statsElId) {
+    const statsEl = document.getElementById(statsElId);
+    statsEl.innerHTML = '<span style="color:#94a3b8;">⏳ Chargement…</span>';
+    if (mapInstance._compareLayer) mapInstance.removeLayer(mapInstance._compareLayer);
+    const layer = L.layerGroup().addTo(mapInstance);
+    mapInstance._compareLayer = layer;
+
+    const deviceIds = getSelectedDeviceIds();
+    if (!dateStr || !deviceIds.length) { statsEl.innerHTML = '<span style="color:#64748b;">Choisissez une date</span>'; return; }
+
+    let totalArea = 0, totalDist = 0, totalPassages = 0;
+    const allBounds = [];
+
+    await Promise.all(deviceIds.map(async devId => {
+        try {
+            const r = await fetch(`/api/corridors?device_id=${encodeURIComponent(devId)}&date=${dateStr}`);
+            if (!r.ok) return;
+            const data = await r.json();
+            const color = colorForDevice(devId);
+            (data.corridors || []).forEach(c => {
+                const quads = (c.quads && c.quads.length) ? c.quads : [c.polygon];
+                quads.forEach(q => {
+                    L.polygon(q, {color, weight:0, stroke:false, fillColor:color, fillOpacity:0.55}).addTo(layer);
+                });
+                c.polygon.forEach(pt => allBounds.push(pt));
+            });
+            totalArea += data.stats?.area_ha || 0;
+            totalDist += data.stats?.dist_km || 0;
+            totalPassages += data.stats?.nb_passages || 0;
+        } catch(e) {}
+    }));
+
+    if (allBounds.length) mapInstance.fitBounds(L.latLngBounds(allBounds), {padding:[20,20]});
+    statsEl.innerHTML = `
+        <div class="stat-row"><span class="stat-label">Surface</span><span class="stat-value">${totalArea.toFixed(2)} <span class="stat-unit">ha</span></span></div>
+        <div class="stat-row"><span class="stat-label">Distance</span><span class="stat-value">${totalDist.toFixed(2)} <span class="stat-unit">km</span></span></div>
+        <div class="stat-row"><span class="stat-label">Passages</span><span class="stat-value">${totalPassages}</span></div>
+    `;
+}
+
+function runCompare() {
+    const dateA = document.getElementById('compareDateA').value;
+    const dateB = document.getElementById('compareDateB').value;
+    if (mapCompareA) _loadCompareSide(mapCompareA, dateA, 'compareStatsA');
+    if (mapCompareB) _loadCompareSide(mapCompareB, dateB, 'compareStatsB');
+}
+
+// ── Navigation rapide de la date ────────────────────────────────────────────
+function shiftDate(delta) {
+    const inp = document.getElementById('dateInput');
+    const d = inp.value ? new Date(inp.value + 'T00:00:00') : new Date();
+    d.setDate(d.getDate() + delta);
+    inp.value = d.toISOString().slice(0,10);
+    renderCalendar();
+}
+
+function setToday() {
+    document.getElementById('dateInput').value = new Date().toISOString().slice(0,10);
+    renderCalendar();
+}
+
+// ── Export KML ────────────────────────────────────────────────────────────
+function hexToKmlColor(hex) {
+    // KML = aabbggrr (alpha + BGR), on fixe une opacité fixe
+    const c = hex.replace('#','');
+    const r = c.substring(0,2), g = c.substring(2,4), b = c.substring(4,6);
+    return `88${b}${g}${r}`;
+}
+
+function exportKML() {
+    const totalCorridors = Object.values(devicesData).reduce((n,d) => n + d.corridors.length, 0);
+    if(!totalCorridors) { showToast('Aucun corridor à exporter'); return; }
+    const date = document.getElementById('dateInput').value;
+
+    let kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n  <name>Chantiers ${date}</name>\n`;
+
+    Object.entries(devicesData).forEach(([devId, d]) => {
+        if(!d.corridors.length) return;
+        const styleId = `style_${devId}`;
+        const kcolor = hexToKmlColor(d.color);
+        kml += `  <Style id="${styleId}"><PolyStyle><color>${kcolor}</color><fill>1</fill></PolyStyle><LineStyle><color>ff${kcolor.substring(2)}</color><width>1</width></LineStyle></Style>\n`;
+        kml += `  <Folder><name>${d.name}</name>\n`;
+        d.corridors.forEach((c,i) => {
+            const coords = c.polygon.map(([lat,lon]) => `${lon},${lat},0`).join(' ');
+            kml += `    <Placemark><name>${d.name} — Passage ${i+1} — ${c.area_ha} ha</name><styleUrl>#${styleId}</styleUrl><Polygon><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>\n`;
+        });
+        kml += `  </Folder>\n`;
+    });
+
+    kml += '</Document>\n</kml>';
+    const a = Object.assign(document.createElement('a'), {
+        href: URL.createObjectURL(new Blob([kml], {type:'application/vnd.google-earth.kml+xml'})),
+        download: `corridors_${date}.kml`
+    });
+    a.click();
+    showToast('📥 KML exporté');
+}
+
+// ── Export PDF ────────────────────────────────────────────────────────────
+async function exportPDF() {
+    const deviceIds = getSelectedDeviceIds();
+    const date = document.getElementById('dateInput').value;
+    if(!deviceIds.length) { showToast('Sélectionnez au moins un véhicule'); return; }
+
+    showToast('📄 Génération du PDF…');
+    try {
+        const params = new URLSearchParams({date, device_ids: deviceIds.join(',')});
+        if(lastDetectedGeofenceIds.length) params.set('geofence_ids', lastDetectedGeofenceIds.join(','));
+
+        const r = await fetch(`/api/export_pdf?${params}`);
+        if(!r.ok) {
+            const data = await r.json().catch(() => ({}));
+            showToast('❌ ' + (data.error || 'Erreur génération PDF'));
+            return;
+        }
+        const blob = await r.blob();
+        const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(blob),
+            download: `synthese_chantier_${date}.pdf`
+        });
+        a.click();
+        showToast('📄 PDF généré');
+    } catch(e) {
+        showToast('❌ Erreur réseau lors de la génération du PDF');
+    }
+}
+
+// ── Export GeoJSON / Shapefile (SIG) ────────────────────────────────────────
+async function _downloadExport(url, filename, label) {
+    const deviceIds = getSelectedDeviceIds();
+    const date = document.getElementById('dateInput').value;
+    if(!deviceIds.length) { showToast('Sélectionnez au moins un véhicule'); return; }
+
+    showToast(`⏳ Génération ${label}…`);
+    try {
+        const params = new URLSearchParams({date, device_ids: deviceIds.join(',')});
+        const r = await fetch(`${url}?${params}`);
+        if(!r.ok) {
+            const data = await r.json().catch(() => ({}));
+            showToast('❌ ' + (data.error || `Erreur génération ${label}`));
+            return;
+        }
+        const blob = await r.blob();
+        const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(blob),
+            download: filename
+        });
+        a.click();
+        showToast(`✅ ${label} exporté`);
+    } catch(e) {
+        showToast(`❌ Erreur réseau lors de l'export ${label}`);
+    }
+}
+
+function exportGeoJSON() {
+    const date = document.getElementById('dateInput').value;
+    _downloadExport('/api/export_geojson', `corridors_${date}.geojson`, 'GeoJSON');
+}
+
+function exportShapefile() {
+    const date = document.getElementById('dateInput').value;
+    _downloadExport('/api/export_shapefile', `corridors_${date}_shapefile.zip`, 'Shapefile');
+}
+
+// ── Résumé de période (Excel) ───────────────────────────────────────────────
+function setSummaryPreset(preset) {
+    const today = new Date();
+    let start, end = today;
+    if (preset === 'month') {
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else {
+        start = new Date(today);
+        start.setDate(start.getDate() - (preset - 1));
+    }
+    document.getElementById('summaryStartDate').value = start.toISOString().slice(0,10);
+    document.getElementById('summaryEndDate').value = end.toISOString().slice(0,10);
+}
+
+async function exportSummaryExcel() {
+    const startDate = document.getElementById('summaryStartDate').value;
+    const endDate   = document.getElementById('summaryEndDate').value;
+    const deviceIds = getSelectedDeviceIds();
+
+    if (!startDate || !endDate) { showToast('Choisissez une période (du / au)'); return; }
+    if (!deviceIds.length) { showToast('Sélectionnez au moins un véhicule'); return; }
+
+    showToast('⏳ Génération du résumé Excel… (peut prendre un moment sur une longue période)');
+    try {
+        const params = new URLSearchParams({start_date: startDate, end_date: endDate, device_ids: deviceIds.join(',')});
+        const r = await fetch(`/api/export_summary_excel?${params}`);
+        if (!r.ok) {
+            const data = await r.json().catch(() => ({}));
+            showToast('❌ ' + (data.error || 'Erreur génération du résumé'));
+            return;
+        }
+        const blob = await r.blob();
+        const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(blob),
+            download: `resume_${startDate}_au_${endDate}.xlsx`
+        });
+        a.click();
+        showToast('📥 Résumé Excel exporté');
+    } catch (e) {
+        showToast('❌ Erreur réseau lors de la génération du résumé');
+    }
+}
+
+// ── Calendrier ────────────────────────────────────────────────────────────
+let calYear, calMonth;
+let calData = {}; // {"2026-07-04": [{id,name},...], ...}
+let calLoading = false;
+
+function toggleCalendarExpand() {
+    const el = document.getElementById('calendar-section');
+    const btn = document.getElementById('calExpandBtn');
+    const expanded = el.classList.toggle('cal-fullscreen');
+    btn.textContent = expanded ? '⤡' : '⤢';
+    btn.title = expanded ? 'Réduire le calendrier' : 'Agrandir le calendrier';
+}
+
+function initCalendar() {
+    const now = new Date();
+    calYear  = now.getFullYear();
+    calMonth = now.getMonth() + 1;
+}
+
+async function loadCalendarMonth() {
+    const monthStr = `${calYear}-${String(calMonth).padStart(2,'0')}`;
+    document.getElementById('calMonthLabel').textContent = `⏳ ${monthStr}`;
+    if(calLoading) return;
+    calLoading = true;
+    try {
+        const r = await fetch(`/api/chantiers_calendar?month=${monthStr}`);
+        if(r.ok) calData = {...calData, ...await r.json()};
+    } catch(e) {}
+    calLoading = false;
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const DAYS   = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+    document.getElementById('calMonthLabel').textContent = `${MONTHS[calMonth-1]} ${calYear}`;
+
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = DAYS.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+
+    const first   = new Date(calYear, calMonth-1, 1);
+    const lastDay = new Date(calYear, calMonth, 0).getDate();
+    let startDow  = (first.getDay() + 6) % 7; // 0=lundi
+
+    const today      = new Date().toISOString().slice(0,10);
+    const selDate    = document.getElementById('dateInput').value;
+    const monthStr   = `${calYear}-${String(calMonth).padStart(2,'0')}`;
+
+    // Jours du mois précédent
+    for(let i=0; i<startDow; i++) {
+        const prevDay = new Date(calYear, calMonth-1, -startDow+i+1);
+        grid.innerHTML += `<div class="cal-cell other-month">${prevDay.getDate()}</div>`;
+    }
+
+    for(let d=1; d<=lastDay; d++) {
+        const dateStr  = `${monthStr}-${String(d).padStart(2,'0')}`;
+        const vehicles = calData[dateStr] || [];
+        const hasWork  = vehicles.length > 0;
+        const isToday  = dateStr === today;
+        const isSel    = dateStr === selDate;
+
+        const dots     = vehicles.map(v =>
+            `<div class="cal-dot" style="background:${colorForDevice(v.id)};" title="${v.name}"></div>`
+        ).join('');
+
+        const classes  = ['cal-cell',
+            hasWork ? 'has-work' : '',
+            isToday ? 'today'    : '',
+            isSel   ? 'selected' : ''
+        ].join(' ');
+
+        const onclick  = hasWork ? `onclick="selectCalDay('${dateStr}')"` : '';
+        grid.innerHTML += `<div class="${classes}" ${onclick}>
+            ${d}
+            ${hasWork ? `<div class="cal-dots">${dots}</div>` : ''}
+        </div>`;
+    }
+
+    // Compléter si nécessaire
+    const total = startDow + lastDay;
+    const rem   = total % 7 === 0 ? 0 : 7 - (total % 7);
+    for(let i=1; i<=rem; i++)
+        grid.innerHTML += `<div class="cal-cell other-month">${i}</div>`;
+
+    // Légende couleurs tracteurs
+    const allVehicles = {};
+    Object.values(calData).forEach(vlist => vlist.forEach(v => { allVehicles[v.id] = v.name; }));
+    const vEntries = Object.entries(allVehicles);
+    if(vEntries.length > 0) {
+        const legend = document.getElementById('calDetail');
+        legend.innerHTML = '<div style="color:#64748b;margin-bottom:6px;">Véhicules :</div>' +
+            vEntries.map(([id,name]) =>
+                `<span class="vehicle-pill"><div class="cal-dot" style="background:${colorForDevice(id)};"></div>${name}</span>`
+            ).join('');
+    }
+}
+
+function selectCalDay(dateStr) {
+    document.getElementById('dateInput').value = dateStr;
+    // Cocher tous les véhicules ayant travaillé ce jour
+    const vehicles = calData[dateStr] || [];
+    setSelectedDeviceIds(vehicles.map(v => v.id));
+    renderCalendar(); // mise à jour de la cellule sélectionnée
+    document.getElementById('calDetail').innerHTML =
+        `<strong style="color:#e2e8f0;">📅 ${dateStr}</strong><br>` +
+        vehicles.map(v => `<span class="vehicle-pill"><span class="device-check-dot" style="background:${colorForDevice(v.id)};display:inline-block;"></span>🚜 ${v.name}</span>`).join('') +
+        '<br><button onclick="collapseCalendarAndLoad()" style="margin-top:8px;background:#16a34a;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;">🔍 Charger tous ces chantiers</button>';
+}
+
+function collapseCalendarAndLoad() {
+    document.getElementById('calendar-section').classList.remove('cal-fullscreen');
+    const btn = document.getElementById('calExpandBtn');
+    if (btn) { btn.textContent = '⤢'; btn.title = 'Agrandir le calendrier'; }
+    loadChantier();
+}
+
+function changeMonth(delta) {
+    calMonth += delta;
+    if(calMonth > 12) { calMonth=1; calYear++; }
+    if(calMonth < 1)  { calMonth=12; calYear--; }
+    loadCalendarMonth();
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.style.display='none', 3000);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('dateInput').value = new Date().toISOString().slice(0,10);
+initCalendar();
+
+// Lien direct depuis le dashboard principal (ex: fiche d'intervention) :
+// /chantier?date=YYYY-MM-DD&device_ids=1,2 pré-sélectionne la date et les véhicules,
+// puis charge automatiquement le chantier correspondant.
+const _urlParams = new URLSearchParams(window.location.search);
+const _linkedDate = _urlParams.get('date');
+const _linkedDeviceIds = (_urlParams.get('device_ids') || '').split(',').filter(Boolean);
+if (_linkedDate) document.getElementById('dateInput').value = _linkedDate;
+
+loadDevices().then(() => {
+    loadCalendarMonth();
+    if (_linkedDeviceIds.length) {
+        setSelectedDeviceIds(_linkedDeviceIds);
+        loadChantier();
+    }
+});
+loadCatalogueOutils();
+loadGeofences();
+loadFieldPoints();
+loadAndRenderSousParcelles();
+document.addEventListener('keydown', e => { if(e.key==='Enter') loadChantier(); });
+</script>
+</body>
+</html>
